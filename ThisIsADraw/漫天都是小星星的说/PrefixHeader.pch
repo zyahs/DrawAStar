@@ -1,0 +1,20 @@
+//
+//  PrefixHeader.pch
+//  漫天都是小星星的说
+//
+//  Created by 飞奔的羊 on 16/9/1.
+//  Copyright © 2016年 itcast. All rights reserved.
+//
+
+
+#import <QuartzCore/CoreAnimation.h>
+#define Color(a) [UIColor colorForHex:a]
+#define IMAGE(a) [UIImage imageNamed:a]
+#define WIDTH [UIScreen mainScreen].bounds.size.width
+#define HEIGHT [UIScreen mainScreen].bounds.size.height
+//自定 NSLog
+#ifdef DEBUG
+#define ZYLog(...) NSLog(@"%s 第%d行 \n %@\n\n",__func__,__LINE__,[NSString stringWithFormat:__VA_ARGS__])
+#else
+#define ZYLog(...)
+#endif
