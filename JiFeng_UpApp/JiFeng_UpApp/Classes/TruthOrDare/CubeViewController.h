@@ -9,7 +9,7 @@
 
 NS_ASSUME_NONNULL_BEGIN
 
-@interface CubeViewController : UIViewController
+@interface CubeViewController : rootVcViewController
 
 @end
 

@@ -13,6 +13,10 @@
 #import "StarDrawingViewController.h"
 #import "CubeViewController.h"
 #import "TDSwitchViewController.h"
+#import "UndercoverViewController.h"
+#import "KingGameViewController.h"
+
+
 @interface ViewController ()
 @property (nonatomic, strong) StarDrawingView *drawingView;
 
@@ -28,88 +32,8 @@
 - (void)viewWillAppear:(BOOL)animated {
     [super viewWillAppear:animated];
     [self setupLabelAnimations];
-    
 }
 
-- (UIColor *)randomColor {
-    return [UIColor colorWithRed:arc4random_uniform(256)/255.0
-                           green:arc4random_uniform(256)/255.0
-                            blue:arc4random_uniform(256)/255.0
-                           alpha:1.0];
-}
-
-- (UIColor *)randomColorWithAlpha:(CGFloat)alpha {
-    return [UIColor colorWithRed:arc4random_uniform(256)/255.0
-                           green:arc4random_uniform(256)/255.0
-                            blue:arc4random_uniform(256)/255.0
-                           alpha:alpha];
-}
-- (UIButton *)createAnimatedButtonWithText:(NSString *)title
-                                    action:(SEL)selector
-                                  position:(CGPoint)position {
-    
-    UIButton *button = [[UIButton alloc] initWithFrame:CGRectMake(position.x, position.y, 100, 50)];
-    [button setBackgroundColor:[UIColor redColor]];
-    [button setTitle:title forState:UIControlStateNormal];
-    [button setTitleColor:[UIColor whiteColor] forState:UIControlStateNormal];
-    button.titleLabel.font = [UIFont fontWithName:@"AvenirNext-Heavy" size:16];
-    button.layer.cornerRadius = 12;
-    button.clipsToBounds = YES;
-    
-    // 阴影
-    button.layer.shadowColor = [self randomColor].CGColor;
-    button.layer.shadowRadius = 16;
-    button.layer.shadowOpacity = 0.9;
-    button.layer.shadowOffset = CGSizeMake(0, 0);
-    
-    // 渐变背景
-    CAGradientLayer *gradient = [CAGradientLayer layer];
-    gradient.frame = button.bounds;
-    NSMutableArray *colors = [NSMutableArray array];
-    for (int i = 0; i < 5; i++) {
-        [colors addObject:(__bridge id)[self randomColor].CGColor];
-    }
-    gradient.colors = colors;
-    gradient.startPoint = CGPointMake(0, 0);
-    gradient.endPoint = CGPointMake(1, 1);
-    gradient.cornerRadius = 12;
-    [button.layer insertSublayer:gradient atIndex:0];
-    
-    // 点击事件
-    [button addTarget:self action:selector forControlEvents:UIControlEventTouchUpInside];
-    
-    // 脉冲动画
-    CABasicAnimation *pulse = [CABasicAnimation animationWithKeyPath:@"transform.scale"];
-    pulse.fromValue = @0.97;
-    pulse.toValue = @1.05;
-    pulse.duration = 1.2;
-    pulse.autoreverses = YES;
-    pulse.repeatCount = HUGE_VALF;
-    [button.layer addAnimation:pulse forKey:@"pulse"];
-    
-    // 粒子动画
-    CAEmitterLayer *emitter = [CAEmitterLayer layer];
-    emitter.emitterPosition = CGPointMake(button.bounds.size.width / 2, button.bounds.size.height / 2);
-    emitter.emitterShape = kCAEmitterLayerCircle;
-    emitter.emitterSize = CGSizeMake(button.bounds.size.width * 0.9, button.bounds.size.height * 0.9);
-    
-    CAEmitterCell *cell = [CAEmitterCell emitterCell];
-    cell.birthRate = 1.2;
-    cell.lifetime = 1.2;
-    cell.velocity = 30;
-    cell.velocityRange = 15;
-    cell.scale = 0.03;
-    cell.scaleRange = 0.02;
-    cell.emissionRange = M_PI * 2;
-    cell.contents = (id)[[UIImage systemImageNamed:@"sparkle"] imageWithRenderingMode:UIImageRenderingModeAlwaysTemplate].CGImage;
-    cell.color = [self randomColorWithAlpha:0.8].CGColor;
-    
-    emitter.emitterCells = @[cell];
-    [button.layer addSublayer:emitter];
-    
-    [self.view addSubview:button];
-    return button;
-}
 - (void)viewDidLoad {
     [super viewDidLoad];
     
@@ -137,22 +61,42 @@
     [self.drawingView startDrawing];
     
     
-    [self createAnimatedButtonWithText:@"画板"
-                                action:@selector(showTruth)
-                              position:CGPointMake(50, 700)];
-    
-    [self createAnimatedButtonWithText:@"真心话大冒险"
-                                action:@selector(showDare)
-                              position:CGPointMake(175, 700)];
-    
-    [self createAnimatedButtonWithText:@"骰子游戏"
-                                action:@selector(showDareNoaml)
-                              position:CGPointMake(300, 700)];
-    
-    [self createAnimatedButtonWithText:@" 五子棋"
+    CGFloat screenWidth = [UIScreen mainScreen].bounds.size.width;
+    CGFloat buttonWidth = 100.0; // 假设每个按钮宽度为 100
+    CGFloat spacing = (screenWidth - buttonWidth * 3) / 4.0;
+    CGFloat yPosition = 700;
+
+    UIButton *drawBtn = [ColorButton createAnimatedButtonWithText:@"画板"
+                                                            target:self
+                                                            action:@selector(showTruth)
+                                                          position:CGPointMake(spacing, yPosition)];
+    [self.view addSubview:drawBtn];
+
+    UIButton *dareBtn = [ColorButton createAnimatedButtonWithText:@"真心话大冒险"
+                                                            target:self
+                                                            action:@selector(showDare)
+                                                          position:CGPointMake(spacing * 2 + buttonWidth, yPosition)];
+    [self.view addSubview:dareBtn];
+
+    UIButton *numBtn = [ColorButton createAnimatedButtonWithText:@"骰子游戏"
+                                                           target:self
+                                                           action:@selector(showDareNoaml)
+                                                         position:CGPointMake(spacing * 3 + buttonWidth * 2, yPosition)];
+    [self.view addSubview:numBtn];
+    UIButton *fiveBtn = [ColorButton createAnimatedButtonWithText:@"五子棋" target:self
                                 action:@selector(jumpFive)
-                              position:CGPointMake(50, 300)];
+                              position:CGPointMake(spacing, 300)];
+    [self.view addSubview:fiveBtn];
     
+    UIButton *unBtn = [ColorButton createAnimatedButtonWithText:@"谁是卧底" target:self
+                                action:@selector(jumpUnder)
+                              position:CGPointMake(spacing*2 +buttonWidth, 300)];
+    
+    [self.view addSubview:unBtn];
+    UIButton *kingBtn = [ColorButton createAnimatedButtonWithText:@"国王游戏" target:self
+                                action:@selector(jumpKing)
+                              position:CGPointMake(spacing*3+buttonWidth*2, 300)];
+    [self.view addSubview:kingBtn];
     // Do any additional setup after loading the view.
     UILabel *animatedLabel = [[UILabel alloc] initWithFrame:CGRectMake(0, 0, 400, 200)];
     animatedLabel.text = @"继风的小游戏";
@@ -164,25 +108,11 @@
     [self.view addSubview:animatedLabel];
 //    [self setupLabelAnimations];
     
-    // 背景渐变动画
-    CAGradientLayer *gradient = [CAGradientLayer layer];
-    gradient.frame = self.view.bounds;
-    gradient.colors = @[(__bridge id)[UIColor systemPinkColor].CGColor,
-                        (__bridge id)[UIColor systemPurpleColor].CGColor,
-                        (__bridge id)[UIColor systemBlueColor].CGColor];
-    gradient.startPoint = CGPointMake(0, 0);
-    gradient.endPoint = CGPointMake(1, 1);
-    [self.view.layer insertSublayer:gradient atIndex:0];
     
-    CABasicAnimation *bgAnim = [CABasicAnimation animationWithKeyPath:@"colors"];
-    bgAnim.fromValue = gradient.colors;
-    bgAnim.toValue = @[(__bridge id)[UIColor systemTealColor].CGColor,
-                       (__bridge id)[UIColor systemOrangeColor].CGColor,
-                       (__bridge id)[UIColor systemGreenColor].CGColor];
-    bgAnim.duration = 4.0;
-    bgAnim.autoreverses = YES;
-    bgAnim.repeatCount = HUGE_VALF;
-    [gradient addAnimation:bgAnim forKey:@"colorChange"];
+
+    
+    
+
     
     // label 漂浮动画
     CAKeyframeAnimation *move = [CAKeyframeAnimation animationWithKeyPath:@"position"];
@@ -255,49 +185,21 @@
 
 }
 
+-(void)jumpUnder{
+    UndercoverViewController *five = [[UndercoverViewController alloc]init];
+    
+    [self.navigationController pushViewController:five animated:YES];
 
 
-
-// 动画展示真心话/大冒险公共方法
-- (void)showRandomPromptFrom:(NSArray<NSString *> *)prompts title:(NSString *)title {
-    UIViewController *vc = [[UIViewController alloc] init];
-    vc.view.backgroundColor = [UIColor whiteColor];
-    vc.title = title;
-    
-    UILabel *label = [[UILabel alloc] init];
-    label.translatesAutoresizingMaskIntoConstraints = NO;
-    label.numberOfLines = 0;
-    label.textAlignment = NSTextAlignmentCenter;
-    label.text = prompts[arc4random_uniform((uint32_t)prompts.count)];
-    label.font = [UIFont fontWithName:@"AvenirNext-DemiBold" size:18];
-    label.alpha = 0.0;
-    label.transform = CGAffineTransformMakeScale(0.8, 0.8);
-    label.textColor = [UIColor redColor];
-    [vc.view addSubview:label];
-    
-    [NSLayoutConstraint activateConstraints:@[
-        [label.centerXAnchor constraintEqualToAnchor:vc.view.centerXAnchor],
-        [label.centerYAnchor constraintEqualToAnchor:vc.view.centerYAnchor],
-        [label.leadingAnchor constraintGreaterThanOrEqualToAnchor:vc.view.leadingAnchor constant:20],
-        [label.trailingAnchor constraintLessThanOrEqualToAnchor:vc.view.trailingAnchor constant:-20]
-    ]];
-    
-    [UIView animateWithDuration:0.6
-                          delay:0
-         usingSpringWithDamping:0.6
-          initialSpringVelocity:0.8
-                        options:UIViewAnimationOptionCurveEaseOut
-                     animations:^{
-        label.alpha = 1.0;
-        label.transform = CGAffineTransformIdentity;
-    } completion:nil];
-    
-    if (self.navigationController) {
-        [self.navigationController pushViewController:vc animated:YES];
-    } else {
-        [self presentViewController:vc animated:YES completion:nil];
-    }
 }
+-(void)jumpKing{
+    KingGameViewController *five = [[KingGameViewController alloc]init];
+    
+    [self.navigationController pushViewController:five animated:YES];
+
+
+}
+
 
 // 新 showTruth 方法，带渐变动画和 label 漂浮
 - (void)showTruth {
