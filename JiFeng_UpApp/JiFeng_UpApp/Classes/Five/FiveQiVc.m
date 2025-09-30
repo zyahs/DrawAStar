@@ -17,6 +17,8 @@
 @property (nonatomic,weak) UIButton * changeBoardButton;
 @property (nonatomic, strong) UILabel *resultLabel;
 @property (nonatomic, strong) CAGradientLayer *resultGradientLayer;
+@property (nonatomic,strong)UIImageView *bgImageView;
+@property (nonatomic, strong) UIButton *navBackButton;
 
 @end
 @implementation FiveQiVc
@@ -26,19 +28,58 @@
 - (void)viewDidLoad {
     [super viewDidLoad];
 
-    for (UIView *subview in self.view.subviews) {
-        [subview removeFromSuperview];
-    }
+//    for (UIView *subview in self.view.subviews) {
+//        [subview removeFromSuperview];
+//    }
 
+    self.bgImageView = [[UIImageView alloc] initWithImage:[UIImage imageNamed:@"b5"]];
+    self.bgImageView.frame = self.view.bounds;
+    self.bgImageView.autoresizingMask = UIViewAutoresizingFlexibleWidth | UIViewAutoresizingFlexibleHeight;
+    self.bgImageView.contentMode = UIViewContentModeScaleAspectFill;
+    [self.view addSubview:self.bgImageView];
     [self setUp];
 //    self.title = @"这是五子棋";
     [self setupResultLabel];
+
+    // Hide system nav bar (we use a custom back button)
+    [self.navigationController setNavigationBarHidden:YES animated:NO];
+
+    // Create custom back button in top-left, respecting safe area
+    if (!self.navBackButton) {
+        UIButton *back = [UIButton buttonWithType:UIButtonTypeCustom];
+        [back setImage:[UIImage imageNamed:@"back"] forState:UIControlStateNormal];
+        back.adjustsImageWhenHighlighted = YES;
+        back.contentEdgeInsets = UIEdgeInsetsMake(8, 8, 8, 8);
+        [back addTarget:self action:@selector(back) forControlEvents:UIControlEventTouchUpInside];
+        self.navBackButton = back;
+        [self.view addSubview:back];
+    }
+    [self.view bringSubviewToFront:self.navBackButton];
 }
 
 
+- (void)viewDidLayoutSubviews {
+    [super viewDidLayoutSubviews];
+    UIEdgeInsets insets;
+    if (@available(iOS 11.0, *)) {
+        insets = self.view.safeAreaInsets;
+    } else {
+        insets = UIEdgeInsetsMake(20, 0, 0, 0);
+    }
+    CGFloat size = 36.0; // visible tap target will be larger due to edge insets
+    self.navBackButton.frame = CGRectMake(insets.left + 12, insets.top + 8, size, size);
+    [self.view bringSubviewToFront:self.navBackButton];
+}
+
 - (void)setupResultLabel {
+    // Avoid duplicating gradient layer on repeated setup calls
+    if (self.resultGradientLayer.superlayer) {
+        [self.resultGradientLayer removeFromSuperlayer];
+        self.resultGradientLayer = nil;
+    }
+
     CGFloat labelWidth = self.view.bounds.size.width;
-    CGFloat labelHeight = 1000;
+    CGFloat labelHeight = 44;
     CGRect labelFrame = CGRectMake((self.view.bounds.size.width - labelWidth) / 2, 100, labelWidth, labelHeight);
 
     // 创建渐变图层
@@ -49,9 +90,10 @@
                              (__bridge id)[UIColor purpleColor].CGColor];
     gradientLayer.startPoint = CGPointMake(0, 0);
     gradientLayer.endPoint = CGPointMake(1, 0);
-    [self.view.layer addSublayer:gradientLayer];
+    // Insert as background layer to avoid covering buttons
+    [self.view.layer insertSublayer:gradientLayer atIndex:0];
     self.resultGradientLayer = gradientLayer;
-    self.resultLabel.numberOfLines = 0;
+    // self.resultLabel.numberOfLines = 0; // removed to avoid nil access
     // 创建文字图层
     CATextLayer *textLayer = [CATextLayer layer];
     textLayer.frame = gradientLayer.bounds;
@@ -140,8 +182,9 @@
     [self.resultGradientLayer addAnimation:scaleAnim forKey:@"pulse"];
     [self.resultGradientLayer addAnimation:shadowAnim forKey:@"trail"];
     self.resultGradientLayer.masksToBounds = NO;
-    // 注意：粒子层添加在 self.view.layer，确保不会被 gradientLayer.mask 遮住
-    [self.view.layer insertSublayer:orbitEmitter above:self.resultGradientLayer];
+    // Keep emitter just above gradient but below UI
+    NSUInteger gradientIndex = [self.view.layer.sublayers indexOfObject:self.resultGradientLayer];
+    [self.view.layer insertSublayer:orbitEmitter atIndex:(gradientIndex != NSNotFound ? gradientIndex + 1 : 1)];
 }
 
 

@@ -9,9 +9,10 @@
 
 #import <UIKit/UIKit.h>
 
-@interface TruthOrDareViewController : UIViewController
+@interface TruthOrDareViewController : rootVcViewController
 
 @property (nonatomic, strong) NSString *displayText;
 @property (nonatomic, strong) NSArray *item;
+@property (nonatomic, strong) NSString *imageName;
 
 @end

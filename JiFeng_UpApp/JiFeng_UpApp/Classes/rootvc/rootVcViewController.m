@@ -6,89 +6,69 @@
 //
 
 #import "rootVcViewController.h"
+#import <UIKit/UIKit.h>
 
-@interface GradientBackgroundView : UIView
-- (void)startAnimating;
-- (void)stopAnimating;
-@end
-
-@interface GradientBackgroundView ()
-@property (nonatomic, strong) CAGradientLayer *gradientLayer;
-@property (nonatomic, strong) CADisplayLink *displayLink;
-@property (nonatomic, assign) CGFloat hue;
-@end
-
-@implementation GradientBackgroundView
-
-- (instancetype)initWithFrame:(CGRect)frame {
-    if (self = [super initWithFrame:frame]) {
-        self.gradientLayer = [CAGradientLayer layer];
-        self.gradientLayer.frame = self.bounds;
-        self.gradientLayer.startPoint = CGPointMake(0, 0);
-        self.gradientLayer.endPoint = CGPointMake(1, 1);
-        [self.layer addSublayer:self.gradientLayer];
-        
-        self.hue = 0;
-        [self updateGradientColors];
-    }
-    return self;
-}
-- (void)stopAnimating {
-    [self.displayLink invalidate];
-    self.displayLink = nil;
-}
-
-- (void)startAnimating {
-    if (!self.displayLink) {
-        self.displayLink = [CADisplayLink displayLinkWithTarget:self selector:@selector(updateGradient)];
-        [self.displayLink addToRunLoop:[NSRunLoop mainRunLoop] forMode:NSRunLoopCommonModes];
-    }
-}
-
-- (void)updateGradient {
-    self.hue += 0.002;
-    if (self.hue > 1.0) self.hue -= 1.0;
-    [self updateGradientColors];
-}
-
-- (void)updateGradientColors {
-    UIColor *color1 = [UIColor colorWithHue:self.hue saturation:0.8 brightness:1 alpha:1];
-    UIColor *color2 = [UIColor colorWithHue:fmod(self.hue + 0.33, 1.0) saturation:0.8 brightness:1 alpha:1];
-    UIColor *color3 = [UIColor colorWithHue:fmod(self.hue + 0.66, 1.0) saturation:0.8 brightness:1 alpha:1];
-    
-    self.gradientLayer.colors = @[
-        (id)color1.CGColor,
-        (id)color2.CGColor,
-        (id)color3.CGColor
-    ];
-}
-
-@end
-
-
-@interface rootVcViewController ()
-@property (nonatomic, strong) GradientBackgroundView *gradientView;
+@interface rootVcViewController () <UIGestureRecognizerDelegate>
+@property (nonatomic, strong) UIButton *backButton;
 @end
 
 @implementation rootVcViewController
+
 - (void)viewWillAppear:(BOOL)animated {
     [super viewWillAppear:animated];
-    [self.gradientView startAnimating];
+    [self jf_installBackIfNeeded];
 }
+
 - (void)viewDidLoad {
     [super viewDidLoad];
-    self.gradientView = [[GradientBackgroundView alloc] initWithFrame:self.view.bounds];
-    [self.view insertSubview:self.gradientView atIndex:0];
+    // 确保导航栏隐藏
+    [self.navigationController setNavigationBarHidden:YES animated:NO];
 }
 
+#pragma mark - Back Button
 
-- (void)viewWillDisappear:(BOOL)animated {
-    [super viewWillDisappear:animated];
-    [self.gradientView stopAnimating];
+- (void)jf_installBackIfNeeded {
+    // 只有当当前控制器不是栈底（root）时才显示返回按钮
+    if (!self.navigationController) { return; }
+    if (self.navigationController.viewControllers.firstObject == self) {
+        // 如果是根控制器，移除返回按钮
+        [self.backButton removeFromSuperview];
+        self.backButton = nil;
+        return;
+    }
+    
+    if (!self.backButton) {
+        UIButton *backButton = [UIButton buttonWithType:UIButtonTypeCustom];
+        UIImage *img = [UIImage imageNamed:@"back"];
+        [backButton setImage:img forState:UIControlStateNormal];
+        backButton.frame = CGRectMake(0, 0, 30, 30);
+        [backButton addTarget:self action:@selector(jf_goBack) forControlEvents:UIControlEventTouchUpInside];
+        self.backButton = backButton;
+        [self.view addSubview:backButton];
+        
+        backButton.translatesAutoresizingMaskIntoConstraints = NO;
+        UILayoutGuide *safeArea = self.view.safeAreaLayoutGuide;
+        [NSLayoutConstraint activateConstraints:@[
+            [backButton.leadingAnchor constraintEqualToAnchor:safeArea.leadingAnchor constant:16],
+            [backButton.topAnchor constraintEqualToAnchor:safeArea.topAnchor constant:10],
+            [backButton.widthAnchor constraintEqualToConstant:30],
+            [backButton.heightAnchor constraintEqualToConstant:30]
+        ]];
+    }
+    
+    // 修复自定义返回按钮导致侧滑返回手势失效的问题
+    self.navigationController.interactivePopGestureRecognizer.delegate = self;
+    self.navigationController.interactivePopGestureRecognizer.enabled = YES;
 }
 
-- (void)dealloc {
-    [self.gradientView removeFromSuperview];
-    self.gradientView = nil;
+- (void)jf_goBack {
+    [self.navigationController popViewControllerAnimated:YES];
 }
+
+#pragma mark - UIGestureRecognizerDelegate
+- (BOOL)gestureRecognizerShouldBegin:(UIGestureRecognizer *)gestureRecognizer {
+    // 仅当栈中有上一层时允许侧滑返回
+    return self.navigationController.viewControllers.count > 1;
+}
+
 @end

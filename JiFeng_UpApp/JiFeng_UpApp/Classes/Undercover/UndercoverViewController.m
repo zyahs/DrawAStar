@@ -38,7 +38,7 @@
 @property (nonatomic, strong) NSMutableDictionary<NSNumber *, NSString *> *playerIdentities;
 @property (nonatomic, strong) NSMutableSet<NSNumber *> *eliminatedPlayers;
 @property (nonatomic, assign) NSInteger myPlayerNumber;
-
+@property (nonatomic,strong)UIImageView *bgImageView;
 @end
 
 @implementation UndercoverViewController
@@ -47,6 +47,11 @@
     [super viewDidLoad];
     self.title = @"谁是卧底-联机Demo";
     self.view.backgroundColor = [UIColor whiteColor];
+    self.bgImageView = [[UIImageView alloc] initWithImage:[UIImage imageNamed:@"b3"]];
+    self.bgImageView.frame = self.view.bounds;
+    self.bgImageView.autoresizingMask = UIViewAutoresizingFlexibleWidth | UIViewAutoresizingFlexibleHeight;
+    self.bgImageView.contentMode = UIViewContentModeScaleAspectFill;
+    [self.view addSubview:self.bgImageView];
     [self setupUI];
 }
 

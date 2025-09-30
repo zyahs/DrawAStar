@@ -15,7 +15,7 @@
 @property (nonatomic, strong) UIButton *truthButton;
 @property (nonatomic, strong) UIButton *dareButton;
 @property (nonatomic, strong) CAGradientLayer *backgroundLayer;
-
+@property (nonatomic, strong) UIImageView *bgImageView;
 @property (nonatomic, weak) UIButton *finalSelectedCircle;
 
 @end
@@ -336,7 +336,11 @@ static NSArray *dares = @[
 - (void)viewDidLoad {
     [super viewDidLoad];
     self.view.backgroundColor = [UIColor whiteColor];
-    
+    self.bgImageView = [[UIImageView alloc] initWithImage:[UIImage imageNamed:@"b2"]];
+    self.bgImageView.frame = self.view.bounds;
+    self.bgImageView.autoresizingMask = UIViewAutoresizingFlexibleWidth | UIViewAutoresizingFlexibleHeight;
+    self.bgImageView.contentMode = UIViewContentModeScaleAspectFill;
+    [self.view addSubview:self.bgImageView];
     self.backgroundLayer = [CAGradientLayer layer];
     self.backgroundLayer.frame = self.view.bounds;
     self.backgroundLayer.colors = @[
@@ -581,7 +585,7 @@ static NSArray *dares = @[
 // 真心话按钮点击
 - (void)truthSelected {
     TruthOrDareViewController *vc = [[TruthOrDareViewController alloc] init];
-        vc.item = dares1;
+        vc.item = dares;
         vc.displayText = @"真心话";
     
     [self.navigationController pushViewController:vc animated:YES];

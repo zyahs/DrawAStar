@@ -8,6 +8,6 @@
 
 #import "ViewController.h"
 
-@interface FiveQiVc : ViewController
+@interface FiveQiVc : rootVcViewController
 
 @end

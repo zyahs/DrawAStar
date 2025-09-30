@@ -20,6 +20,7 @@
 @property (nonatomic, strong) CATextLayer *resultTextLayer1;
 @property (nonatomic, strong) UIView *hudView;
 @property (nonatomic, strong) UILabel *resultLabel1;
+@property (nonatomic, strong) UIImageView *bgImageView;
 @end
 
 @implementation TruthOrDareViewController
@@ -27,7 +28,11 @@
 - (void)viewDidLoad {
     [super viewDidLoad];
     self.view.backgroundColor = UIColor.blackColor;
-    
+    self.bgImageView = [[UIImageView alloc] initWithImage:[UIImage imageNamed:self.imageName]];
+    self.bgImageView.frame = self.view.bounds;
+    self.bgImageView.autoresizingMask = UIViewAutoresizingFlexibleWidth | UIViewAutoresizingFlexibleHeight;
+    self.bgImageView.contentMode = UIViewContentModeScaleAspectFill;
+    [self.view addSubview:self.bgImageView];
    
     
     UITapGestureRecognizer *tripleTap = [[UITapGestureRecognizer alloc] initWithTarget:self action:@selector(handleTripleTap)];

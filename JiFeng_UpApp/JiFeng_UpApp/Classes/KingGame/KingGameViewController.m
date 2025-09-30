@@ -32,7 +32,7 @@
 @property (nonatomic, strong) UILabel *statusLabel;
 
 @property (nonatomic, assign) NSInteger kingIndex;
-
+@property (nonatomic,strong)UIImageView *bgImageView;
 @end
 
 @implementation KingGameViewController
@@ -43,7 +43,11 @@
     
 //    CAGradientLayer *gradient = [ColorButton createFancyAnimatedGradientForView:self.view];
 //    [self.view.layer insertSublayer:gradient atIndex:0];
-    
+    self.bgImageView = [[UIImageView alloc] initWithImage:[UIImage imageNamed:@"b6"]];
+    self.bgImageView.frame = self.view.bounds;
+    self.bgImageView.autoresizingMask = UIViewAutoresizingFlexibleWidth | UIViewAutoresizingFlexibleHeight;
+    self.bgImageView.contentMode = UIViewContentModeScaleAspectFill;
+    [self.view addSubview:self.bgImageView];
     self.connectedPeers = [NSMutableArray array];
     
     self.peerID = [[MCPeerID alloc] initWithDisplayName:UIDevice.currentDevice.name];

@@ -25,217 +25,6 @@
             </objects>
             <point key="canvasLocation" x="21" y="4"/>
         </scene>
-        <!--Star Drawing View Controller-->
-        <scene sceneID="XSg-De-dHt">
-            <objects>
-                <viewController storyboardIdentifier="778" id="3ML-bm-Dt6" customClass="StarDrawingViewController" customModule="JiFeng_UpApp" customModuleProvider="target" sceneMemberID="viewController">
-                    <view key="view" contentMode="scaleToFill" id="Vib-2O-peZ">
-                        <rect key="frame" x="0.0" y="0.0" width="393" height="852"/>
-                        <autoresizingMask key="autoresizingMask" widthSizable="YES" heightSizable="YES"/>
-                        <subviews>
-                            <button opaque="NO" contentMode="scaleToFill" contentHorizontalAlignment="center" contentVerticalAlignment="center" buttonType="system" lineBreakMode="middleTruncation" translatesAutoresizingMaskIntoConstraints="NO" id="Dnf-gV-DlV">
-                                <rect key="frame" x="159" y="422" width="75" height="35"/>
-                                <state key="normal" title="Button"/>
-                                <buttonConfiguration key="configuration" style="plain" title="Button"/>
-                            </button>
-                            <view contentMode="scaleToFill" translatesAutoresizingMaskIntoConstraints="NO" id="nRa-lV-aiS">
-                                <rect key="frame" x="9" y="59" width="375" height="179"/>
-                                <subviews>
-                                    <button opaque="NO" contentMode="scaleToFill" fixedFrame="YES" contentHorizontalAlignment="center" contentVerticalAlignment="center" showsTouchWhenHighlighted="YES" lineBreakMode="middleTruncation" translatesAutoresizingMaskIntoConstraints="NO" id="6Gv-YA-7Fc">
-                                        <rect key="frame" x="127.5" y="13" width="58.5" height="64"/>
-                                        <autoresizingMask key="autoresizingMask" flexibleMaxX="YES" flexibleMaxY="YES"/>
-                                        <inset key="titleEdgeInsets" minX="-65" minY="31" maxX="0.0" maxY="0.0"/>
-                                        <inset key="imageEdgeInsets" minX="0.0" minY="-26" maxX="0.0" maxY="0.0"/>
-                                        <state key="normal" title="绿色" image="spark_green">
-                                            <color key="titleColor" red="0.067590489520000005" green="0.98757839199999997" blue="0.071330096100000004" alpha="1" colorSpace="custom" customColorSpace="sRGB"/>
-                                        </state>
-                                    </button>
-                                    <button opaque="NO" contentMode="scaleToFill" fixedFrame="YES" contentHorizontalAlignment="center" contentVerticalAlignment="center" showsTouchWhenHighlighted="YES" lineBreakMode="middleTruncation" translatesAutoresizingMaskIntoConstraints="NO" id="LY6-IP-cpR">
-                                        <rect key="frame" x="189" y="13" width="58.5" height="64"/>
-                                        <autoresizingMask key="autoresizingMask" flexibleMaxX="YES" flexibleMaxY="YES"/>
-                                        <inset key="titleEdgeInsets" minX="-65" minY="31" maxX="0.0" maxY="0.0"/>
-                                        <inset key="imageEdgeInsets" minX="0.0" minY="-26" maxX="0.0" maxY="0.0"/>
-                                        <state key="normal" title="洋红色" image="spark_magenta">
-                                            <color key="titleColor" red="0.98757839199999997" green="0.0" blue="0.73258146810000002" alpha="1" colorSpace="custom" customColorSpace="sRGB"/>
-                                        </state>
-                                    </button>
-                                    <button opaque="NO" contentMode="scaleToFill" fixedFrame="YES" contentHorizontalAlignment="center" contentVerticalAlignment="center" showsTouchWhenHighlighted="YES" lineBreakMode="middleTruncation" translatesAutoresizingMaskIntoConstraints="NO" id="CR5-Og-mO8">
-                                        <rect key="frame" x="250.5" y="13" width="58" height="64"/>
-                                        <autoresizingMask key="autoresizingMask" flexibleMaxX="YES" flexibleMaxY="YES"/>
-                                        <inset key="titleEdgeInsets" minX="-65" minY="31" maxX="0.0" maxY="0.0"/>
-                                        <inset key="imageEdgeInsets" minX="0.0" minY="-26" maxX="0.0" maxY="0.0"/>
-                                        <state key="normal" title="红色" image="spark_red">
-                                            <color key="titleColor" red="1" green="0.1805002097" blue="0.074743433489999997" alpha="1" colorSpace="custom" customColorSpace="sRGB"/>
-                                        </state>
-                                    </button>
-                                    <button opaque="NO" contentMode="scaleToFill" fixedFrame="YES" contentHorizontalAlignment="center" contentVerticalAlignment="center" showsTouchWhenHighlighted="YES" lineBreakMode="middleTruncation" translatesAutoresizingMaskIntoConstraints="NO" id="69h-qf-4PU">
-                                        <rect key="frame" x="311.5" y="13" width="58.5" height="64"/>
-                                        <autoresizingMask key="autoresizingMask" flexibleMaxX="YES" flexibleMaxY="YES"/>
-                                        <inset key="titleEdgeInsets" minX="-65" minY="31" maxX="0.0" maxY="0.0"/>
-                                        <inset key="imageEdgeInsets" minX="0.0" minY="-26" maxX="0.0" maxY="0.0"/>
-                                        <state key="normal" title="黄色" image="spark_yellow">
-                                            <color key="titleColor" red="0.98753762249999999" green="0.88108372690000003" blue="0.038610845800000002" alpha="1" colorSpace="custom" customColorSpace="sRGB"/>
-                                        </state>
-                                    </button>
-                                    <button opaque="NO" contentMode="scaleToFill" fixedFrame="YES" contentHorizontalAlignment="center" contentVerticalAlignment="center" showsTouchWhenHighlighted="YES" lineBreakMode="middleTruncation" translatesAutoresizingMaskIntoConstraints="NO" id="6rk-3G-n9B">
-                                        <rect key="frame" x="66.5" y="13" width="58" height="64"/>
-                                        <autoresizingMask key="autoresizingMask" flexibleMaxX="YES" flexibleMaxY="YES"/>
-                                        <inset key="titleEdgeInsets" minX="-65" minY="31" maxX="0.0" maxY="0.0"/>
-                                        <inset key="imageEdgeInsets" minX="0.0" minY="-26" maxX="0.0" maxY="0.0"/>
-                                        <state key="normal" title="青色" image="spark_cyan">
-                                            <color key="titleColor" red="0.0" green="0.96908923390000001" blue="0.98757839199999997" alpha="1" colorSpace="custom" customColorSpace="sRGB"/>
-                                        </state>
-                                    </button>
-                                    <button opaque="NO" contentMode="scaleToFill" fixedFrame="YES" contentHorizontalAlignment="center" contentVerticalAlignment="center" showsTouchWhenHighlighted="YES" lineBreakMode="middleTruncation" translatesAutoresizingMaskIntoConstraints="NO" id="Npt-bc-fHf">
-                                        <rect key="frame" x="5" y="13" width="58.5" height="64"/>
-                                        <autoresizingMask key="autoresizingMask" flexibleMaxX="YES" flexibleMaxY="YES"/>
-                                        <inset key="titleEdgeInsets" minX="-65" minY="31" maxX="0.0" maxY="0.0"/>
-                                        <inset key="imageEdgeInsets" minX="0.0" minY="-26" maxX="0.0" maxY="0.0"/>
-                                        <state key="normal" title="蓝色" image="spark_blue">
-                                            <color key="titleColor" red="0.01156251724" green="0.66746513750000003" blue="0.92549019610000005" alpha="1" colorSpace="custom" customColorSpace="sRGB"/>
-                                        </state>
-                                    </button>
-                                    <button opaque="NO" contentMode="scaleToFill" fixedFrame="YES" contentHorizontalAlignment="center" contentVerticalAlignment="center" lineBreakMode="middleTruncation" translatesAutoresizingMaskIntoConstraints="NO" id="ISh-OJ-bqW">
-                                        <rect key="frame" x="162.5" y="87" width="50" height="50"/>
-                                        <autoresizingMask key="autoresizingMask" flexibleMaxX="YES" flexibleMaxY="YES"/>
-                                        <inset key="titleEdgeInsets" minX="9" minY="9" maxX="11" maxY="9"/>
-                                        <state key="normal" title="🍑" backgroundImage="PS1"/>
-                                    </button>
-                                </subviews>
-                                <color key="backgroundColor" red="0.0" green="0.0" blue="0.0" alpha="0.0" colorSpace="custom" customColorSpace="sRGB"/>
-                                <constraints>
-                                    <constraint firstAttribute="height" constant="179" id="Jpi-fh-pTC"/>
-                                </constraints>
-                            </view>
-                            <view contentMode="scaleToFill" translatesAutoresizingMaskIntoConstraints="NO" id="2fj-FB-O0I">
-                                <rect key="frame" x="9" y="759" width="383" height="69"/>
-                                <subviews>
-                                    <button opaque="NO" contentMode="scaleToFill" contentHorizontalAlignment="center" contentVerticalAlignment="center" buttonType="system" showsTouchWhenHighlighted="YES" lineBreakMode="middleTruncation" translatesAutoresizingMaskIntoConstraints="NO" id="zCf-sC-Xg0">
-                                        <rect key="frame" x="116.66666666666669" y="33" width="54" height="33"/>
-                                        <fontDescription key="fontDescription" type="system" pointSize="17"/>
-                                        <state key="normal" title="流水笔" backgroundImage="spark_green"/>
-                                        <state key="selected" backgroundImage="spark_cyan">
-                                            <color key="titleColor" red="1" green="0.0" blue="0.0" alpha="1" colorSpace="custom" customColorSpace="sRGB"/>
-                                        </state>
-                                    </button>
-                                    <button opaque="NO" contentMode="scaleToFill" contentHorizontalAlignment="center" contentVerticalAlignment="center" buttonType="system" lineBreakMode="middleTruncation" translatesAutoresizingMaskIntoConstraints="NO" id="NmY-Hd-5cX">
-                                        <rect key="frame" x="230.33333333333337" y="33" width="54" height="33"/>
-                                        <fontDescription key="fontDescription" type="system" pointSize="17"/>
-                                        <state key="normal" title="保存"/>
-                                    </button>
-                                    <button opaque="NO" contentMode="scaleToFill" contentHorizontalAlignment="center" contentVerticalAlignment="center" buttonType="system" lineBreakMode="middleTruncation" translatesAutoresizingMaskIntoConstraints="NO" id="536-QV-dvz">
-                                        <rect key="frame" x="173.66666666666666" y="33" width="53.666666666666657" height="33"/>
-                                        <fontDescription key="fontDescription" type="system" pointSize="17"/>
-                                        <state key="normal" title="相册"/>
-                                    </button>
-                                    <button opaque="NO" contentMode="scaleToFill" contentHorizontalAlignment="center" contentVerticalAlignment="center" buttonType="system" lineBreakMode="middleTruncation" translatesAutoresizingMaskIntoConstraints="NO" id="QcI-ae-fqz">
-                                        <rect key="frame" x="60" y="33" width="53.666666666666657" height="33"/>
-                                        <fontDescription key="fontDescription" type="system" pointSize="17"/>
-                                        <state key="normal" title="闪烁">
-                                            <color key="titleColor" red="0.0" green="0.35125187079999998" blue="0.98757839199999997" alpha="1" colorSpace="custom" customColorSpace="sRGB"/>
-                                        </state>
-                                    </button>
-                                    <button opaque="NO" tag="2" contentMode="scaleToFill" contentHorizontalAlignment="center" contentVerticalAlignment="center" buttonType="system" lineBreakMode="middleTruncation" translatesAutoresizingMaskIntoConstraints="NO" id="wkL-CG-Fle">
-                                        <rect key="frame" x="287.33333333333331" y="33" width="53.666666666666686" height="33"/>
-                                        <fontDescription key="fontDescription" type="system" pointSize="18"/>
-                                        <state key="normal" title="清除"/>
-                                    </button>
-                                    <button contentMode="scaleToFill" contentHorizontalAlignment="center" contentVerticalAlignment="center" buttonType="system" showsTouchWhenHighlighted="YES" lineBreakMode="middleTruncation" translatesAutoresizingMaskIntoConstraints="NO" id="tqW-z2-F8i">
-                                        <rect key="frame" x="3" y="33" width="54" height="33"/>
-                                        <color key="backgroundColor" red="0.0" green="0.0" blue="0.0" alpha="0.0" colorSpace="custom" customColorSpace="sRGB"/>
-                                        <fontDescription key="fontDescription" type="system" pointSize="17"/>
-                                        <state key="normal" title="荧光笔" backgroundImage="spark_magenta"/>
-                                        <state key="selected" backgroundImage="spark_cyan">
-                                            <color key="titleColor" red="1" green="0.1805002097" blue="0.074743433489999997" alpha="1" colorSpace="custom" customColorSpace="sRGB"/>
-                                            <color key="titleShadowColor" red="0.0" green="0.0" blue="0.0" alpha="0.0" colorSpace="custom" customColorSpace="sRGB"/>
-                                        </state>
-                                    </button>
-                                    <button opaque="NO" contentMode="scaleToFill" contentHorizontalAlignment="center" contentVerticalAlignment="center" buttonType="system" lineBreakMode="middleTruncation" translatesAutoresizingMaskIntoConstraints="NO" id="WSn-5z-rF1" userLabel="贪吃蛇">
-                                        <rect key="frame" x="169" y="2" width="55" height="22"/>
-                                        <constraints>
-                                            <constraint firstAttribute="width" constant="55" id="ejS-ZH-4wG"/>
-                                            <constraint firstAttribute="height" constant="22" id="gKU-O7-vtm"/>
-                                        </constraints>
-                                        <state key="normal" title="贪吃蛇"/>
-                                    </button>
-                                    <button opaque="NO" contentMode="scaleToFill" contentHorizontalAlignment="center" contentVerticalAlignment="center" buttonType="system" lineBreakMode="middleTruncation" translatesAutoresizingMaskIntoConstraints="NO" id="oXa-WQ-OqD">
-                                        <rect key="frame" x="244" y="2" width="55" height="22"/>
-                                        <state key="normal" title="烟花"/>
-                                    </button>
-                                    <button opaque="NO" contentMode="scaleToFill" contentHorizontalAlignment="center" contentVerticalAlignment="center" buttonType="system" lineBreakMode="middleTruncation" translatesAutoresizingMaskIntoConstraints="NO" id="6XQ-D5-PQ9" userLabel=" ">
-                                        <rect key="frame" x="94" y="2" width="55" height="22"/>
-                                        <state key="normal" title=" "/>
-                                    </button>
-                                    <button opaque="NO" contentMode="scaleToFill" contentHorizontalAlignment="center" contentVerticalAlignment="center" buttonType="system" lineBreakMode="middleTruncation" translatesAutoresizingMaskIntoConstraints="NO" id="87j-0i-wci">
-                                        <rect key="frame" x="19" y="2" width="55" height="22"/>
-                                        <state key="normal" title="五子棋"/>
-                                    </button>
-                                </subviews>
-                                <color key="backgroundColor" red="0.0" green="0.0" blue="0.0" alpha="0.0" colorSpace="custom" customColorSpace="sRGB"/>
-                                <constraints>
-                                    <constraint firstItem="6XQ-D5-PQ9" firstAttribute="height" secondItem="WSn-5z-rF1" secondAttribute="height" id="09c-wu-C29"/>
-                                    <constraint firstItem="536-QV-dvz" firstAttribute="height" secondItem="tqW-z2-F8i" secondAttribute="height" id="1U6-vb-77s"/>
-                                    <constraint firstAttribute="trailing" secondItem="wkL-CG-Fle" secondAttribute="trailing" constant="42" id="2MD-Bm-vzU"/>
-                                    <constraint firstItem="536-QV-dvz" firstAttribute="top" secondItem="tqW-z2-F8i" secondAttribute="top" id="4Lh-Fj-VQw"/>
-                                    <constraint firstAttribute="bottom" secondItem="tqW-z2-F8i" secondAttribute="bottom" constant="3" id="5Qf-eP-aYa"/>
-                                    <constraint firstItem="wkL-CG-Fle" firstAttribute="width" secondItem="tqW-z2-F8i" secondAttribute="width" id="66h-K1-pvg"/>
-                                    <constraint firstItem="6XQ-D5-PQ9" firstAttribute="width" secondItem="WSn-5z-rF1" secondAttribute="width" id="6cg-MB-58A"/>
-                                    <constraint firstItem="87j-0i-wci" firstAttribute="width" secondItem="6XQ-D5-PQ9" secondAttribute="width" id="BCz-67-eEj"/>
-                                    <constraint firstItem="oXa-WQ-OqD" firstAttribute="bottom" secondItem="WSn-5z-rF1" secondAttribute="bottom" id="Dk9-x6-xFD"/>
-                                    <constraint firstItem="NmY-Hd-5cX" firstAttribute="height" secondItem="tqW-z2-F8i" secondAttribute="height" id="EmD-L0-a9w"/>
-                                    <constraint firstItem="QcI-ae-fqz" firstAttribute="width" secondItem="tqW-z2-F8i" secondAttribute="width" id="Epm-4F-Rgz"/>
-                                    <constraint firstItem="oXa-WQ-OqD" firstAttribute="top" secondItem="WSn-5z-rF1" secondAttribute="top" id="IQp-Ex-Avv"/>
-                                    <constraint firstItem="zCf-sC-Xg0" firstAttribute="width" secondItem="tqW-z2-F8i" secondAttribute="width" id="JUl-na-dje"/>
-                                    <constraint firstItem="NmY-Hd-5cX" firstAttribute="top" secondItem="tqW-z2-F8i" secondAttribute="top" id="JZc-US-zC3"/>
-                                    <constraint firstItem="oXa-WQ-OqD" firstAttribute="height" secondItem="WSn-5z-rF1" secondAttribute="height" id="KkN-hg-Kqb"/>
-                                    <constraint firstItem="NmY-Hd-5cX" firstAttribute="width" secondItem="tqW-z2-F8i" secondAttribute="width" id="NN9-ac-2EH"/>
-                                    <constraint firstItem="6XQ-D5-PQ9" firstAttribute="bottom" secondItem="WSn-5z-rF1" secondAttribute="bottom" id="SWQ-Zh-NnW"/>
-                                    <constraint firstItem="zCf-sC-Xg0" firstAttribute="leading" secondItem="QcI-ae-fqz" secondAttribute="trailing" constant="3" id="SlD-GV-BxJ"/>
-                                    <constraint firstItem="wkL-CG-Fle" firstAttribute="leading" secondItem="NmY-Hd-5cX" secondAttribute="trailing" constant="3" id="TuU-R4-CPz"/>
-                                    <constraint firstAttribute="trailing" secondItem="WSn-5z-rF1" secondAttribute="trailing" constant="159" id="TzI-tQ-qM7"/>
-                                    <constraint firstItem="oXa-WQ-OqD" firstAttribute="width" secondItem="WSn-5z-rF1" secondAttribute="width" id="UDT-he-O2X"/>
-                                    <constraint firstItem="87j-0i-wci" firstAttribute="top" secondItem="6XQ-D5-PQ9" secondAttribute="top" id="X1w-oE-3eV"/>
-                                    <constraint firstItem="87j-0i-wci" firstAttribute="height" secondItem="6XQ-D5-PQ9" secondAttribute="height" id="Z2S-10-QIq"/>
-                                    <constraint firstAttribute="height" constant="69" id="aFW-U1-DJM"/>
-                                    <constraint firstItem="tqW-z2-F8i" firstAttribute="leading" secondItem="2fj-FB-O0I" secondAttribute="leading" constant="3" id="aHe-iH-d8m"/>
-                                    <constraint firstItem="oXa-WQ-OqD" firstAttribute="leading" secondItem="WSn-5z-rF1" secondAttribute="trailing" constant="20" id="aaa-1s-qHj"/>
-                                    <constraint firstItem="tqW-z2-F8i" firstAttribute="top" secondItem="2fj-FB-O0I" secondAttribute="top" constant="33" id="bHj-aE-1cF"/>
-                                    <constraint firstItem="QcI-ae-fqz" firstAttribute="leading" secondItem="tqW-z2-F8i" secondAttribute="trailing" constant="3" id="cNu-Fd-Z9S"/>
-                                    <constraint firstItem="NmY-Hd-5cX" firstAttribute="leading" secondItem="536-QV-dvz" secondAttribute="trailing" constant="3" id="dCl-8R-Shg"/>
-                                    <constraint firstItem="6XQ-D5-PQ9" firstAttribute="top" secondItem="WSn-5z-rF1" secondAttribute="top" id="kGY-4Y-O5R"/>
-                                    <constraint firstItem="6XQ-D5-PQ9" firstAttribute="leading" secondItem="87j-0i-wci" secondAttribute="trailing" constant="20" id="kRY-U1-C6v"/>
-                                    <constraint firstItem="wkL-CG-Fle" firstAttribute="height" secondItem="tqW-z2-F8i" secondAttribute="height" id="l8e-Bc-Hef"/>
-                                    <constraint firstItem="WSn-5z-rF1" firstAttribute="top" secondItem="2fj-FB-O0I" secondAttribute="top" constant="2" id="lgT-qv-SHy"/>
-                                    <constraint firstItem="WSn-5z-rF1" firstAttribute="leading" secondItem="2fj-FB-O0I" secondAttribute="leading" constant="169" id="lmT-l8-Bc1"/>
-                                    <constraint firstItem="zCf-sC-Xg0" firstAttribute="height" secondItem="tqW-z2-F8i" secondAttribute="height" id="loo-I8-Wit"/>
-                                    <constraint firstItem="WSn-5z-rF1" firstAttribute="leading" secondItem="6XQ-D5-PQ9" secondAttribute="trailing" constant="20" id="ngS-Zq-zJC"/>
-                                    <constraint firstItem="536-QV-dvz" firstAttribute="width" secondItem="tqW-z2-F8i" secondAttribute="width" id="p6D-ju-1Cw"/>
-                                    <constraint firstItem="87j-0i-wci" firstAttribute="bottom" secondItem="6XQ-D5-PQ9" secondAttribute="bottom" id="qhl-0V-CCI"/>
-                                    <constraint firstItem="536-QV-dvz" firstAttribute="leading" secondItem="zCf-sC-Xg0" secondAttribute="trailing" constant="3" id="rhA-Mb-dvW"/>
-                                    <constraint firstItem="zCf-sC-Xg0" firstAttribute="top" secondItem="tqW-z2-F8i" secondAttribute="top" id="sAD-Bo-JqY"/>
-                                    <constraint firstItem="QcI-ae-fqz" firstAttribute="height" secondItem="tqW-z2-F8i" secondAttribute="height" id="sYx-40-g26"/>
-                                    <constraint firstItem="wkL-CG-Fle" firstAttribute="top" secondItem="tqW-z2-F8i" secondAttribute="top" id="wcC-1Z-D0z"/>
-                                    <constraint firstItem="QcI-ae-fqz" firstAttribute="top" secondItem="tqW-z2-F8i" secondAttribute="top" id="zlb-bf-hv8"/>
-                                </constraints>
-                            </view>
-                        </subviews>
-                        <viewLayoutGuide key="safeArea" id="c0D-aH-NuF"/>
-                        <color key="backgroundColor" systemColor="systemBackgroundColor"/>
-                        <constraints>
-                            <constraint firstItem="nRa-lV-aiS" firstAttribute="leading" secondItem="c0D-aH-NuF" secondAttribute="leading" constant="9" id="7qy-qE-8Af"/>
-                            <constraint firstItem="nRa-lV-aiS" firstAttribute="centerX" secondItem="Vib-2O-peZ" secondAttribute="centerX" id="8T4-JU-Ah4"/>
-                            <constraint firstItem="2fj-FB-O0I" firstAttribute="leading" secondItem="nRa-lV-aiS" secondAttribute="leading" id="CFP-2b-hOx"/>
-                            <constraint firstItem="c0D-aH-NuF" firstAttribute="bottom" secondItem="Dnf-gV-DlV" secondAttribute="bottom" constant="361" id="NkT-tn-zWK"/>
-                            <constraint firstItem="nRa-lV-aiS" firstAttribute="centerX" secondItem="Dnf-gV-DlV" secondAttribute="centerX" id="PFy-cW-2Hk"/>
-                            <constraint firstItem="nRa-lV-aiS" firstAttribute="top" secondItem="c0D-aH-NuF" secondAttribute="top" id="PWc-oc-eCJ"/>
-                            <constraint firstAttribute="bottomMargin" secondItem="2fj-FB-O0I" secondAttribute="bottom" constant="-10" id="Zp1-13-y4T"/>
-                        </constraints>
-                    </view>
-                </viewController>
-                <placeholder placeholderIdentifier="IBFirstResponder" id="BEy-r2-z2f" userLabel="First Responder" customClass="UIResponder" sceneMemberID="firstResponder"/>
-            </objects>
-            <point key="canvasLocation" x="951.90839694656484" y="246.47887323943664"/>
-        </scene>
         <!--Navigation Controller-->
         <scene sceneID="lR8-lb-UyR">
             <objects>
@@ -252,9 +41,321 @@
             </objects>
             <point key="canvasLocation" x="-956" y="-58"/>
         </scene>
+        <!--Star Drawing View Controller-->
+        <scene sceneID="vv2-R9-yb9">
+            <objects>
+                <viewController storyboardIdentifier="778" id="jDD-13-JK1" customClass="StarDrawingViewController" sceneMemberID="viewController">
+                    <layoutGuides>
+                        <viewControllerLayoutGuide type="top" id="HP4-fm-LX7"/>
+                        <viewControllerLayoutGuide type="bottom" id="gfG-ya-78b"/>
+                    </layoutGuides>
+                    <view key="view" multipleTouchEnabled="YES" contentMode="scaleToFill" id="bvY-v4-64K">
+                        <rect key="frame" x="0.0" y="0.0" width="393" height="852"/>
+                        <autoresizingMask key="autoresizingMask" widthSizable="YES" heightSizable="YES"/>
+                        <subviews>
+                            <button opaque="NO" contentMode="scaleToFill" contentHorizontalAlignment="center" contentVerticalAlignment="center" buttonType="system" lineBreakMode="middleTruncation" translatesAutoresizingMaskIntoConstraints="NO" id="5JL-d7-xEq">
+                                <rect key="frame" x="0.0" y="790" width="30" height="28"/>
+                                <fontDescription key="fontDescription" type="system" pointSize="13"/>
+                                <state key="normal" title="设置"/>
+                                <connections>
+                                    <action selector="ButtonVIew:" destination="jDD-13-JK1" eventType="touchUpInside" id="xcL-bw-gge"/>
+                                </connections>
+                            </button>
+                            <button hidden="YES" opaque="NO" contentMode="scaleToFill" contentHorizontalAlignment="center" contentVerticalAlignment="center" buttonType="system" lineBreakMode="middleTruncation" translatesAutoresizingMaskIntoConstraints="NO" id="iYe-7a-J7i">
+                                <rect key="frame" x="199" y="444.66666666666669" width="34" height="33"/>
+                                <fontDescription key="fontDescription" type="system" pointSize="17"/>
+                                <state key="normal" title="分享"/>
+                                <connections>
+                                    <action selector="ColorChange:" destination="jDD-13-JK1" eventType="touchUpInside" id="VeK-aH-udh"/>
+                                </connections>
+                            </button>
+                            <button hidden="YES" opaque="NO" contentMode="scaleToFill" contentHorizontalAlignment="center" contentVerticalAlignment="center" buttonType="system" lineBreakMode="middleTruncation" translatesAutoresizingMaskIntoConstraints="NO" id="WdC-Rl-1GN">
+                                <rect key="frame" x="180" y="443.66666666666669" width="72" height="34"/>
+                                <fontDescription key="fontDescription" type="system" pointSize="18"/>
+                                <state key="normal" title="添加画笔"/>
+                                <connections>
+                                    <action selector="addWrit:" destination="jDD-13-JK1" eventType="touchUpInside" id="A5Y-hk-NTk"/>
+                                </connections>
+                            </button>
+                            <button hidden="YES" opaque="NO" tag="1" contentMode="scaleToFill" contentHorizontalAlignment="center" contentVerticalAlignment="center" buttonType="system" lineBreakMode="middleTruncation" translatesAutoresizingMaskIntoConstraints="NO" id="sxR-tz-VD3">
+                                <rect key="frame" x="180" y="443.66666666666669" width="72" height="34"/>
+                                <fontDescription key="fontDescription" type="system" pointSize="18"/>
+                                <state key="normal" title="全屏模式"/>
+                                <connections>
+                                    <action selector="全屏:" destination="jDD-13-JK1" eventType="touchUpInside" id="yOo-dF-LXB"/>
+                                </connections>
+                            </button>
+                            <view hidden="YES" contentMode="scaleToFill" translatesAutoresizingMaskIntoConstraints="NO" id="DB1-q5-cpS">
+                                <rect key="frame" x="31" y="749" width="401" height="69"/>
+                                <subviews>
+                                    <button opaque="NO" contentMode="scaleToFill" contentHorizontalAlignment="center" contentVerticalAlignment="center" buttonType="system" showsTouchWhenHighlighted="YES" lineBreakMode="middleTruncation" translatesAutoresizingMaskIntoConstraints="NO" id="E0v-CO-cNa">
+                                        <rect key="frame" x="122.66666666666666" y="33" width="57" height="33"/>
+                                        <fontDescription key="fontDescription" type="system" pointSize="17"/>
+                                        <state key="normal" title="流水笔" backgroundImage="spark_green"/>
+                                        <state key="selected" backgroundImage="spark_cyan">
+                                            <color key="titleColor" red="1" green="0.0" blue="0.0" alpha="1" colorSpace="custom" customColorSpace="sRGB"/>
+                                        </state>
+                                        <connections>
+                                            <action selector="Water:" destination="jDD-13-JK1" eventType="touchUpInside" id="9iQ-P3-Cmb"/>
+                                        </connections>
+                                    </button>
+                                    <button opaque="NO" contentMode="scaleToFill" contentHorizontalAlignment="center" contentVerticalAlignment="center" buttonType="system" lineBreakMode="middleTruncation" translatesAutoresizingMaskIntoConstraints="NO" id="iuu-Ql-b7u">
+                                        <rect key="frame" x="242.33333333333331" y="33" width="57" height="33"/>
+                                        <fontDescription key="fontDescription" type="system" pointSize="17"/>
+                                        <state key="normal" title="保存"/>
+                                        <connections>
+                                            <action selector="save:" destination="jDD-13-JK1" eventType="touchUpInside" id="yh3-Lw-dvW"/>
+                                        </connections>
+                                    </button>
+                                    <button opaque="NO" contentMode="scaleToFill" contentHorizontalAlignment="center" contentVerticalAlignment="center" buttonType="system" lineBreakMode="middleTruncation" translatesAutoresizingMaskIntoConstraints="NO" id="UmS-Cc-QyU">
+                                        <rect key="frame" x="182.66666666666666" y="33" width="56.666666666666657" height="33"/>
+                                        <fontDescription key="fontDescription" type="system" pointSize="17"/>
+                                        <state key="normal" title="相册"/>
+                                        <connections>
+                                            <action selector="Phtot:" destination="jDD-13-JK1" eventType="touchUpInside" id="aey-2Z-Axv"/>
+                                        </connections>
+                                    </button>
+                                    <button opaque="NO" contentMode="scaleToFill" contentHorizontalAlignment="center" contentVerticalAlignment="center" buttonType="system" lineBreakMode="middleTruncation" translatesAutoresizingMaskIntoConstraints="NO" id="F3Q-Y0-5hD">
+                                        <rect key="frame" x="63" y="33" width="56.666666666666657" height="33"/>
+                                        <fontDescription key="fontDescription" type="system" pointSize="17"/>
+                                        <state key="normal" title="闪烁">
+                                            <color key="titleColor" red="0.0" green="0.35125187079999998" blue="0.98757839199999997" alpha="1" colorSpace="custom" customColorSpace="sRGB"/>
+                                        </state>
+                                        <connections>
+                                            <action selector="star:" destination="jDD-13-JK1" eventType="touchUpInside" id="e0J-UK-eV3"/>
+                                        </connections>
+                                    </button>
+                                    <button opaque="NO" tag="2" contentMode="scaleToFill" contentHorizontalAlignment="center" contentVerticalAlignment="center" buttonType="system" lineBreakMode="middleTruncation" translatesAutoresizingMaskIntoConstraints="NO" id="CYA-FP-d33">
+                                        <rect key="frame" x="302.33333333333331" y="33" width="56.666666666666686" height="33"/>
+                                        <fontDescription key="fontDescription" type="system" pointSize="18"/>
+                                        <state key="normal" title="清除"/>
+                                        <connections>
+                                            <action selector="clearImageView:" destination="jDD-13-JK1" eventType="touchUpInside" id="fbi-XE-bvg"/>
+                                        </connections>
+                                    </button>
+                                    <button contentMode="scaleToFill" contentHorizontalAlignment="center" contentVerticalAlignment="center" buttonType="system" showsTouchWhenHighlighted="YES" lineBreakMode="middleTruncation" translatesAutoresizingMaskIntoConstraints="NO" id="tt7-xZ-U8N">
+                                        <rect key="frame" x="3" y="33" width="57" height="33"/>
+                                        <color key="backgroundColor" red="0.0" green="0.0" blue="0.0" alpha="0.0" colorSpace="custom" customColorSpace="sRGB"/>
+                                        <fontDescription key="fontDescription" type="system" pointSize="17"/>
+                                        <state key="normal" title="荧光笔" backgroundImage="spark_magenta"/>
+                                        <state key="selected" backgroundImage="spark_cyan">
+                                            <color key="titleColor" red="1" green="0.1805002097" blue="0.074743433489999997" alpha="1" colorSpace="custom" customColorSpace="sRGB"/>
+                                            <color key="titleShadowColor" red="0.0" green="0.0" blue="0.0" alpha="0.0" colorSpace="custom" customColorSpace="sRGB"/>
+                                        </state>
+                                        <connections>
+                                            <action selector="fixed:" destination="jDD-13-JK1" eventType="touchUpInside" id="ypZ-3V-Y9N"/>
+                                        </connections>
+                                    </button>
+                                    <button opaque="NO" contentMode="scaleToFill" fixedFrame="YES" contentHorizontalAlignment="center" contentVerticalAlignment="center" buttonType="system" lineBreakMode="middleTruncation" translatesAutoresizingMaskIntoConstraints="NO" id="eP8-hf-MBY" userLabel=" ">
+                                        <rect key="frame" x="94" y="2" width="55" height="22"/>
+                                        <autoresizingMask key="autoresizingMask" flexibleMaxX="YES" flexibleMaxY="YES"/>
+                                        <state key="normal" title=" "/>
+                                    </button>
+                                </subviews>
+                                <color key="backgroundColor" red="0.0" green="0.0" blue="0.0" alpha="0.0" colorSpace="custom" customColorSpace="sRGB"/>
+                                <constraints>
+                                    <constraint firstItem="iuu-Ql-b7u" firstAttribute="width" secondItem="tt7-xZ-U8N" secondAttribute="width" id="0ex-G1-jBQ"/>
+                                    <constraint firstItem="CYA-FP-d33" firstAttribute="width" secondItem="tt7-xZ-U8N" secondAttribute="width" id="1tM-o6-5xF"/>
+                                    <constraint firstAttribute="height" constant="69" id="23G-yK-2q0"/>
+                                    <constraint firstItem="E0v-CO-cNa" firstAttribute="leading" secondItem="F3Q-Y0-5hD" secondAttribute="trailing" constant="3" id="2v3-2d-iTe"/>
+                                    <constraint firstItem="E0v-CO-cNa" firstAttribute="top" secondItem="tt7-xZ-U8N" secondAttribute="top" id="4Ol-Ol-PVv"/>
+                                    <constraint firstItem="UmS-Cc-QyU" firstAttribute="width" secondItem="tt7-xZ-U8N" secondAttribute="width" id="7GW-xX-8AC"/>
+                                    <constraint firstItem="iuu-Ql-b7u" firstAttribute="leading" secondItem="UmS-Cc-QyU" secondAttribute="trailing" constant="3" id="8TS-JP-Ht2"/>
+                                    <constraint firstItem="UmS-Cc-QyU" firstAttribute="top" secondItem="tt7-xZ-U8N" secondAttribute="top" id="BVT-Ci-d13"/>
+                                    <constraint firstItem="UmS-Cc-QyU" firstAttribute="height" secondItem="tt7-xZ-U8N" secondAttribute="height" id="EW7-UZ-j5b"/>
+                                    <constraint firstItem="F3Q-Y0-5hD" firstAttribute="width" secondItem="tt7-xZ-U8N" secondAttribute="width" id="FWZ-9J-b1b"/>
+                                    <constraint firstItem="E0v-CO-cNa" firstAttribute="height" secondItem="tt7-xZ-U8N" secondAttribute="height" id="KnI-ef-75R"/>
+                                    <constraint firstItem="F3Q-Y0-5hD" firstAttribute="leading" secondItem="tt7-xZ-U8N" secondAttribute="trailing" constant="3" id="TVl-9o-rEN"/>
+                                    <constraint firstItem="F3Q-Y0-5hD" firstAttribute="top" secondItem="tt7-xZ-U8N" secondAttribute="top" id="W1W-Wc-yI7"/>
+                                    <constraint firstItem="iuu-Ql-b7u" firstAttribute="height" secondItem="tt7-xZ-U8N" secondAttribute="height" id="WGR-3G-I7J"/>
+                                    <constraint firstItem="tt7-xZ-U8N" firstAttribute="leading" secondItem="DB1-q5-cpS" secondAttribute="leading" constant="3" id="Wce-cz-XGC"/>
+                                    <constraint firstAttribute="bottom" secondItem="tt7-xZ-U8N" secondAttribute="bottom" constant="3" id="ZAK-aq-hT5"/>
+                                    <constraint firstItem="F3Q-Y0-5hD" firstAttribute="height" secondItem="tt7-xZ-U8N" secondAttribute="height" id="co5-ls-MiB"/>
+                                    <constraint firstItem="tt7-xZ-U8N" firstAttribute="top" secondItem="DB1-q5-cpS" secondAttribute="top" constant="33" id="eZN-0Q-4l8"/>
+                                    <constraint firstItem="CYA-FP-d33" firstAttribute="leading" secondItem="iuu-Ql-b7u" secondAttribute="trailing" constant="3" id="gN4-bA-n3V"/>
+                                    <constraint firstItem="UmS-Cc-QyU" firstAttribute="leading" secondItem="E0v-CO-cNa" secondAttribute="trailing" constant="3" id="qxy-s8-GOK"/>
+                                    <constraint firstItem="iuu-Ql-b7u" firstAttribute="top" secondItem="tt7-xZ-U8N" secondAttribute="top" id="rLa-MJ-8cw"/>
+                                    <constraint firstItem="E0v-CO-cNa" firstAttribute="width" secondItem="tt7-xZ-U8N" secondAttribute="width" id="teq-Kh-l7e"/>
+                                    <constraint firstItem="CYA-FP-d33" firstAttribute="top" secondItem="tt7-xZ-U8N" secondAttribute="top" id="udJ-Fs-1nS"/>
+                                    <constraint firstItem="CYA-FP-d33" firstAttribute="height" secondItem="tt7-xZ-U8N" secondAttribute="height" id="zBU-yQ-9fz"/>
+                                    <constraint firstAttribute="trailing" secondItem="CYA-FP-d33" secondAttribute="trailing" constant="42" id="zUe-3m-XGU"/>
+                                </constraints>
+                            </view>
+                            <view hidden="YES" contentMode="scaleToFill" translatesAutoresizingMaskIntoConstraints="NO" id="cqK-9Y-jD8">
+                                <rect key="frame" x="0.0" y="20" width="393" height="179"/>
+                                <subviews>
+                                    <button opaque="NO" contentMode="scaleToFill" fixedFrame="YES" contentHorizontalAlignment="center" contentVerticalAlignment="center" showsTouchWhenHighlighted="YES" lineBreakMode="middleTruncation" translatesAutoresizingMaskIntoConstraints="NO" id="Mnn-ha-lKe">
+                                        <rect key="frame" x="128" y="13" width="58" height="64"/>
+                                        <autoresizingMask key="autoresizingMask" flexibleMaxX="YES" flexibleMaxY="YES"/>
+                                        <inset key="titleEdgeInsets" minX="-65" minY="31" maxX="0.0" maxY="0.0"/>
+                                        <inset key="imageEdgeInsets" minX="0.0" minY="-26" maxX="0.0" maxY="0.0"/>
+                                        <state key="normal" title="绿色" image="spark_green">
+                                            <color key="titleColor" red="0.067590489520000005" green="0.98757839199999997" blue="0.071330096100000004" alpha="1" colorSpace="custom" customColorSpace="sRGB"/>
+                                        </state>
+                                        <connections>
+                                            <action selector="green:" destination="jDD-13-JK1" eventType="touchUpInside" id="7Le-r6-PwM"/>
+                                        </connections>
+                                    </button>
+                                    <button opaque="NO" contentMode="scaleToFill" fixedFrame="YES" contentHorizontalAlignment="center" contentVerticalAlignment="center" showsTouchWhenHighlighted="YES" lineBreakMode="middleTruncation" translatesAutoresizingMaskIntoConstraints="NO" id="2UM-Q0-AAm">
+                                        <rect key="frame" x="189" y="13" width="59" height="64"/>
+                                        <autoresizingMask key="autoresizingMask" flexibleMaxX="YES" flexibleMaxY="YES"/>
+                                        <inset key="titleEdgeInsets" minX="-65" minY="31" maxX="0.0" maxY="0.0"/>
+                                        <inset key="imageEdgeInsets" minX="0.0" minY="-26" maxX="0.0" maxY="0.0"/>
+                                        <state key="normal" title="洋红色" image="spark_magenta">
+                                            <color key="titleColor" red="0.98757839199999997" green="0.0" blue="0.73258146810000002" alpha="1" colorSpace="custom" customColorSpace="sRGB"/>
+                                        </state>
+                                        <connections>
+                                            <action selector="magenta:" destination="jDD-13-JK1" eventType="touchUpInside" id="tdY-bU-frS"/>
+                                        </connections>
+                                    </button>
+                                    <button opaque="NO" contentMode="scaleToFill" fixedFrame="YES" contentHorizontalAlignment="center" contentVerticalAlignment="center" showsTouchWhenHighlighted="YES" lineBreakMode="middleTruncation" translatesAutoresizingMaskIntoConstraints="NO" id="9mf-pe-HaE">
+                                        <rect key="frame" x="251" y="13" width="58" height="64"/>
+                                        <autoresizingMask key="autoresizingMask" flexibleMaxX="YES" flexibleMaxY="YES"/>
+                                        <inset key="titleEdgeInsets" minX="-65" minY="31" maxX="0.0" maxY="0.0"/>
+                                        <inset key="imageEdgeInsets" minX="0.0" minY="-26" maxX="0.0" maxY="0.0"/>
+                                        <state key="normal" title="红色" image="spark_red">
+                                            <color key="titleColor" red="1" green="0.1805002097" blue="0.074743433489999997" alpha="1" colorSpace="custom" customColorSpace="sRGB"/>
+                                        </state>
+                                        <connections>
+                                            <action selector="red:" destination="jDD-13-JK1" eventType="touchUpInside" id="sb7-Ad-G39"/>
+                                        </connections>
+                                    </button>
+                                    <button opaque="NO" contentMode="scaleToFill" fixedFrame="YES" contentHorizontalAlignment="center" contentVerticalAlignment="center" showsTouchWhenHighlighted="YES" lineBreakMode="middleTruncation" translatesAutoresizingMaskIntoConstraints="NO" id="BIN-my-iLE">
+                                        <rect key="frame" x="312" y="13" width="58" height="64"/>
+                                        <autoresizingMask key="autoresizingMask" flexibleMaxX="YES" flexibleMaxY="YES"/>
+                                        <inset key="titleEdgeInsets" minX="-65" minY="31" maxX="0.0" maxY="0.0"/>
+                                        <inset key="imageEdgeInsets" minX="0.0" minY="-26" maxX="0.0" maxY="0.0"/>
+                                        <state key="normal" title="黄色" image="spark_yellow">
+                                            <color key="titleColor" red="0.98753762249999999" green="0.88108372690000003" blue="0.038610845800000002" alpha="1" colorSpace="custom" customColorSpace="sRGB"/>
+                                        </state>
+                                        <connections>
+                                            <action selector="yellow:" destination="jDD-13-JK1" eventType="touchUpInside" id="D7I-RT-zio"/>
+                                        </connections>
+                                    </button>
+                                    <button opaque="NO" contentMode="scaleToFill" fixedFrame="YES" contentHorizontalAlignment="center" contentVerticalAlignment="center" showsTouchWhenHighlighted="YES" lineBreakMode="middleTruncation" translatesAutoresizingMaskIntoConstraints="NO" id="ghI-PB-rVx">
+                                        <rect key="frame" x="67" y="13" width="58" height="64"/>
+                                        <autoresizingMask key="autoresizingMask" flexibleMaxX="YES" flexibleMaxY="YES"/>
+                                        <inset key="titleEdgeInsets" minX="-65" minY="31" maxX="0.0" maxY="0.0"/>
+                                        <inset key="imageEdgeInsets" minX="0.0" minY="-26" maxX="0.0" maxY="0.0"/>
+                                        <state key="normal" title="青色" image="spark_cyan">
+                                            <color key="titleColor" red="0.0" green="0.96908923390000001" blue="0.98757839199999997" alpha="1" colorSpace="custom" customColorSpace="sRGB"/>
+                                        </state>
+                                        <connections>
+                                            <action selector="cyan:" destination="jDD-13-JK1" eventType="touchUpInside" id="YTA-8V-uM3"/>
+                                        </connections>
+                                    </button>
+                                    <button opaque="NO" contentMode="scaleToFill" fixedFrame="YES" contentHorizontalAlignment="center" contentVerticalAlignment="center" showsTouchWhenHighlighted="YES" lineBreakMode="middleTruncation" translatesAutoresizingMaskIntoConstraints="NO" id="ZEY-uU-AXU">
+                                        <rect key="frame" x="5" y="13" width="59" height="64"/>
+                                        <autoresizingMask key="autoresizingMask" flexibleMaxX="YES" flexibleMaxY="YES"/>
+                                        <inset key="titleEdgeInsets" minX="-65" minY="31" maxX="0.0" maxY="0.0"/>
+                                        <inset key="imageEdgeInsets" minX="0.0" minY="-26" maxX="0.0" maxY="0.0"/>
+                                        <state key="normal" title="蓝色" image="spark_blue">
+                                            <color key="titleColor" red="0.01156251724" green="0.66746513750000003" blue="0.92549019610000005" alpha="1" colorSpace="custom" customColorSpace="sRGB"/>
+                                        </state>
+                                        <connections>
+                                            <action selector="blue:" destination="jDD-13-JK1" eventType="touchUpInside" id="MmA-un-Q7N"/>
+                                        </connections>
+                                    </button>
+                                    <button opaque="NO" contentMode="scaleToFill" fixedFrame="YES" contentHorizontalAlignment="center" contentVerticalAlignment="center" lineBreakMode="middleTruncation" translatesAutoresizingMaskIntoConstraints="NO" id="VEF-Tf-cVg">
+                                        <rect key="frame" x="14" y="85" width="50" height="50"/>
+                                        <autoresizingMask key="autoresizingMask" flexibleMaxX="YES" flexibleMaxY="YES"/>
+                                        <inset key="titleEdgeInsets" minX="9" minY="9" maxX="11" maxY="9"/>
+                                        <state key="normal" backgroundImage="PS3"/>
+                                    </button>
+                                    <button opaque="NO" contentMode="scaleToFill" fixedFrame="YES" contentHorizontalAlignment="center" contentVerticalAlignment="center" lineBreakMode="middleTruncation" translatesAutoresizingMaskIntoConstraints="NO" id="S2j-kI-bfL">
+                                        <rect key="frame" x="128" y="85" width="50" height="50"/>
+                                        <autoresizingMask key="autoresizingMask" flexibleMaxX="YES" flexibleMaxY="YES"/>
+                                        <inset key="titleEdgeInsets" minX="9" minY="9" maxX="11" maxY="9"/>
+                                        <state key="normal" backgroundImage="snow"/>
+                                    </button>
+                                    <button opaque="NO" contentMode="scaleToFill" fixedFrame="YES" contentHorizontalAlignment="center" contentVerticalAlignment="center" lineBreakMode="middleTruncation" translatesAutoresizingMaskIntoConstraints="NO" id="9fo-86-QXR">
+                                        <rect key="frame" x="236" y="85" width="98" height="94"/>
+                                        <autoresizingMask key="autoresizingMask" flexibleMaxX="YES" flexibleMaxY="YES"/>
+                                        <inset key="titleEdgeInsets" minX="9" minY="9" maxX="11" maxY="9"/>
+                                        <state key="normal" image="55">
+                                            <color key="titleColor" systemColor="systemPinkColor"/>
+                                        </state>
+                                    </button>
+                                    <button opaque="NO" contentMode="scaleToFill" fixedFrame="YES" contentHorizontalAlignment="center" contentVerticalAlignment="center" lineBreakMode="middleTruncation" translatesAutoresizingMaskIntoConstraints="NO" id="5wW-VB-e5a">
+                                        <rect key="frame" x="70" y="84" width="50" height="50"/>
+                                        <autoresizingMask key="autoresizingMask" flexibleMaxX="YES" flexibleMaxY="YES"/>
+                                        <inset key="titleEdgeInsets" minX="9" minY="9" maxX="11" maxY="9"/>
+                                        <state key="normal" backgroundImage="linecolor"/>
+                                    </button>
+                                    <button opaque="NO" contentMode="scaleToFill" fixedFrame="YES" contentHorizontalAlignment="center" contentVerticalAlignment="center" lineBreakMode="middleTruncation" translatesAutoresizingMaskIntoConstraints="NO" id="h2O-rV-bC9">
+                                        <rect key="frame" x="316" y="85" width="50" height="50"/>
+                                        <autoresizingMask key="autoresizingMask" flexibleMaxX="YES" flexibleMaxY="YES"/>
+                                        <inset key="titleEdgeInsets" minX="9" minY="9" maxX="11" maxY="9"/>
+                                        <state key="normal" title="YOU">
+                                            <color key="titleColor" systemColor="systemPurpleColor"/>
+                                        </state>
+                                    </button>
+                                    <button opaque="NO" contentMode="scaleToFill" fixedFrame="YES" contentHorizontalAlignment="center" contentVerticalAlignment="center" lineBreakMode="middleTruncation" translatesAutoresizingMaskIntoConstraints="NO" id="tVu-H1-kas">
+                                        <rect key="frame" x="168" y="84" width="100" height="69"/>
+                                        <autoresizingMask key="autoresizingMask" flexibleMaxX="YES" flexibleMaxY="YES"/>
+                                        <inset key="titleEdgeInsets" minX="9" minY="9" maxX="11" maxY="9"/>
+                                        <state key="normal" image="burst">
+                                            <color key="titleColor" systemColor="systemTealColor"/>
+                                        </state>
+                                    </button>
+                                </subviews>
+                                <color key="backgroundColor" red="0.0" green="0.0" blue="0.0" alpha="0.0" colorSpace="custom" customColorSpace="sRGB"/>
+                                <constraints>
+                                    <constraint firstAttribute="height" constant="179" id="iXP-Rt-Spa"/>
+                                </constraints>
+                            </view>
+                        </subviews>
+                        <viewLayoutGuide key="safeArea" id="eqe-lu-FPe"/>
+                        <color key="backgroundColor" red="0.0" green="0.0" blue="0.0" alpha="1" colorSpace="custom" customColorSpace="sRGB"/>
+                        <constraints>
+                            <constraint firstItem="iYe-7a-J7i" firstAttribute="centerX" secondItem="bvY-v4-64K" secondAttribute="centerX" constant="19.5" id="5yk-md-5fg"/>
+                            <constraint firstItem="cqK-9Y-jD8" firstAttribute="top" secondItem="bvY-v4-64K" secondAttribute="top" constant="20" id="H0Y-u5-LtD"/>
+                            <constraint firstItem="gfG-ya-78b" firstAttribute="top" secondItem="DB1-q5-cpS" secondAttribute="bottom" id="InX-g6-TVk"/>
+                            <constraint firstItem="sxR-tz-VD3" firstAttribute="centerX" secondItem="bvY-v4-64K" secondAttribute="centerX" constant="19.5" id="LMF-vf-Y74"/>
+                            <constraint firstItem="cqK-9Y-jD8" firstAttribute="leading" secondItem="bvY-v4-64K" secondAttribute="leading" id="Mlu-Pe-gR0"/>
+                            <constraint firstItem="sxR-tz-VD3" firstAttribute="centerY" secondItem="bvY-v4-64K" secondAttribute="centerY" constant="34.5" id="Q6I-wg-fpn"/>
+                            <constraint firstItem="WdC-Rl-1GN" firstAttribute="centerY" secondItem="bvY-v4-64K" secondAttribute="centerY" constant="34.5" id="R9v-p2-Fct"/>
+                            <constraint firstItem="iYe-7a-J7i" firstAttribute="centerY" secondItem="bvY-v4-64K" secondAttribute="centerY" constant="35" id="UgR-5Z-g9x"/>
+                            <constraint firstAttribute="trailing" secondItem="cqK-9Y-jD8" secondAttribute="trailing" id="ZDX-wR-jgp"/>
+                            <constraint firstAttribute="trailing" secondItem="DB1-q5-cpS" secondAttribute="trailing" constant="-39" id="ipP-tb-EmJ"/>
+                            <constraint firstItem="5JL-d7-xEq" firstAttribute="leading" secondItem="bvY-v4-64K" secondAttribute="leading" id="vRR-Cm-LtA"/>
+                            <constraint firstItem="gfG-ya-78b" firstAttribute="top" secondItem="5JL-d7-xEq" secondAttribute="bottom" id="vVN-On-uCl"/>
+                            <constraint firstItem="WdC-Rl-1GN" firstAttribute="centerX" secondItem="bvY-v4-64K" secondAttribute="centerX" constant="19.5" id="w82-Nd-OBJ"/>
+                            <constraint firstItem="DB1-q5-cpS" firstAttribute="leading" secondItem="5JL-d7-xEq" secondAttribute="trailing" constant="1" id="wWx-5y-4KU"/>
+                        </constraints>
+                    </view>
+                    <navigationItem key="navigationItem" id="r14-bu-xbc"/>
+                    <connections>
+                        <outlet property="Yredbtn" destination="2UM-Q0-AAm" id="zvK-Vg-xPB"/>
+                        <outlet property="blue1btn" destination="ghI-PB-rVx" id="gkt-md-yf6"/>
+                        <outlet property="bluebtn" destination="ZEY-uU-AXU" id="4Ye-AJ-oaV"/>
+                        <outlet property="buttonView" destination="DB1-q5-cpS" id="jap-5a-SLM"/>
+                        <outlet property="colorVIew" destination="cqK-9Y-jD8" id="SKV-Uk-Hsz"/>
+                        <outlet property="gif1btn" destination="VEF-Tf-cVg" id="BkW-Hi-s8j"/>
+                        <outlet property="gif2btn" destination="5wW-VB-e5a" id="Q0J-ym-Vqb"/>
+                        <outlet property="gifbtn3" destination="S2j-kI-bfL" id="Rin-vQ-wQb"/>
+                        <outlet property="gifbtn4" destination="tVu-H1-kas" id="jHp-dU-bKj"/>
+                        <outlet property="gifbtn5" destination="9fo-86-QXR" id="3ua-HV-tvc"/>
+                        <outlet property="gifbtn6" destination="h2O-rV-bC9" id="Au4-oP-vw2"/>
+                        <outlet property="greenbtn" destination="Mnn-ha-lKe" id="1Y6-oA-a7O"/>
+                        <outlet property="redbtn" destination="9mf-pe-HaE" id="JxF-iC-R0v"/>
+                        <outlet property="starBtn" destination="F3Q-Y0-5hD" id="PjM-EP-0Zm"/>
+                        <outlet property="water" destination="E0v-CO-cNa" id="lX8-bb-oJT"/>
+                        <outlet property="yellbtn" destination="BIN-my-iLE" id="FFg-ev-zMj"/>
+                        <outlet property="yin" destination="tt7-xZ-U8N" id="LPv-VG-WOW"/>
+                    </connections>
+                </viewController>
+                <placeholder placeholderIdentifier="IBFirstResponder" id="sVa-ok-pyB" sceneMemberID="firstResponder"/>
+            </objects>
+            <point key="canvasLocation" x="733.58778625954199" y="-130.28169014084509"/>
+        </scene>
     </scenes>
     <resources>
-        <image name="PS1" width="119" height="117"/>
+        <image name="55" width="1024" height="1024"/>
+        <image name="PS3" width="194" height="194"/>
+        <image name="burst" width="1024" height="1024"/>
+        <image name="linecolor" width="576" height="769"/>
+        <image name="snow" width="256" height="256"/>
         <image name="spark_blue" width="64" height="64"/>
         <image name="spark_cyan" width="64" height="64"/>
         <image name="spark_green" width="64" height="64"/>
@@ -263,6 +364,15 @@
         <image name="spark_yellow" width="64" height="64"/>
         <systemColor name="systemBackgroundColor">
             <color white="1" alpha="1" colorSpace="custom" customColorSpace="genericGamma22GrayColorSpace"/>
+        </systemColor>
+        <systemColor name="systemPinkColor">
+            <color red="1" green="0.17647058823529413" blue="0.33333333333333331" alpha="1" colorSpace="custom" customColorSpace="sRGB"/>
+        </systemColor>
+        <systemColor name="systemPurpleColor">
+            <color red="0.68627450980392157" green="0.32156862745098042" blue="0.87058823529411766" alpha="1" colorSpace="custom" customColorSpace="sRGB"/>
+        </systemColor>
+        <systemColor name="systemTealColor">
+            <color red="0.18823529411764706" green="0.69019607843137254" blue="0.7803921568627451" alpha="1" colorSpace="custom" customColorSpace="sRGB"/>
         </systemColor>
     </resources>
 </document>
