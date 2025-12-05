@@ -23,8 +23,28 @@
     [super viewDidLoad];
     // 确保导航栏隐藏
     [self.navigationController setNavigationBarHidden:YES animated:NO];
+//    [self setupBackButton];
+}
+- (void)setupBackButton {
+    UIButton *back = [UIButton buttonWithType:UIButtonTypeCustom];
+    [back setImage:[UIImage imageNamed:@"back"] forState:UIControlStateNormal];
+    back.translatesAutoresizingMaskIntoConstraints = NO;
+    [back addTarget:self action:@selector(onBack) forControlEvents:UIControlEventTouchUpInside];
+
+    [self.view addSubview:back];
+
+    UILayoutGuide *safe = self.view.safeAreaLayoutGuide;
+    [NSLayoutConstraint activateConstraints:@[
+        [back.leadingAnchor constraintEqualToAnchor:safe.leadingAnchor constant:12],
+        [back.topAnchor constraintEqualToAnchor:safe.topAnchor constant:12],
+        [back.widthAnchor constraintEqualToConstant:32],
+        [back.heightAnchor constraintEqualToConstant:32],
+    ]];
 }
 
+- (void)onBack {
+    [self.navigationController popViewControllerAnimated:YES];
+}
 #pragma mark - Back Button
 
 - (void)jf_installBackIfNeeded {

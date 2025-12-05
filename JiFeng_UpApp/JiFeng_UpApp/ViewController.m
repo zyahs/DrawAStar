@@ -17,7 +17,8 @@
 #import "KingGameViewController.h"
 #import "EntangleMergeViewController.h"
 #import "JGMenuTileView.h"
-
+#import "CardsGameViewController.h"
+#import "GestureBombViewController.h"
 @interface ViewController ()
 @property (nonatomic, strong) StarDrawingView *drawingView;
 
@@ -58,14 +59,30 @@
     }
 }
 
-- (void)viewWillAppear:(BOOL)animated {
-    [super viewWillAppear:animated];
-    [self setupLabelAnimations];
-    [self startMenuAnimation];
-    [self startTeleportTimer];
+
+- (void)playParticleExplosionAt:(UIView *)target {
+    CAEmitterLayer *emitter = [CAEmitterLayer layer];
+    emitter.emitterPosition = target.center;
+    emitter.emitterShape = kCAEmitterLayerCircle;
+    emitter.emitterSize = CGSizeMake(20, 20);
+
+    CAEmitterCell *cell = [CAEmitterCell emitterCell];
+    cell.contents = (id)[[UIImage imageNamed:@"spark_blue"] CGImage];
+    cell.birthRate = 120;
+    cell.lifetime = 0.6;
+    cell.velocity = 180;
+    cell.velocityRange = 80;
+    cell.scale = 0.06;
+    cell.scaleRange = 0.03;
+    cell.alphaSpeed = -1.5;
+
+    emitter.emitterCells = @[cell];
+    [self.view.layer addSublayer:emitter];
+
+    dispatch_after(dispatch_time(DISPATCH_TIME_NOW, 0.35*NSEC_PER_SEC), dispatch_get_main_queue(), ^{
+        [emitter removeFromSuperlayer];
+    });
 }
-
-
 - (void)setBtn{
     UIStackView *grid = [[UIStackView alloc] init];
     grid.axis = UILayoutConstraintAxisVertical;
@@ -124,6 +141,10 @@
                                                                 icon:[UIImage imageNamed:@"ic_crown"]];
     [tileKing addTarget:self action:@selector(jumpKing) forControlEvents:UIControlEventTouchUpInside];
     
+    JGMenuTileView *tileGest = [[JGMenuTileView alloc] initWithTitle:@"手势游戏"
+                                                                icon:[UIImage imageNamed:@"ic_crown"]];
+    [tileKing addTarget:self action:@selector(jumpGest) forControlEvents:UIControlEventTouchUpInside];
+    
     // 添加到两行
     [row1 addArrangedSubview:tileDraw];
     [row1 addArrangedSubview:tileTD];
@@ -132,6 +153,7 @@
     [row2 addArrangedSubview:tileFive];
     [row2 addArrangedSubview:tileUnder];
     [row2 addArrangedSubview:tileKing];
+    [row2 addArrangedSubview:tileGest];
 }
 - (UIButton *)makePlanetButton:(NSString *)title action:(SEL)sel {
     UIButton *btn = [self planetButtonWithTitle:title action:sel];
@@ -167,9 +189,9 @@
         CAGradientLayer *grad = [CAGradientLayer layer];
         grad.frame = btn.bounds;
         grad.colors = @[
-            (__bridge id)[UIColor colorWithRed:0.95 green:0.45 blue:1 alpha:1].CGColor,
-            (__bridge id)[UIColor colorWithRed:0.35 green:0.75 blue:1 alpha:1].CGColor,
-            (__bridge id)[UIColor colorWithRed:0.55 green:1 blue:0.75 alpha:1].CGColor
+            (__bridge id)[UIColor colorWithRed:1 green:0.65 blue:0.95 alpha:1].CGColor,
+              (__bridge id)[UIColor colorWithRed:0.45 green:0.80 blue:1 alpha:1].CGColor,
+              (__bridge id)[UIColor colorWithRed:0.55 green:1 blue:0.75 alpha:1].CGColor
         ];
         grad.startPoint = CGPointMake(0, 0);
         grad.endPoint   = CGPointMake(1, 1);
@@ -198,9 +220,9 @@
     }
     
     // 外发光（保留）
-    btn.layer.shadowColor = [UIColor colorWithRed:0.5 green:0.9 blue:1 alpha:1].CGColor;
-    btn.layer.shadowOpacity = 0.6;
-    btn.layer.shadowRadius = 12;
+    btn.layer.shadowColor = [UIColor colorWithRed:0.6 green:0.9 blue:1 alpha:1].CGColor;
+    btn.layer.shadowOpacity = 0.9;
+    btn.layer.shadowRadius = 18;
     btn.layer.shadowOffset = CGSizeZero;
     
     // 标题（可叠在图片上）
@@ -212,21 +234,46 @@
     btn.contentEdgeInsets = UIEdgeInsetsMake(8, 8, 8, 8);
     
     // 脉冲发光
-    CABasicAnimation *pulse = [CABasicAnimation animationWithKeyPath:@"transform.scale"];
-    pulse.fromValue = @(0.98);
-    pulse.toValue   = @(1.04);
-    pulse.duration  = 1.4;
+    CAGradientLayer *halo = [CAGradientLayer layer];
+    halo.frame = CGRectInset(btn.bounds, -12, -12);
+    halo.cornerRadius = halo.frame.size.width/2.0;
+    halo.colors = @[
+        (__bridge id)[UIColor colorWithRed:1 green:0.5 blue:0.8 alpha:0.8].CGColor,
+        (__bridge id)[UIColor colorWithRed:0.4 green:0.8 blue:1 alpha:0.8].CGColor,
+        (__bridge id)[UIColor colorWithRed:0.6 green:1 blue:0.6 alpha:0.8].CGColor
+    ];
+    halo.startPoint = CGPointMake(0,0);
+    halo.endPoint = CGPointMake(1,1);
+    [btn.layer insertSublayer:halo below:btn.layer.sublayers.firstObject];
+
+    // 光晕旋转
+    CABasicAnimation *haloSpin = [CABasicAnimation animationWithKeyPath:@"transform.rotation"];
+    haloSpin.duration = 10.0;
+    haloSpin.toValue = @(M_PI*2);
+    haloSpin.repeatCount = HUGE_VALF;
+    [halo addAnimation:haloSpin forKey:@"spinHalo"];
+
+    // 呼吸光
+    CABasicAnimation *pulse = [CABasicAnimation animationWithKeyPath:@"opacity"];
+    pulse.fromValue = @0.55;
+    pulse.toValue = @1;
+    pulse.duration = 2.4;
     pulse.autoreverses = YES;
     pulse.repeatCount = HUGE_VALF;
-    [btn.layer addAnimation:pulse forKey:@"pulse"];
-    
-    //    [btn addTarget:self action:sel forControlEvents:UIControlEventTouchUpInside];
-    [self registerMenuButton:btn action:sel];
-    // 栅格化优化
-    btn.layer.shouldRasterize = YES;
-    btn.layer.rasterizationScale = UIScreen.mainScreen.scale;
-    btn.userInteractionEnabled = YES;
-    
+    [halo addAnimation:pulse forKey:@"haloPulse"];
+
+    // 微浮动（左右上下随机漂移）
+    CAKeyframeAnimation *floatAnim = [CAKeyframeAnimation animationWithKeyPath:@"position"];
+    floatAnim.duration = 5.0;
+    floatAnim.repeatCount = HUGE_VALF;
+    floatAnim.additive = YES;
+    floatAnim.values = @[
+        [NSValue valueWithCGPoint:CGPointMake(0, -3)],
+        [NSValue valueWithCGPoint:CGPointMake(2, 2)],
+        [NSValue valueWithCGPoint:CGPointMake(-2, 1)],
+        [NSValue valueWithCGPoint:CGPointZero]
+    ];
+    [btn.layer addAnimation:floatAnim forKey:@"floatAnim"];
     return btn;
 }
 
@@ -241,17 +288,23 @@
     }
 }
 
-
+- (void)jumpGest{
+    GestureBombViewController *five = [[GestureBombViewController alloc]init];
+       
+       [self.navigationController pushViewController:five animated:YES];
+}
 
 -(void)jumpFive{
         FiveQiVc *five = [[FiveQiVc alloc]init];
-//    EntangleMergeViewController *five = [[EntangleMergeViewController alloc]init];
+//    GestureBombViewController *five = [[GestureBombViewController alloc]init];
     
     [self.navigationController pushViewController:five animated:YES];
     
-    
-    
-    
+}
+
+-(void)jumpcard{
+    CardsGameViewController *cc = [CardsGameViewController new];
+    [self.navigationController pushViewController:cc animated:YES];
 }
 
 -(void)jumpUnder{
@@ -363,62 +416,71 @@
 #pragma mark - Bouncing Menu (non-overlapping, full-screen, clickable)
 
 - (void)setupBouncingMenu {
-    // 按钮标题与入口
-    NSArray *titles  = @[@"画板", @"真心话\n大冒险", @"骰子游戏", @"五子棋", @"谁是卧底", @"国王游戏"];
+
+    NSArray *titles  = @[@"画板", @"真心话\n大冒险", @"骰子游戏", @"五子棋",
+                         @"谁是卧底", @"国王游戏", @"小姐牌", @"手势游戏"];
+
     NSArray *actions = @[
         NSStringFromSelector(@selector(showTruth)),
         NSStringFromSelector(@selector(showDare)),
         NSStringFromSelector(@selector(showDareNoaml)),
         NSStringFromSelector(@selector(jumpFive)),
         NSStringFromSelector(@selector(jumpUnder)),
-        NSStringFromSelector(@selector(jumpKing))
+        NSStringFromSelector(@selector(jumpKing)),
+        NSStringFromSelector(@selector(jumpcard)),
+        NSStringFromSelector(@selector(jumpGest))
     ];
-    
-    self.menuBallDiameter = 86.0;
-    self.menuBalls = [NSMutableArray array];
-    self.menuVelocities = [NSMutableArray array];
-    
-    // 可活动区域（避开安全区）
-    UIEdgeInsets insets = UIEdgeInsetsZero;
-    if (@available(iOS 11.0, *)) {
-        insets = self.view.safeAreaInsets;
-    }
-    self.playSafeInsets = insets;
-    
-    // 加载图片数组
+
     NSArray *images = @[
         [UIImage imageNamed:@"x1"],
         [UIImage imageNamed:@"x2"],
         [UIImage imageNamed:@"x3"],
         [UIImage imageNamed:@"x4"],
         [UIImage imageNamed:@"x5"],
-        [UIImage imageNamed:@"x6"]
+        [UIImage imageNamed:@"x6"],
+        [UIImage imageNamed:@"x7"],
+        [UIImage imageNamed:@"x7"]
     ];
-    
-    // 预先放置不重叠的初始位置
+
+    self.menuBalls = [NSMutableArray array];
+    CGFloat diameter = self.menuBallDiameter = 86.0;
+    CGFloat spacing = 22.0;
+
+    // 总宽度：4 个按钮 + 3 个间距
+    CGFloat totalWidth = 4 * diameter + 3 * spacing;
+    CGFloat startX = (self.view.bounds.size.width - totalWidth) / 2.0;
+
+    // 两排的位置（可调整）
+    CGFloat rowY1 = self.view.bounds.size.height * 0.42;
+    CGFloat rowY2 = rowY1 + diameter + 30.0;
+
     for (NSInteger i = 0; i < titles.count; i++) {
+
         SEL sel = NSSelectorFromString(actions[i]);
-        UIButton *ball = [self planetButtonWithTitle:titles[i] action:sel image:images[i]];
-        ball.bounds = CGRectMake(0, 0, self.menuBallDiameter, self.menuBallDiameter);
-        
-        CGPoint pos = [self randomNonOverlappingPositionForIndex:i existing:self.menuBalls];
-        ball.center = pos;
+        UIButton *ball = [self planetButtonWithTitle:titles[i]
+                                              action:sel
+                                               image:images[i]];
+
+        NSInteger row = i / 4;
+        NSInteger col = i % 4;
+
+        CGFloat x = startX + col * (diameter + spacing);
+        CGFloat y = (row == 0) ? rowY1 : rowY2;
+
+        ball.frame = CGRectMake(x, y, diameter, diameter);
         [self.view addSubview:ball];
         [self.menuBalls addObject:ball];
-        
-        // 初速：随机方向/速度（保证不会太慢）
-        CGFloat speed = 90 + arc4random_uniform(80); // 90~170 pt/s
-        CGFloat ang = ((CGFloat)arc4random_uniform(628)) / 100.0f; // 0~6.28
-        CGPoint v = CGPointMake(cos(ang) * speed, sin(ang) * speed);
-        [self.menuVelocities addObject:[NSValue valueWithCGPoint:v]];
-    }
-    
-    [self.view bringSubviewToFront:[self.view viewWithTag:999]]; // 保持标题在上（若需要）
-    
-    // 启动显示同步
-    [self startMenuAnimation];
-}
 
+        // 呼吸光动画（按钮周期性放大缩小）
+        CABasicAnimation *pulse = [CABasicAnimation animationWithKeyPath:@"transform.scale"];
+        pulse.fromValue = @0.95;
+        pulse.toValue   = @1.05;
+        pulse.duration  = 1.6;
+        pulse.autoreverses = YES;
+        pulse.repeatCount  = HUGE_VALF;
+        [ball.layer addAnimation:pulse forKey:@"breathPulse"];
+    }
+}
 - (CGPoint)randomNonOverlappingPositionForIndex:(NSInteger)idx existing:(NSArray<UIButton *> *)balls {
     CGRect bounds = self.view.bounds;
     CGFloat r = self.menuBallDiameter * 0.5;
@@ -535,13 +597,6 @@
     }
 }
 
-// 离开页面时停止动画
-- (void)viewWillDisappear:(BOOL)animated {
-    [super viewWillDisappear:animated];
-    [self stopMenuAnimation];
-    [self stopTeleportTimer];
-}
-
 
 #pragma mark - App Lifecycle Pause/Resume for Menu Animation
 
@@ -552,7 +607,64 @@
 - (void)appWillResignActive {
     [self stopMenuAnimation];
 }
+- (void)startShuffleTimer {
+    [NSTimer scheduledTimerWithTimeInterval:5.0
+                                     target:self
+                                   selector:@selector(shuffleAllMenuBalls)
+                                   userInfo:nil
+                                    repeats:YES];
+}
 
+// 每隔 5s 调用：打乱所有按钮的位置 + 粒子爆炸 + 光线爆破 + 贝塞尔曲线移动
+- (void)shuffleAllMenuBalls {
+
+    // 停止弹跳动画
+    if (self.menuDisplayLink) self.menuDisplayLink.paused = YES;
+
+    if (self.menuBalls.count == 0) return;
+
+    for (NSInteger i = 0; i < self.menuBalls.count; i++) {
+
+        UIButton *btn = self.menuBalls[i];
+
+        // 清理所有旧动画（避免叠加）
+        [btn.layer removeAllAnimations];
+
+        // 粒子效果（轻量版）
+        [self playParticleExplosionAt:btn];
+
+        // 目标位置（不重叠）
+        CGPoint target = [self randomNonOverlappingPositionForIndex:i existing:self.menuBalls];
+
+        // 贝塞尔路径（轻量）
+        UIBezierPath *path = [UIBezierPath bezierPath];
+        [path moveToPoint:btn.center];
+
+        CGPoint mid = CGPointMake(
+            (btn.center.x + target.x) / 2.0 + arc4random_uniform(20) - 10,
+            (btn.center.y + target.y) / 2.0 + arc4random_uniform(20) - 10
+        );
+        [path addQuadCurveToPoint:target controlPoint:mid];
+
+        // 关键动画（轻量）
+        CAKeyframeAnimation *anim = [CAKeyframeAnimation animationWithKeyPath:@"position"];
+        anim.path = path.CGPath;
+        anim.duration = 0.45;
+        anim.timingFunction = [CAMediaTimingFunction functionWithName:kCAMediaTimingFunctionEaseInEaseOut];
+        anim.removedOnCompletion = YES;
+
+        [btn.layer addAnimation:anim forKey:@"shuffleMove"];
+
+        // 更新真实位置
+        btn.center = target;
+    }
+
+    // 动画完成后恢复弹跳
+    dispatch_after(dispatch_time(DISPATCH_TIME_NOW, (int64_t)(0.5 * NSEC_PER_SEC)),
+                   dispatch_get_main_queue(), ^{
+        if (self.menuDisplayLink) self.menuDisplayLink.paused = NO;
+    });
+}
 -(void)viewDidLoad {
     [super viewDidLoad];
     
@@ -562,105 +674,67 @@
     self.bgImageView.autoresizingMask = UIViewAutoresizingFlexibleWidth | UIViewAutoresizingFlexibleHeight;
     self.bgImageView.contentMode = UIViewContentModeScaleAspectFill;
     [self.view addSubview:self.bgImageView];
-    // 传送门高光圈（与背景图位置大致对应：左上吸入 & 左下弹出）
-    self.portalInView  = [self buildPortalGlowWithDiameter:120.0];
-    self.portalOutView = [self buildPortalGlowWithDiameter:120.0];
+ 
     
-    // 下面两个点位可按你的背景图实际视觉再微调
-    self.portalInView.center  = CGPointMake(self.view.bounds.size.width * 0.18, self.view.bounds.size.height * 0.22);
-    self.portalOutView.center = CGPointMake(self.view.bounds.size.width * 0.22, self.view.bounds.size.height * 0.78);
+
     
-    self.portalInView.autoresizingMask  = UIViewAutoresizingFlexibleRightMargin | UIViewAutoresizingFlexibleBottomMargin;
-    self.portalOutView.autoresizingMask = UIViewAutoresizingFlexibleRightMargin | UIViewAutoresizingFlexibleTopMargin;
-    [self.view addSubview:self.portalInView];
-    [self.view addSubview:self.portalOutView];
-    
-    // 计时器：每 4s 传送一个按钮（吸入0.6s + 等待3s + 弹出0.4s）
-    [self startTeleportTimer];
-    
-    //    self.drawingView = [[StarDrawingView alloc] init];
-    //    self.drawingView.translatesAutoresizingMaskIntoConstraints = NO;
-    //    self.drawingView.imageArray = @[
-    //        [UIImage imageNamed:@"spark_red"],
-    //        [UIImage imageNamed:@"spark_green"],
-    //        [UIImage imageNamed:@"spark_blue"]
-    //    ];
-    //    [self.view addSubview:self.drawingView];
-    //
-    //    // 位置自适应，填满父视图
-    //    [NSLayoutConstraint activateConstraints:@[
-    //        [self.drawingView.topAnchor constraintEqualToAnchor:self.view.topAnchor],
-    //        [self.drawingView.bottomAnchor constraintEqualToAnchor:self.view.bottomAnchor],
-    //        [self.drawingView.leadingAnchor constraintEqualToAnchor:self.view.leadingAnchor],
-    //        [self.drawingView.trailingAnchor constraintEqualToAnchor:self.view.trailingAnchor]
-    //    ]];
-    //
-    //    [self.drawingView startDrawing];
+
     
     [self setupBouncingMenu];
     
     // Do any additional setup after loading the view.
-    UILabel *animatedLabel = [[UILabel alloc] initWithFrame:CGRectMake(0, 0, 400, 200)];
-    animatedLabel.text = @"继风的小游戏";
-    animatedLabel.textAlignment = NSTextAlignmentCenter;
-    animatedLabel.font = [UIFont boldSystemFontOfSize:36];
-    animatedLabel.numberOfLines = 0;
-    animatedLabel.tag = 999;
-    [self.view addSubview:animatedLabel];
     
-    // label 漂浮动画
-    CAKeyframeAnimation *move = [CAKeyframeAnimation animationWithKeyPath:@"position"];
-    move.path = ({
-        CGMutablePathRef path = CGPathCreateMutable();
-        CGRect bounds = self.view.bounds;
-        CGPathMoveToPoint(path, NULL, bounds.size.width/2, bounds.size.height/2);
-        CGPathAddCurveToPoint(path, NULL,
-                              bounds.size.width * 0.8, bounds.size.height * 0.3,
-                              bounds.size.width * 0.2, bounds.size.height * 0.7,
-                              bounds.size.width/2, bounds.size.height/2);
-        path;
-    });
-    move.duration = 6.0;
-    move.repeatCount = HUGE_VALF;
-    move.autoreverses = YES;
-    [animatedLabel.layer addAnimation:move forKey:@"floatAround"];
-    
-    // 文字颜色渐变（使用渐变蒙版实现真正的文字颜色渐变动画）
-    // 1. 创建 CATextLayer
-    CATextLayer *textLayer = [CATextLayer layer];
-    textLayer.string = animatedLabel.text;
-    textLayer.font = (__bridge CFTypeRef)(animatedLabel.font.fontName);
-    textLayer.fontSize = animatedLabel.font.pointSize;
-    textLayer.frame = animatedLabel.frame;
-    textLayer.alignmentMode = kCAAlignmentCenter;
-    textLayer.contentsScale = [UIScreen mainScreen].scale;
-    
-    // 2. 创建渐变层
-    CAGradientLayer *textGradient = [CAGradientLayer layer];
-    textGradient.frame = animatedLabel.frame;
-    textGradient.colors = @[(__bridge id)[UIColor systemPinkColor].CGColor,
-                            (__bridge id)[UIColor systemYellowColor].CGColor,
-                            (__bridge id)[UIColor systemCyanColor].CGColor];
-    textGradient.startPoint = CGPointMake(0, 0);
-    textGradient.endPoint = CGPointMake(1, 1);
-    textGradient.mask = textLayer;
-    [self.view.layer addSublayer:textGradient];
-    [animatedLabel.layer addSublayer:textGradient];
-    
-    // 3. 渐变动画
-    CABasicAnimation *colorAnim = [CABasicAnimation animationWithKeyPath:@"colors"];
-    colorAnim.toValue = @[(__bridge id)[UIColor systemGreenColor].CGColor,
-                          (__bridge id)[UIColor systemOrangeColor].CGColor,
-                          (__bridge id)[UIColor systemPurpleColor].CGColor];
-    colorAnim.duration = 3.0;
-    colorAnim.autoreverses = YES;
-    colorAnim.repeatCount = HUGE_VALF;
-    [textGradient addAnimation:colorAnim forKey:@"gradientColorChange"];
-    [animatedLabel.layer addAnimation:colorAnim forKey:@"gradientColorChange"];
     
     // App lifecycle observers for display link auto pause/resume
     [[NSNotificationCenter defaultCenter] addObserver:self selector:@selector(appDidBecomeActive) name:UIApplicationDidBecomeActiveNotification object:nil];
     [[NSNotificationCenter defaultCenter] addObserver:self selector:@selector(appWillResignActive) name:UIApplicationWillResignActiveNotification object:nil];
+    [self startShuffleTimer];
+    [self addBackgroundRippleEffect];
+}
+- (void)addBackgroundRippleEffect {
+    CAShapeLayer *ripple = [CAShapeLayer layer];
+    CGFloat size = 200;
+    ripple.frame = CGRectMake(self.view.center.x - size/2, self.view.center.y - size/2, size, size);
+    ripple.cornerRadius = size/2;
+    ripple.backgroundColor = [UIColor colorWithWhite:1 alpha:0.15].CGColor;
+    ripple.opacity = 0.0;
+
+    [self.bgImageView.layer addSublayer:ripple];
+
+    CABasicAnimation *scale = [CABasicAnimation animationWithKeyPath:@"transform.scale"];
+    scale.fromValue = @0.6;
+    scale.toValue = @2.6;
+
+    CABasicAnimation *fade = [CABasicAnimation animationWithKeyPath:@"opacity"];
+    fade.fromValue = @0.45;
+    fade.toValue = @0;
+
+    CAAnimationGroup *grp = [CAAnimationGroup animation];
+    grp.animations = @[scale, fade];
+    grp.duration = 4.5;
+    grp.repeatCount = HUGE_VALF;
+    grp.timingFunction = [CAMediaTimingFunction functionWithName:kCAMediaTimingFunctionEaseOut];
+
+    [ripple addAnimation:grp forKey:@"rippleWave"];
+}
+- (void)viewWillAppear:(BOOL)animated {
+    [super viewWillAppear:animated];
+    [self startMenuAnimation];
+}
+
+- (void)viewDidAppear:(BOOL)animated {
+    [super viewDidAppear:animated];
+    self.menuDisplayLink.paused = NO; // 强制恢复
+}
+
+- (void)viewWillDisappear:(BOOL)animated {
+    [super viewWillDisappear:animated];
+    self.menuDisplayLink.paused = YES;
+}
+
+- (void)viewDidDisappear:(BOOL)animated {
+    [super viewDidDisappear:animated];
+    self.menuDisplayLink.paused = YES;
 }
 #pragma mark - Safe Area Updates for Menu Bouncing
 
@@ -692,141 +766,34 @@
 }
 
 - (void)menuButtonTapped:(UIButton *)sender {
+    UIImpactFeedbackGenerator *gen = [[UIImpactFeedbackGenerator alloc] initWithStyle:UIImpactFeedbackStyleMedium];
+    [gen impactOccurred];
     // 黑洞视觉扭曲（0.3s）
-    [self runBlackHoleEffectAroundView:sender duration:0.3];
-    
-    // 轻微延迟后继续原逻辑
-    SEL sel = [[self.originalActions objectForKey:sender] pointerValue];
-    if (sel && [self respondsToSelector:sel]) {
-        dispatch_after(dispatch_time(DISPATCH_TIME_NOW, (int64_t)(0.15 * NSEC_PER_SEC)), dispatch_get_main_queue(), ^{
-#pragma clang diagnostic push
-#pragma clang diagnostic ignored "-Warc-performSelector-leaks"
-            [self performSelector:sel withObject:nil];
-#pragma clang diagnostic pop
-        });
-    }
-}
-- (UIView *)buildPortalGlowWithDiameter:(CGFloat)diameter {
-    UIView *v = [[UIView alloc] initWithFrame:CGRectMake(0, 0, diameter, diameter)];
-    v.layer.cornerRadius = diameter/2.0;
-    v.userInteractionEnabled = NO;
-    
-    // 径向渐变光圈
-    CAGradientLayer *g = [CAGradientLayer layer];
-    g.frame = v.bounds;
-    g.type = kCAGradientLayerRadial;
-    g.colors = @[(__bridge id)[UIColor colorWithWhite:1 alpha:0.85].CGColor,
-                 (__bridge id)[UIColor colorWithWhite:1 alpha:0.25].CGColor,
-                 (__bridge id)[UIColor colorWithWhite:1 alpha:0.0].CGColor];
-    g.locations = @[@0.0, @0.5, @1.0];
-    g.startPoint = CGPointMake(0.5, 0.5);
-    g.endPoint   = CGPointMake(1.0, 1.0);
-    g.cornerRadius = v.layer.cornerRadius;
-    [v.layer addSublayer:g];
-    
-    v.layer.shadowColor = [UIColor whiteColor].CGColor;
-    v.layer.shadowOpacity = 0.7;
-    v.layer.shadowRadius = 16;
-    v.layer.shadowOffset = CGSizeZero;
-    
-    // 轻微脉冲动画
-    CABasicAnimation *pulse = [CABasicAnimation animationWithKeyPath:@"transform.scale"];
-    pulse.fromValue = @0.98; pulse.toValue = @1.03;
-    pulse.duration = 2.2; pulse.autoreverses = YES; pulse.repeatCount = HUGE_VALF;
-    [v.layer addAnimation:pulse forKey:@"portal.pulse"];
-    return v;
+    [UIView animateWithDuration:0.08 animations:^{
+            sender.transform = CGAffineTransformMakeScale(0.88, 0.88);
+        } completion:^(BOOL finished) {
+            [UIView animateWithDuration:0.12 animations:^{
+                sender.transform = CGAffineTransformIdentity;
+            }];
+        }];
+
+        // 粒子爆炸
+        [self playParticleExplosionAt:sender];
+
+        // 原来的事件
+        SEL sel = [[self.originalActions objectForKey:sender] pointerValue];
+        if (sel) {
+            dispatch_after(dispatch_time(DISPATCH_TIME_NOW, 0.15*NSEC_PER_SEC), dispatch_get_main_queue(), ^{
+    #pragma clang diagnostic push
+    #pragma clang diagnostic ignored "-Warc-performSelector-leaks"
+                [self performSelector:sel withObject:nil];
+    #pragma clang diagnostic pop
+            });
+        }
 }
 
-- (void)startTeleportTimer {
-    [self.teleportTimer invalidate];
-    self.teleportTimer = [NSTimer scheduledTimerWithTimeInterval:4.0
-                                                          target:self
-                                                        selector:@selector(performTeleportOnce)
-                                                        userInfo:nil
-                                                         repeats:YES];
-}
 
-- (void)stopTeleportTimer {
-    [self.teleportTimer invalidate];
-    self.teleportTimer = nil;
-}
 
-- (void)performTeleportOnce {
-    if (self.menuBalls.count == 0) return;
-    
-    // 选择可见候选
-    NSMutableArray<UIButton*> *candidates = [NSMutableArray array];
-    for (UIButton *b in self.menuBalls) {
-        if (!b.hidden && b.alpha > 0.9 && b.window) [candidates addObject:b];
-    }
-    if (candidates.count == 0) return;
-    
-    UIButton *btn = candidates[arc4random_uniform((uint32_t)candidates.count)];
-    CGPoint inC  = [self.portalInView.superview convertPoint:self.portalInView.center toView:self.view];
-    
-    // 吸入
-    [UIView animateWithDuration:0.6 delay:0 options:UIViewAnimationOptionCurveEaseIn animations:^{
-        btn.center = inC;
-        btn.transform = CGAffineTransformMakeScale(0.15, 0.15);
-        btn.alpha = 0.15;
-    } completion:^(BOOL finished) {
-        btn.hidden = YES;
-        btn.transform = CGAffineTransformIdentity;
-        btn.alpha = 1.0;
-        
-        // 3 秒后从另一传送门弹出
-        dispatch_after(dispatch_time(DISPATCH_TIME_NOW, (int64_t)(3.0 * NSEC_PER_SEC)), dispatch_get_main_queue(), ^{
-            CGPoint outC = [self.portalOutView.superview convertPoint:self.portalOutView.center toView:self.view];
-            btn.center = outC;
-            btn.transform = CGAffineTransformMakeScale(0.2, 0.2);
-            btn.hidden = NO;
-            btn.alpha = 0.0;
-            
-            CGPoint target = [self randomNonOverlappingPositionForIndex:[self.menuBalls indexOfObject:btn]
-                                                               existing:self.menuBalls];
-            
-            [UIView animateWithDuration:0.8 delay:0 usingSpringWithDamping:0.8 initialSpringVelocity:0.4
-                                options:UIViewAnimationOptionCurveEaseOut animations:^{
-                btn.center = target;
-                btn.transform = CGAffineTransformIdentity;
-                btn.alpha = 1.0;
-            } completion:nil];
-        });
-    }];
-}
 
-- (void)runBlackHoleEffectAroundView:(UIView *)view duration:(NSTimeInterval)duration {
-    // 抓屏
-    UIGraphicsBeginImageContextWithOptions(self.view.bounds.size, NO, UIScreen.mainScreen.scale);
-    [self.view drawViewHierarchyInRect:self.view.bounds afterScreenUpdates:NO];
-    UIImage *snap = UIGraphicsGetImageFromCurrentImageContext();
-    UIGraphicsEndImageContext();
-
-    // CoreImage 扭曲（更像黑洞）
-    CIImage *ci = [[CIImage alloc] initWithImage:snap];
-    CIFilter *twirl = [CIFilter filterWithName:@"CITwirlDistortion"];
-    [twirl setValue:ci forKey:kCIInputImageKey];
-
-    CGPoint center = [view.superview convertPoint:view.center toView:self.view];
-    // 注意 CoreImage y 轴翻转
-    [twirl setValue:[CIVector vectorWithX:center.x Y:self.view.bounds.size.height - center.y] forKey:kCIInputCenterKey];
-    [twirl setValue:@(MIN(view.bounds.size.width, view.bounds.size.height) * 1.6) forKey:kCIInputRadiusKey];
-    [twirl setValue:@(2.8) forKey:kCIInputAngleKey];
-
-    CIContext *ctx = [CIContext contextWithOptions:nil];
-    CGImageRef cgimg = [ctx createCGImage:twirl.outputImage fromRect:ci.extent];
-    UIImage *distorted = [UIImage imageWithCGImage:cgimg scale:UIScreen.mainScreen.scale orientation:UIImageOrientationUp];
-    CGImageRelease(cgimg);
-
-    UIImageView *overlay = [[UIImageView alloc] initWithFrame:self.view.bounds];
-    overlay.image = distorted;
-    overlay.alpha = 0.0;
-    overlay.userInteractionEnabled = NO;
-    [self.view addSubview:overlay];
-
-    [UIView animateWithDuration:duration/2.0 animations:^{ overlay.alpha = 1.0; } completion:^(BOOL finished) {
-        [UIView animateWithDuration:duration/2.0 animations:^{ overlay.alpha = 0.0; } completion:^(BOOL fin){ [overlay removeFromSuperview]; }];
-    }];
-}
 
 @end

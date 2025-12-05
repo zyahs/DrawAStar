@@ -46,12 +46,12 @@
     NSMutableArray *labels = [NSMutableArray array];
     for (int i = 0; i < 5; i++) {
         CGPoint pos = [positions[i] CGPointValue];
-        UILabel *label = [[UILabel alloc] initWithFrame:CGRectMake(pos.x, pos.y, labelSize, labelSize)];
+        UILabel *label = [[UILabel alloc] initWithFrame:CGRectMake(pos.x,300, labelSize, labelSize)];
         label.textAlignment = NSTextAlignmentCenter;
         label.backgroundColor = [UIColor colorWithWhite:1 alpha:0.1];
         label.layer.cornerRadius = labelSize / 2;
         label.layer.masksToBounds = YES;
-        label.textColor = [UIColor systemYellowColor];
+        label.textColor = [UIColor redColor];
         label.font = [UIFont boldSystemFontOfSize:48];
         label.text = @"";
         [self.view addSubview:label];
