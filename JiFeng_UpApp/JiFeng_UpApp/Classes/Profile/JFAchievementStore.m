@@ -171,6 +171,35 @@ static NSString * const kJFAchUnlockedKey = @"jf_ach_unlocked_v1"; // {id: ts}
         NSInteger maxCombo = [r.extra[@"maxCombo"] integerValue];
         return maxCombo >= 50;
     }]];
+    [list addObject:[self defWithId:@"rhythm_combo_100" title:@"百拍合一" desc:@"节奏点点中单局 100 连击"
+                              symbol:@"flame.fill" reward:120
+                          evaluator:^BOOL(JFGameResult *r, JFProfileStore *p) {
+        if (!r || r.kind != JFGameKindRhythm) return NO;
+        return [r.extra[@"maxCombo"] integerValue] >= 100;
+    }]];
+    [list addObject:[self defWithId:@"rhythm_hard_clear" title:@"硬核试炼" desc:@"以高难度通关任意一首"
+                              symbol:@"bolt.fill" reward:150
+                          evaluator:^BOOL(JFGameResult *r, JFProfileStore *p) {
+        if (!r || r.kind != JFGameKindRhythm) return NO;
+        NSString *diff = r.extra[@"difficulty"];
+        return [diff isEqualToString:@"hard"];
+    }]];
+    [list addObject:[self defWithId:@"rhythm_full_combo" title:@"全程满连" desc:@"单局命中数等于谱面拍点数"
+                              symbol:@"checkmark.seal.fill" reward:180
+                          evaluator:^BOOL(JFGameResult *r, JFProfileStore *p) {
+        if (!r || r.kind != JFGameKindRhythm) return NO;
+        NSInteger total = [r.extra[@"totalNotes"] integerValue];
+        NSInteger hits  = [r.extra[@"hits"] integerValue];
+        return total > 20 && hits == total;
+    }]];
+    [list addObject:[self defWithId:@"rhythm_perfect_master" title:@"分毫不差" desc:@"单局 PERFECT 占比 ≥ 80%"
+                              symbol:@"star.circle.fill" reward:160
+                          evaluator:^BOOL(JFGameResult *r, JFProfileStore *p) {
+        if (!r || r.kind != JFGameKindRhythm) return NO;
+        NSInteger total = [r.extra[@"totalNotes"] integerValue];
+        NSInteger perfect = [r.extra[@"perfect"] integerValue];
+        return total > 30 && perfect * 5 >= total * 4;
+    }]];
     self.achievements = [list copy];
 }
 
