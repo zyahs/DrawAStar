@@ -9,6 +9,8 @@
 #import "JFCardsPreviewGridVC.h"
 #import "JFCard.h"
 #import <QuartzCore/QuartzCore.h>
+#import "JFProfileStore.h"
+#import "JFDailyChallengeStore.h"
 #pragma mark - Rules Banner UI
 
 @interface JFRulesBannerView : UIView
@@ -476,6 +478,11 @@
     [self.remainDeck removeObjectAtIndex:idx];
     [self.discarded addObject:next];
     [self updateCounter];
+
+    // 上报一次抽牌动作（用于成就/每日挑战累计）
+    JFGameResult *r = [JFGameResult resultWithKind:JFGameKindCard score:5 win:YES];
+    [[JFProfileStore shared] reportResult:r];
+    [[JFDailyChallengeStore shared] recordResultForToday:JFGameKindCard difficulty:0 score:5 win:YES];
 
     // 翻牌动画（Y 轴翻转）
     [self flipToCard:next];

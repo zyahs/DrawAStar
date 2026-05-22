@@ -7,6 +7,8 @@
 
 #import "TruthOrDareViewController.h"
 #import <QuartzCore/QuartzCore.h>
+#import "JFProfileStore.h"
+#import "JFDailyChallengeStore.h"
 
 @interface TruthOrDareViewController () <UIPickerViewDataSource, UIPickerViewDelegate>
 @property (nonatomic, strong) UIPickerView *pickerView;
@@ -193,6 +195,11 @@
 // 实现流畅滚动效果并在末尾自然停下
 - (void)startRolling {
     [self.startButton setEnabled:NO];
+
+    // 一次抽签算一局
+    JFGameResult *r = [JFGameResult resultWithKind:JFGameKindTruthOrDare score:10 win:YES];
+    [[JFProfileStore shared] reportResult:r];
+    [[JFDailyChallengeStore shared] recordResultForToday:JFGameKindTruthOrDare difficulty:0 score:10 win:YES];
     
     NSInteger currentRow = [self.pickerView selectedRowInComponent:0];
 //    NSInteger totalRows = self.items.count * 1000;

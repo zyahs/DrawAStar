@@ -2,92 +2,82 @@
 //  rootVcViewController.m
 //  JiFeng_UpApp
 //
-//  Created by 继风(周毅) on 2025/8/8.
+//  所有子页面都从这里继承,自动获得统一的玻璃胶囊返回按钮 + 侧滑返回手势支持。
 //
 
 #import "rootVcViewController.h"
-#import <UIKit/UIKit.h>
+#import "JFTheme.h"
 
 @interface rootVcViewController () <UIGestureRecognizerDelegate>
-@property (nonatomic, strong) UIButton *backButton;
+@property (nonatomic, strong, nullable) UIButton *jfBackButton;
 @end
 
 @implementation rootVcViewController
+
+- (void)viewDidLoad {
+    [super viewDidLoad];
+    [self.navigationController setNavigationBarHidden:YES animated:NO];
+}
+
+#pragma mark - 默认仅支持竖屏(子类可覆盖,例如五子棋强制横屏)
+
+- (BOOL)shouldAutorotate { return YES; }
+
+- (UIInterfaceOrientationMask)supportedInterfaceOrientations {
+    return UIInterfaceOrientationMaskPortrait;
+}
+
+- (UIInterfaceOrientation)preferredInterfaceOrientationForPresentation {
+    return UIInterfaceOrientationPortrait;
+}
 
 - (void)viewWillAppear:(BOOL)animated {
     [super viewWillAppear:animated];
     [self jf_installBackIfNeeded];
 }
 
-- (void)viewDidLoad {
-    [super viewDidLoad];
-    // 确保导航栏隐藏
-    [self.navigationController setNavigationBarHidden:YES animated:NO];
-//    [self setupBackButton];
-}
-- (void)setupBackButton {
-    UIButton *back = [UIButton buttonWithType:UIButtonTypeCustom];
-    [back setImage:[UIImage imageNamed:@"back"] forState:UIControlStateNormal];
-    back.translatesAutoresizingMaskIntoConstraints = NO;
-    [back addTarget:self action:@selector(onBack) forControlEvents:UIControlEventTouchUpInside];
-
-    [self.view addSubview:back];
-
-    UILayoutGuide *safe = self.view.safeAreaLayoutGuide;
-    [NSLayoutConstraint activateConstraints:@[
-        [back.leadingAnchor constraintEqualToAnchor:safe.leadingAnchor constant:12],
-        [back.topAnchor constraintEqualToAnchor:safe.topAnchor constant:12],
-        [back.widthAnchor constraintEqualToConstant:32],
-        [back.heightAnchor constraintEqualToConstant:32],
-    ]];
-}
-
-- (void)onBack {
-    [self.navigationController popViewControllerAnimated:YES];
-}
-#pragma mark - Back Button
+#pragma mark - 返回按钮
 
 - (void)jf_installBackIfNeeded {
-    // 只有当当前控制器不是栈底（root）时才显示返回按钮
     if (!self.navigationController) { return; }
     if (self.navigationController.viewControllers.firstObject == self) {
-        // 如果是根控制器，移除返回按钮
-        [self.backButton removeFromSuperview];
-        self.backButton = nil;
+        // 根控制器不显示返回按钮
+        [self.jfBackButton removeFromSuperview];
+        self.jfBackButton = nil;
         return;
     }
-    
-    if (!self.backButton) {
-        UIButton *backButton = [UIButton buttonWithType:UIButtonTypeCustom];
-        UIImage *img = [UIImage imageNamed:@"back"];
-        [backButton setImage:img forState:UIControlStateNormal];
-        backButton.frame = CGRectMake(0, 0, 30, 30);
-        [backButton addTarget:self action:@selector(jf_goBack) forControlEvents:UIControlEventTouchUpInside];
-        self.backButton = backButton;
-        [self.view addSubview:backButton];
-        
-        backButton.translatesAutoresizingMaskIntoConstraints = NO;
-        UILayoutGuide *safeArea = self.view.safeAreaLayoutGuide;
+
+    if (!self.jfBackButton) {
+        UIButton *btn = [JFTheme backButtonWithTarget:self action:@selector(jf_goBack)];
+        [self.view addSubview:btn];
+        // 持续置顶,避免被子页面后续 addSubview 盖掉
+        [self.view bringSubviewToFront:btn];
+        self.jfBackButton = btn;
+
+        UILayoutGuide *safe = self.view.safeAreaLayoutGuide;
         [NSLayoutConstraint activateConstraints:@[
-            [backButton.leadingAnchor constraintEqualToAnchor:safeArea.leadingAnchor constant:16],
-            [backButton.topAnchor constraintEqualToAnchor:safeArea.topAnchor constant:10],
-            [backButton.widthAnchor constraintEqualToConstant:30],
-            [backButton.heightAnchor constraintEqualToConstant:30]
+            [btn.leadingAnchor constraintEqualToAnchor:safe.leadingAnchor constant:JFSpacing16],
+            [btn.topAnchor     constraintEqualToAnchor:safe.topAnchor constant:JFSpacing8],
+            [btn.widthAnchor   constraintEqualToConstant:40],
+            [btn.heightAnchor  constraintEqualToConstant:40],
         ]];
+    } else {
+        [self.view bringSubviewToFront:self.jfBackButton];
     }
-    
-    // 修复自定义返回按钮导致侧滑返回手势失效的问题
+
+    // 保证侧滑返回手势可用
     self.navigationController.interactivePopGestureRecognizer.delegate = self;
     self.navigationController.interactivePopGestureRecognizer.enabled = YES;
 }
 
 - (void)jf_goBack {
+    [JFTheme hapticImpactLight];
     [self.navigationController popViewControllerAnimated:YES];
 }
 
-#pragma mark - UIGestureRecognizerDelegate
+#pragma mark - 侧滑返回
+
 - (BOOL)gestureRecognizerShouldBegin:(UIGestureRecognizer *)gestureRecognizer {
-    // 仅当栈中有上一层时允许侧滑返回
     return self.navigationController.viewControllers.count > 1;
 }
 

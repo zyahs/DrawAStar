@@ -41,35 +41,30 @@ typedef enum : NSUInteger {
 {
     self = [super initWithFrame:frame];
     if (self) {
-        [self setFrame:frame];
-        [self setUp];
+        self.backgroundColor = [UIColor colorWithRed:200/255.0 green:160/255.0 blue:130/255.0 alpha:1];
+        [self addGestureRecognizer:[[UITapGestureRecognizer alloc] initWithTarget:self action:@selector(tapBoard:)]];
     }
-    
     return self;
 }
 
-- (void)setFrame:(CGRect)frame{
-
-    CGSize size = frame.size;
-    [super setFrame:CGRectMake(frame.origin.x, frame.origin.y, MIN(size.width, size.height), MIN(size.width, size.height))];
-}
-
 - (void)layoutSubviews{
-    
     [super layoutSubviews];
-    static dispatch_once_t onceToken;
-    dispatch_once(&onceToken, ^{
-        //初始化设置
-        [self setUp];
-    });
-    
+    // 只要 bounds 尺寸变了就重画一次背景(替换旧的 dispatch_once 逻辑)
+    if (self.bounds.size.width <= 0) return;
+    static CGFloat sLastSize = 0;
+    if (fabs(self.bounds.size.width - sLastSize) < 0.5) return;
+    sLastSize = self.bounds.size.width;
+    [self redrawBoard];
 }
 
-- (void)setUp{
-    
-    self.backgroundColor = [UIColor colorWithRed:200/255.0 green:160/255.0 blue:130/255.0 alpha:1];
-    [self drawBackground:self.size];
-    [self addGestureRecognizer:[[UITapGestureRecognizer alloc]initWithTarget:self action:@selector(tapBoard:)]];
+- (void)redrawBoard {
+    // 先把旧的背景图层移除(避免叠加)
+    for (UIView *sub in [self.subviews copy]) {
+        if ([sub isKindOfClass:[UIImageView class]] && sub.tag == 9999) {
+            [sub removeFromSuperview];
+        }
+    }
+    [self drawBackground:self.bounds.size];
 }
 
 #pragma mark - 绘制棋盘
@@ -99,7 +94,8 @@ typedef enum : NSUInteger {
     UIImage *image=UIGraphicsGetImageFromCurrentImageContext();
     //5.显示生成的图片到imageview
     UIImageView * imageView = [[UIImageView alloc]initWithImage:image];
-    [self addSubview:imageView];
+    imageView.tag = 9999;
+    [self insertSubview:imageView atIndex:0];
     UIGraphicsEndImageContext();
 }
 
@@ -274,6 +270,10 @@ typedef enum : NSUInteger {
         [tip removeFromSuperview];
     });
 
+    // 广播一次游戏结束
+    [[NSNotificationCenter defaultCenter] postNotificationName:@"JFFiveInRowDidFinishNotification"
+                                                         object:nil
+                                                       userInfo:@{@"isBlack": @(self.isBlack)}];
 }
 
 #pragma mark - 功能方法
@@ -363,7 +363,7 @@ typedef enum : NSUInteger {
 }
 
 - (NSInteger)gridCount{
-    
-    return self.isHighLevel ? kGridCount : (kGridCount - 4);
+    // 不再区分初/高级,统一使用 kGridCount(全屏棋盘)
+    return kGridCount;
 }
 @end

@@ -6,8 +6,13 @@
 	objectVersion = 77;
 	objects = {
 
+/* Begin PBXBuildFile section */
+		7C7ADB012FBAC6650085269F /* UserNotifications.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = 7C7ADB002FBAC6650085269F /* UserNotifications.framework */; };
+/* End PBXBuildFile section */
+
 /* Begin PBXFileReference section */
 		7C5676372E41B0060048F13E /* JiFeng_UpApp.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = JiFeng_UpApp.app; sourceTree = BUILT_PRODUCTS_DIR; };
+		7C7ADB002FBAC6650085269F /* UserNotifications.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = UserNotifications.framework; path = System/Library/Frameworks/UserNotifications.framework; sourceTree = SDKROOT; };
 /* End PBXFileReference section */
 
 /* Begin PBXFileSystemSynchronizedBuildFileExceptionSet section */
@@ -36,6 +41,7 @@
 			isa = PBXFrameworksBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
+				7C7ADB012FBAC6650085269F /* UserNotifications.framework in Frameworks */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -46,6 +52,7 @@
 			isa = PBXGroup;
 			children = (
 				7C5676392E41B0060048F13E /* JiFeng_UpApp */,
+				7C7ADAFF2FBAC6650085269F /* Frameworks */,
 				7C5676382E41B0060048F13E /* Products */,
 			);
 			sourceTree = "<group>";
@@ -56,6 +63,14 @@
 				7C5676372E41B0060048F13E /* JiFeng_UpApp.app */,
 			);
 			name = Products;
+			sourceTree = "<group>";
+		};
+		7C7ADAFF2FBAC6650085269F /* Frameworks */ = {
+			isa = PBXGroup;
+			children = (
+				7C7ADB002FBAC6650085269F /* UserNotifications.framework */,
+			);
+			name = Frameworks;
 			sourceTree = "<group>";
 		};
 /* End PBXGroup section */

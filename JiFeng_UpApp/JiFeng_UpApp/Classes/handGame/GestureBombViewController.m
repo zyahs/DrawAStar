@@ -8,6 +8,8 @@
 
 #import <UIKit/UIKit.h>
 #import <QuartzCore/QuartzCore.h>
+#import "JFProfileStore.h"
+#import "JFDailyChallengeStore.h"
 
 typedef NS_ENUM(NSInteger, JFGestureBombState) {
     JFGestureBombStateIdle,
@@ -382,6 +384,11 @@ typedef NS_ENUM(NSInteger, JFGestureBombState) {
 
     // 本轮结束，允许再次开始
     self.startButton.enabled = YES;
+
+    // 上报一局
+    JFGameResult *r = [JFGameResult resultWithKind:JFGameKindGesture score:10 win:YES];
+    [[JFProfileStore shared] reportResult:r];
+    [[JFDailyChallengeStore shared] recordResultForToday:JFGameKindGesture difficulty:0 score:10 win:YES];
 }
 
 - (void)stopRoundTimer {

@@ -7,6 +7,8 @@
 
 #import "CubeViewController.h"
 #import <QuartzCore/QuartzCore.h>
+#import "JFProfileStore.h"
+#import "JFDailyChallengeStore.h"
 
 @interface CubeViewController ()
 @property (nonatomic, strong) NSArray<UIView *> *cubes;
@@ -154,6 +156,9 @@
 
 // 新增 rollDice 方法
 - (void)rollDice {
+    JFGameResult *r = [JFGameResult resultWithKind:JFGameKindDice score:5 win:YES];
+    [[JFProfileStore shared] reportResult:r];
+    [[JFDailyChallengeStore shared] recordResultForToday:JFGameKindDice difficulty:0 score:5 win:YES];
     for (int i = 0; i < self.cubes.count; i++) {
         UIView *cube = self.cubes[i];
         UILabel *label = self.resultLabels[i];

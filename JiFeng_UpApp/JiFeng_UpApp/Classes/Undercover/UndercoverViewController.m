@@ -2,547 +2,611 @@
 //  UndercoverViewController.m
 //  JiFeng_UpApp
 //
-//  Created by 继风(周毅) on 2025/8/8.
+//  谁是卧底 —— 联机层走 JFGameSession,UI 走 JFTheme。
+//  消息统一为 JFGameMessage。
 //
 
 #import "UndercoverViewController.h"
-#import <MultipeerConnectivity/MultipeerConnectivity.h>
+#import "JFTheme.h"
+#import "JFGameSession.h"
 
-#define SERVICE_TYPE @"undercover"
+static NSString * const kServiceType = @"undercover";
 
-@interface UndercoverViewController () <MCSessionDelegate, MCNearbyServiceAdvertiserDelegate, MCNearbyServiceBrowserDelegate, UITextFieldDelegate>
+@interface UndercoverViewController () <JFGameSessionDelegate, UITextFieldDelegate>
 
-@property (nonatomic, strong) MCPeerID *myPeerID;
-@property (nonatomic, strong) MCSession *session;
-@property (nonatomic, strong) MCNearbyServiceAdvertiser *advertiser;
-@property (nonatomic, strong) MCNearbyServiceBrowser *browser;
-
-@property (nonatomic, strong) NSMutableArray<MCPeerID *> *connectedPeers;
+#pragma mark 联机
+@property (nonatomic, strong) id<JFGameSession> session;
 @property (nonatomic, assign) BOOL isHost;
-@property (nonatomic, strong) UIButton *hostBtn;
-@property (nonatomic, strong) UIButton *joinBtn;
-@property (nonatomic, strong) UIButton *startBtn;
-@property (nonatomic, strong) UILabel *statusLabel;
+
+#pragma mark UI
+@property (nonatomic, strong) UIImageView *bgImageView;
+@property (nonatomic, strong) UIView      *contentCard;        // 玻璃卡片容器
+@property (nonatomic, strong) UILabel     *titleLabel;
+@property (nonatomic, strong) UILabel     *statusLabel;
+
+@property (nonatomic, strong) UIButton    *hostBtn;
+@property (nonatomic, strong) UIButton    *joinBtn;
+@property (nonatomic, strong) UIButton    *startBtn;
+@property (nonatomic, strong) UIButton    *voteButton;
+@property (nonatomic, strong) UIButton    *viewIdentityBtn;
 
 @property (nonatomic, strong) UITextField *spyCountField;
 @property (nonatomic, strong) UITextField *civilCountField;
 @property (nonatomic, strong) UITextField *spyWordField;
 @property (nonatomic, strong) UITextField *civilWordField;
-@property (nonatomic, strong) UIButton *viewIdentityBtn;
+
 @property (nonatomic, strong) UITextView *summaryView;
-@property (nonatomic, copy) NSString *identityString;
 
-
-
-@property (nonatomic, strong) UIButton *voteButton;
-@property (nonatomic, strong) NSMutableDictionary<NSNumber *, NSString *> *playerIdentities;
-@property (nonatomic, strong) NSMutableSet<NSNumber *> *eliminatedPlayers;
+#pragma mark 状态
+@property (nonatomic, copy)   NSString *identityString;
 @property (nonatomic, assign) NSInteger myPlayerNumber;
-@property (nonatomic,strong)UIImageView *bgImageView;
+@property (nonatomic, strong) NSMutableDictionary<NSNumber *, NSString *> *playerIdentities; // 编号 -> 角色
+@property (nonatomic, strong) NSMutableSet<NSNumber *> *eliminatedPlayers;
+@property (nonatomic, strong) NSMapTable<NSNumber *, JFGamePeer *> *peerByNumber; // 编号 -> peer(房主用)
+
+@property (nonatomic, strong) UIView *voteContainer;
+
 @end
 
 @implementation UndercoverViewController
 
--(void)viewDidLoad {
+#pragma mark - Life
+
+- (void)viewDidLoad {
     [super viewDidLoad];
-    self.title = @"谁是卧底-联机Demo";
-    self.view.backgroundColor = [UIColor whiteColor];
+    self.view.backgroundColor = [JFTheme backgroundPrimary];
+
+    self.session = [JFGameSessionFactory localSessionForServiceType:kServiceType];
+    self.session.delegate = self;
+    self.peerByNumber = [NSMapTable strongToStrongObjectsMapTable];
+
+    [self setupBackground];
+    [self setupUI];
+}
+
+- (void)dealloc {
+    [self.session stop];
+}
+
+#pragma mark - 背景
+
+- (void)setupBackground {
     self.bgImageView = [[UIImageView alloc] initWithImage:[UIImage imageNamed:@"b3"]];
     self.bgImageView.frame = self.view.bounds;
     self.bgImageView.autoresizingMask = UIViewAutoresizingFlexibleWidth | UIViewAutoresizingFlexibleHeight;
     self.bgImageView.contentMode = UIViewContentModeScaleAspectFill;
-    [self.view addSubview:self.bgImageView];
-    [self setupUI];
+    [self.view insertSubview:self.bgImageView atIndex:0];
+
+    UIView *overlay = [[UIView alloc] initWithFrame:self.view.bounds];
+    overlay.autoresizingMask = UIViewAutoresizingFlexibleWidth | UIViewAutoresizingFlexibleHeight;
+    overlay.backgroundColor = [UIColor colorWithRed:0.06 green:0.06 blue:0.10 alpha:0.55];
+    [self.view insertSubview:overlay aboveSubview:self.bgImageView];
 }
 
--(void)setupUI {
-    CGFloat w = 180, h = 44, spacing = 30;
-    self.hostBtn = [self buttonWithTitle:@"创建房间(房主)" frame:CGRectMake((self.view.bounds.size.width-w)/2, 100, w, h) sel:@selector(createHost)];
-    self.joinBtn = [self buttonWithTitle:@"加入房间(玩家)" frame:CGRectMake((self.view.bounds.size.width-w)/2, 100+h+spacing, w, h) sel:@selector(joinHost)];
-    self.startBtn = [self buttonWithTitle:@"开始游戏" frame:CGRectMake((self.view.bounds.size.width-w)/2, 100+2*(h+spacing), w, h) sel:@selector(startGame)];
-    self.startBtn.enabled = NO;
-    self.statusLabel = [[UILabel alloc] initWithFrame:CGRectMake(0, 100+3*(h+spacing), self.view.bounds.size.width, 40)];
-    self.statusLabel.textAlignment = NSTextAlignmentCenter;
-    self.statusLabel.textColor = [UIColor darkGrayColor];
-    [self.view addSubview:self.hostBtn];
-    [self.view addSubview:self.joinBtn];
-    [self.view addSubview:self.startBtn];
-    [self.view addSubview:self.statusLabel];
-    
-    // 新增输入框和按钮
-    CGFloat textFieldY = CGRectGetMaxY(self.startBtn.frame) + spacing;
-    self.spyCountField = [self textFieldWithPlaceholder:@"卧底人数 (留空自动判断)"];
-    self.civilCountField = [self textFieldWithPlaceholder:@"平民人数 (选填)"];
-    self.spyWordField = [self textFieldWithPlaceholder:@"卧底词 (留空随机)"];
-    self.civilWordField = [self textFieldWithPlaceholder:@"平民词 (留空随机)"];
-    NSArray *fields = @[self.spyCountField, self.civilCountField, self.spyWordField, self.civilWordField];
-    for (UITextField *field in fields) {
-        CGRect f = CGRectMake((self.view.bounds.size.width-w)/2, textFieldY, w, h);
-        field.frame = f;
-        field.delegate = self;
-        field.returnKeyType = UIReturnKeyDone;
-        field.hidden = YES; // 初始隐藏
-        [self.view addSubview:field];
-        textFieldY += h + 10;
-    }
-    self.viewIdentityBtn = [self buttonWithTitle:@"查看我的身份" frame:CGRectMake((self.view.bounds.size.width-w)/2, textFieldY + 20, w, h) sel:@selector(showIdentity)];
+#pragma mark - UI
+
+- (void)setupUI {
+    UILayoutGuide *safe = self.view.safeAreaLayoutGuide;
+
+    // 滚动容器,避免低版本机型 / 字段全展开后内容被挤出屏幕
+    UIScrollView *scroll = [[UIScrollView alloc] init];
+    scroll.translatesAutoresizingMaskIntoConstraints = NO;
+    scroll.alwaysBounceVertical = YES;
+    scroll.showsVerticalScrollIndicator = NO;
+    scroll.contentInsetAdjustmentBehavior = UIScrollViewContentInsetAdjustmentNever;
+    [self.view addSubview:scroll];
+
+    UIView *content = [[UIView alloc] init];
+    content.translatesAutoresizingMaskIntoConstraints = NO;
+    [scroll addSubview:content];
+
+    // 返回按钮由 rootVcViewController 统一注入,这里不重复加
+
+    // 标题
+    self.titleLabel = [[UILabel alloc] init];
+    self.titleLabel.text = @"谁是卧底";
+    self.titleLabel.font = [JFTheme fontTitle];
+    self.titleLabel.textColor = [JFTheme textPrimary];
+    self.titleLabel.translatesAutoresizingMaskIntoConstraints = NO;
+    [content addSubview:self.titleLabel];
+
+    self.statusLabel = [[UILabel alloc] init];
+    self.statusLabel.text = @"等待开始";
+    self.statusLabel.font = [JFTheme fontCallout];
+    self.statusLabel.textColor = [JFTheme textSecondary];
+    self.statusLabel.translatesAutoresizingMaskIntoConstraints = NO;
+    self.statusLabel.numberOfLines = 0;
+    [content addSubview:self.statusLabel];
+
+    // 主操作按钮
+    self.hostBtn  = [self primaryButtonWithTitle:@"创建房间(房主)" sel:@selector(actionCreateHost)];
+    self.joinBtn  = [self primaryButtonWithTitle:@"加入房间(玩家)" sel:@selector(actionJoin)];
+    self.startBtn = [self primaryButtonWithTitle:@"开始游戏"        sel:@selector(actionStart)];
+    self.startBtn.enabled = NO; self.startBtn.alpha = 0.5;
+    self.hostBtn.translatesAutoresizingMaskIntoConstraints = NO;
+    self.joinBtn.translatesAutoresizingMaskIntoConstraints = NO;
+    self.startBtn.translatesAutoresizingMaskIntoConstraints = NO;
+
+    UIStackView *btnStack = [[UIStackView alloc] initWithArrangedSubviews:@[self.hostBtn, self.joinBtn, self.startBtn]];
+    btnStack.axis = UILayoutConstraintAxisVertical;
+    btnStack.spacing = JFSpacing12;
+    btnStack.distribution = UIStackViewDistributionFill;
+    btnStack.alignment = UIStackViewAlignmentFill;
+    btnStack.translatesAutoresizingMaskIntoConstraints = NO;
+    [content addSubview:btnStack];
+
+    // 输入字段
+    self.spyCountField   = [self textFieldWithPlaceholder:@"卧底人数(留空自动)"];
+    self.civilCountField = [self textFieldWithPlaceholder:@"平民人数(选填)"];
+    self.spyWordField    = [self textFieldWithPlaceholder:@"卧底词(留空随机)"];
+    self.civilWordField  = [self textFieldWithPlaceholder:@"平民词(留空随机)"];
+    self.spyCountField.translatesAutoresizingMaskIntoConstraints = NO;
+    self.civilCountField.translatesAutoresizingMaskIntoConstraints = NO;
+    self.spyWordField.translatesAutoresizingMaskIntoConstraints = NO;
+    self.civilWordField.translatesAutoresizingMaskIntoConstraints = NO;
+    UIStackView *fieldStack = [[UIStackView alloc] initWithArrangedSubviews:@[
+        self.spyCountField, self.civilCountField, self.spyWordField, self.civilWordField
+    ]];
+    fieldStack.axis = UILayoutConstraintAxisVertical;
+    fieldStack.spacing = JFSpacing8;
+    fieldStack.distribution = UIStackViewDistributionFill;
+    fieldStack.alignment = UIStackViewAlignmentFill;
+    fieldStack.translatesAutoresizingMaskIntoConstraints = NO;
+    fieldStack.hidden = YES;
+    fieldStack.tag = 9001;
+    [content addSubview:fieldStack];
+
+    // 查看身份按钮(客户端)
+    self.viewIdentityBtn = [self ghostButtonWithTitle:@"查看我的身份" sel:@selector(showIdentity)];
+    self.viewIdentityBtn.translatesAutoresizingMaskIntoConstraints = NO;
     self.viewIdentityBtn.hidden = YES;
-    [self.view addSubview:self.viewIdentityBtn];
-    [self.view bringSubviewToFront:self.viewIdentityBtn];
-    
-    CGFloat inputsBottom = CGRectGetMaxY(self.civilWordField.frame);
-    self.voteButton = [self buttonWithTitle:@"开始投票" frame:CGRectMake((self.view.bounds.size.width - w)/2, inputsBottom + 20, w, h) sel:@selector(startVoting)];
-    self.voteButton.hidden = !self.isHost;
-    [self.view addSubview:self.voteButton];
+    [content addSubview:self.viewIdentityBtn];
+
+    // 投票按钮(房主)
+    self.voteButton = [self primaryButtonWithTitle:@"开始投票" sel:@selector(actionStartVoting)];
+    self.voteButton.translatesAutoresizingMaskIntoConstraints = NO;
+    self.voteButton.hidden = YES;
+    [content addSubview:self.voteButton];
+
+    // 房主投票汇总
+    self.summaryView = [[UITextView alloc] init];
+    self.summaryView.editable = NO;
+    self.summaryView.font = [JFTheme fontCaption];
+    self.summaryView.textColor = [JFTheme textPrimary];
+    self.summaryView.backgroundColor = [UIColor colorWithWhite:0 alpha:0.30];
+    self.summaryView.layer.cornerRadius = JFRadiusSmall;
+    self.summaryView.layer.cornerCurve  = kCACornerCurveContinuous;
+    self.summaryView.layer.borderWidth  = 0.5;
+    self.summaryView.layer.borderColor  = [JFTheme cardBorder].CGColor;
+    self.summaryView.contentInset = UIEdgeInsetsMake(JFSpacing8, JFSpacing8, JFSpacing8, JFSpacing8);
+    self.summaryView.hidden = YES;
+    self.summaryView.translatesAutoresizingMaskIntoConstraints = NO;
+    [content addSubview:self.summaryView];
+
+    // 投票按钮容器(客户端动态填充)
+    self.voteContainer = [[UIView alloc] init];
+    self.voteContainer.translatesAutoresizingMaskIntoConstraints = NO;
+    self.voteContainer.hidden = YES;
+    [content addSubview:self.voteContainer];
+
+    [NSLayoutConstraint activateConstraints:@[
+        // 滚动容器铺满 view(顶部留出返回按钮高度)
+        [scroll.topAnchor      constraintEqualToAnchor:safe.topAnchor constant:56],
+        [scroll.leadingAnchor  constraintEqualToAnchor:self.view.leadingAnchor],
+        [scroll.trailingAnchor constraintEqualToAnchor:self.view.trailingAnchor],
+        [scroll.bottomAnchor   constraintEqualToAnchor:self.view.bottomAnchor],
+
+        // content 撑满 scroll 宽度
+        [content.topAnchor      constraintEqualToAnchor:scroll.contentLayoutGuide.topAnchor],
+        [content.leadingAnchor  constraintEqualToAnchor:scroll.contentLayoutGuide.leadingAnchor],
+        [content.trailingAnchor constraintEqualToAnchor:scroll.contentLayoutGuide.trailingAnchor],
+        [content.bottomAnchor   constraintEqualToAnchor:scroll.contentLayoutGuide.bottomAnchor],
+        [content.widthAnchor    constraintEqualToAnchor:scroll.frameLayoutGuide.widthAnchor],
+
+        // 标题/状态
+        [self.titleLabel.topAnchor      constraintEqualToAnchor:content.topAnchor constant:JFSpacing12],
+        [self.titleLabel.leadingAnchor  constraintEqualToAnchor:content.leadingAnchor constant:JFSpacing20],
+        [self.titleLabel.trailingAnchor constraintLessThanOrEqualToAnchor:content.trailingAnchor constant:-JFSpacing20],
+
+        [self.statusLabel.topAnchor      constraintEqualToAnchor:self.titleLabel.bottomAnchor constant:JFSpacing4],
+        [self.statusLabel.leadingAnchor  constraintEqualToAnchor:content.leadingAnchor constant:JFSpacing20],
+        [self.statusLabel.trailingAnchor constraintEqualToAnchor:content.trailingAnchor constant:-JFSpacing20],
+
+        // 主按钮组
+        [btnStack.topAnchor      constraintEqualToAnchor:self.statusLabel.bottomAnchor constant:JFSpacing24],
+        [btnStack.leadingAnchor  constraintEqualToAnchor:content.leadingAnchor constant:JFSpacing20],
+        [btnStack.trailingAnchor constraintEqualToAnchor:content.trailingAnchor constant:-JFSpacing20],
+        [self.hostBtn.heightAnchor  constraintEqualToConstant:50],
+        [self.joinBtn.heightAnchor  constraintEqualToConstant:50],
+        [self.startBtn.heightAnchor constraintEqualToConstant:50],
+
+        // 输入字段
+        [fieldStack.topAnchor      constraintEqualToAnchor:btnStack.bottomAnchor constant:JFSpacing16],
+        [fieldStack.leadingAnchor  constraintEqualToAnchor:content.leadingAnchor constant:JFSpacing20],
+        [fieldStack.trailingAnchor constraintEqualToAnchor:content.trailingAnchor constant:-JFSpacing20],
+        [self.spyCountField.heightAnchor   constraintEqualToConstant:44],
+        [self.civilCountField.heightAnchor constraintEqualToConstant:44],
+        [self.spyWordField.heightAnchor    constraintEqualToConstant:44],
+        [self.civilWordField.heightAnchor  constraintEqualToConstant:44],
+
+        // 查看身份(客户端)
+        [self.viewIdentityBtn.topAnchor      constraintEqualToAnchor:fieldStack.bottomAnchor constant:JFSpacing16],
+        [self.viewIdentityBtn.leadingAnchor  constraintEqualToAnchor:content.leadingAnchor constant:JFSpacing20],
+        [self.viewIdentityBtn.trailingAnchor constraintEqualToAnchor:content.trailingAnchor constant:-JFSpacing20],
+        [self.viewIdentityBtn.heightAnchor   constraintEqualToConstant:46],
+
+        // 开始投票(房主)
+        [self.voteButton.topAnchor      constraintEqualToAnchor:self.viewIdentityBtn.bottomAnchor constant:JFSpacing12],
+        [self.voteButton.leadingAnchor  constraintEqualToAnchor:content.leadingAnchor constant:JFSpacing20],
+        [self.voteButton.trailingAnchor constraintEqualToAnchor:content.trailingAnchor constant:-JFSpacing20],
+        [self.voteButton.heightAnchor   constraintEqualToConstant:46],
+
+        // 投票按钮容器
+        [self.voteContainer.topAnchor      constraintEqualToAnchor:self.voteButton.bottomAnchor constant:JFSpacing12],
+        [self.voteContainer.leadingAnchor  constraintEqualToAnchor:content.leadingAnchor constant:JFSpacing20],
+        [self.voteContainer.trailingAnchor constraintEqualToAnchor:content.trailingAnchor constant:-JFSpacing20],
+
+        // 投票汇总(房主)
+        [self.summaryView.topAnchor      constraintEqualToAnchor:self.voteContainer.bottomAnchor constant:JFSpacing12],
+        [self.summaryView.leadingAnchor  constraintEqualToAnchor:content.leadingAnchor constant:JFSpacing20],
+        [self.summaryView.trailingAnchor constraintEqualToAnchor:content.trailingAnchor constant:-JFSpacing20],
+        [self.summaryView.heightAnchor   constraintGreaterThanOrEqualToConstant:120],
+        [self.summaryView.bottomAnchor   constraintEqualToAnchor:content.bottomAnchor constant:-JFSpacing24],
+    ]];
 }
 
-// 其它方法不变...
+- (UIButton *)primaryButtonWithTitle:(NSString *)t sel:(SEL)sel {
+    UIButton *b = [UIButton buttonWithType:UIButtonTypeSystem];
+    b.layer.cornerRadius = JFRadiusMedium;
+    b.layer.cornerCurve = kCACornerCurveContinuous;
+    b.backgroundColor = [JFTheme brandPrimary];
+    b.tintColor = [JFTheme textOnAccent];
+    b.titleLabel.font = [JFTheme fontHeadline];
+    [b setTitle:t forState:UIControlStateNormal];
+    [b setTitleColor:[JFTheme textOnAccent] forState:UIControlStateNormal];
+    [b addTarget:self action:sel forControlEvents:UIControlEventTouchUpInside];
+    return b;
+}
+
+- (UIButton *)ghostButtonWithTitle:(NSString *)t sel:(SEL)sel {
+    UIButton *b = [UIButton buttonWithType:UIButtonTypeSystem];
+    b.layer.cornerRadius = JFRadiusMedium;
+    b.layer.cornerCurve  = kCACornerCurveContinuous;
+    b.layer.borderWidth  = 1;
+    b.layer.borderColor  = [JFTheme cardBorder].CGColor;
+    b.backgroundColor    = [UIColor colorWithWhite:1 alpha:0.06];
+    b.titleLabel.font    = [JFTheme fontCallout];
+    [b setTitle:t forState:UIControlStateNormal];
+    [b setTitleColor:[JFTheme textPrimary] forState:UIControlStateNormal];
+    [b addTarget:self action:sel forControlEvents:UIControlEventTouchUpInside];
+    return b;
+}
 
 - (UITextField *)textFieldWithPlaceholder:(NSString *)placeholder {
     UITextField *tf = [[UITextField alloc] init];
-    tf.borderStyle = UITextBorderStyleRoundedRect;
-    tf.placeholder = placeholder;
-    tf.font = [UIFont systemFontOfSize:16];
+    tf.borderStyle = UITextBorderStyleNone;
+    tf.backgroundColor = [UIColor colorWithWhite:1 alpha:0.10];
+    tf.textColor = [JFTheme textPrimary];
+    tf.font = [JFTheme fontBody];
+    tf.attributedPlaceholder = [[NSAttributedString alloc] initWithString:placeholder
+                                                              attributes:@{NSForegroundColorAttributeName: [JFTheme textTertiary]}];
+    tf.layer.cornerRadius = JFRadiusSmall;
+    tf.layer.cornerCurve = kCACornerCurveContinuous;
+    tf.delegate = self;
+    tf.returnKeyType = UIReturnKeyDone;
+    UIView *padding = [[UIView alloc] initWithFrame:CGRectMake(0, 0, 12, 0)];
+    tf.leftView = padding; tf.leftViewMode = UITextFieldViewModeAlways;
+    tf.rightView = [[UIView alloc] initWithFrame:CGRectMake(0, 0, 12, 0)]; tf.rightViewMode = UITextFieldViewModeAlways;
     return tf;
 }
 
-- (UIButton *)buttonWithTitle:(NSString *)title frame:(CGRect)frame sel:(SEL)sel {
-    UIButton *btn = [UIButton buttonWithType:UIButtonTypeSystem];
-    btn.frame = frame;
-    [btn setTitle:title forState:UIControlStateNormal];
-    btn.titleLabel.font = [UIFont boldSystemFontOfSize:18];
-    btn.backgroundColor = [UIColor colorWithRed:0.1 green:0.6 blue:1 alpha:0.1];
-    btn.layer.cornerRadius = 8;
-    [btn addTarget:self action:sel forControlEvents:UIControlEventTouchUpInside];
-    return btn;
-}
+#pragma mark - Actions
 
-- (void)createHost {
+- (void)actionCreateHost {
+    [JFTheme hapticImpactMedium];
     self.isHost = YES;
-    [self initSession];
-    self.advertiser = [[MCNearbyServiceAdvertiser alloc] initWithPeer:self.myPeerID discoveryInfo:nil serviceType:SERVICE_TYPE];
-    self.advertiser.delegate = self;
-    [self.advertiser startAdvertisingPeer];
+    [self.session startAsHost];
     self.statusLabel.text = @"等待玩家加入...";
-    self.startBtn.enabled = YES;
-    self.hostBtn.enabled = NO;
-    self.joinBtn.enabled = NO;
-    for (UITextField *field in @[self.spyCountField, self.civilCountField, self.spyWordField, self.civilWordField]) {
-        field.hidden = NO;
-    }
+    self.startBtn.enabled = YES; self.startBtn.alpha = 1.0;
+    self.hostBtn.enabled = NO; self.hostBtn.alpha = 0.5;
+    self.joinBtn.enabled = NO; self.joinBtn.alpha = 0.5;
+    [self.view viewWithTag:9001].hidden = NO;
 }
 
-- (void)joinHost {
+- (void)actionJoin {
+    [JFTheme hapticImpactMedium];
     self.isHost = NO;
-    [self initSession];
-    self.browser = [[MCNearbyServiceBrowser alloc] initWithPeer:self.myPeerID serviceType:SERVICE_TYPE];
-    self.browser.delegate = self;
-    [self.browser startBrowsingForPeers];
+    [self.session startAsClient];
     self.statusLabel.text = @"正在搜索房主...";
-    self.hostBtn.enabled = NO;
-    self.joinBtn.enabled = NO;
+    self.hostBtn.enabled = NO; self.hostBtn.alpha = 0.5;
+    self.joinBtn.enabled = NO; self.joinBtn.alpha = 0.5;
 }
 
-// 初始化会话，移除对 self.connectedPeers 的赋值和初始化，完全使用 self.session.connectedPeers
-- (void)initSession {
-    self.myPeerID = [[MCPeerID alloc] initWithDisplayName:[UIDevice currentDevice].name];
-    self.session = [[MCSession alloc] initWithPeer:self.myPeerID securityIdentity:nil encryptionPreference:MCEncryptionOptional];
-    self.session.delegate = self;
-}
-
-// MARK: Host & Player 联机代理
-
-#pragma mark - Advertiser (Host端监听)
-
-- (void)advertiser:(MCNearbyServiceAdvertiser *)advertiser didReceiveInvitationFromPeer:(MCPeerID *)peerID withContext:(NSData *)context invitationHandler:(void (^)(BOOL, MCSession * _Nullable))invitationHandler {
-    invitationHandler(YES, self.session);
-    dispatch_async(dispatch_get_main_queue(), ^{
-        [self.statusLabel setText:[NSString stringWithFormat:@"已连接: %@", peerID.displayName]];
-        if (![self.connectedPeers containsObject:peerID]) {
-            [self.connectedPeers addObject:peerID];
-        }
-    });
-}
-
-#pragma mark - Browser (玩家端寻找)
-
-- (void)browser:(MCNearbyServiceBrowser *)browser foundPeer:(MCPeerID *)peerID withDiscoveryInfo:(NSDictionary<NSString *,NSString *> *)info {
-    [browser invitePeer:peerID toSession:self.session withContext:nil timeout:20];
-    self.statusLabel.text = [NSString stringWithFormat:@"已发现房主: %@", peerID.displayName];
-}
-
-- (void)browser:(MCNearbyServiceBrowser *)browser lostPeer:(MCPeerID *)peerID {
-    self.statusLabel.text = @"房主离开/网络异常";
-}
-
-#pragma mark - Session Delegate
-
-- (void)session:(MCSession *)session peer:(MCPeerID *)peerID didChangeState:(MCSessionState)state {
-    dispatch_async(dispatch_get_main_queue(), ^{
-        
-        NSLog(@"连接状态变化：%@ -> %ld", peerID.displayName, (long)state);
-        
-        switch (state) {
-            case MCSessionStateConnected:
-                if (![self.connectedPeers containsObject:peerID]) {
-                    [self.connectedPeers addObject:peerID];
-                }
-                self.statusLabel.text = [NSString stringWithFormat:@"连接: %@", peerID.displayName];
-                break;
-            case MCSessionStateConnecting:
-                self.statusLabel.text = @"连接中...";
-                break;
-            case MCSessionStateNotConnected: {
-                self.statusLabel.text = @"对方掉线，尝试重连...";
-                [self.connectedPeers removeObject:peerID];
-                // 重新开始广告或浏览
-                if (self.isHost) [self.advertiser startAdvertisingPeer];
-                else [self.browser startBrowsingForPeers];
-                break;
-            }
-            default: break;
-        }
-    });
-}
-
-// 支持接收玩家编号数组（投票用）、身份信息字符串、投票结果等
-// 支持接收玩家编号数组（投票用）、身份信息字符串、投票结果等
-- (void)session:(MCSession *)session didReceiveData:(NSData *)data fromPeer:(MCPeerID *)peerID {
-    // 新增：支持 JSON 格式的身份和投票消息
-    NSError *jsonError = nil;
-    NSDictionary *dict = [NSJSONSerialization JSONObjectWithData:data options:0 error:&jsonError];
-    if (!jsonError && dict && [dict isKindOfClass:[NSDictionary class]]) {
-        if ([dict[@"type"] isEqualToString:@"vote"]) {
-            // 主机端收到投票数据
-            if (self.isHost) {
-                NSInteger from = [dict[@"from"] integerValue];
-                NSInteger to = [dict[@"to"] integerValue];
-                NSLog(@"🗳️ 玩家投票：%ld -> %ld", (long)from, (long)to);
-                if (self.isHost) {
-                    NSString *logEntry = [NSString stringWithFormat:@"🗳️ 玩家%ld 投票给 玩家%ld\n", (long)from, (long)to];
-                    dispatch_async(dispatch_get_main_queue(), ^{
-                        self.summaryView.text = [self.summaryView.text stringByAppendingString:logEntry];
-                    });
-                }
-            }
-            return;
-        }
-        if ([dict[@"type"] isEqualToString:@"identity"]) {
-            // 客户端收到身份分发，记录玩家编号
-            NSInteger number = [dict[@"number"] integerValue];
-            NSString *role = dict[@"role"];
-            NSString *word = dict[@"word"];
-            self.myPlayerNumber = number;
-            NSString *identity = [NSString stringWithFormat:@"你是第%ld号玩家\n身份：%@\n词语：%@", (long)number, role, word];
-            self.identityString = identity;
-            dispatch_async(dispatch_get_main_queue(), ^{
-                self.viewIdentityBtn.hidden = NO;
-                UIAlertController *alert = [UIAlertController alertControllerWithTitle:@"你的身份" message:identity preferredStyle:UIAlertControllerStyleAlert];
-                [alert addAction:[UIAlertAction actionWithTitle:@"OK" style:UIAlertActionStyleDefault handler:nil]];
-                [self presentViewController:alert animated:YES completion:nil];
-            });
-            return;
-        }
-    }
-    // 兼容原有的 NSKeyedArchiver 格式
-    id object = [NSKeyedUnarchiver unarchiveObjectWithData:data];
-    // 1. 投票阶段 - 主机广播未淘汰玩家编号
-    if ([object isKindOfClass:[NSArray class]]) {
-        dispatch_async(dispatch_get_main_queue(), ^{
-            [self showVoteButtonsForPlayerNumbers:(NSArray<NSNumber *> *)object];
-        });
-        return;
-    }
-    // 2. 客户端收到主机投票结果
-    if ([object isKindOfClass:[NSDictionary class]] && !self.isHost) {
-        NSDictionary *result = (NSDictionary *)object;
-        NSNumber *num = result[@"voted"];
-        NSString *role = result[@"role"];
-        NSString *title = [role isEqualToString:@"卧底"] ? @"平民胜利" : @"继续游戏";
-        NSString *msg = [NSString stringWithFormat:@"玩家%@是%@", num, role];
-        UIAlertController *alert = [UIAlertController alertControllerWithTitle:title message:msg preferredStyle:UIAlertControllerStyleAlert];
-        [alert addAction:[UIAlertAction actionWithTitle:@"确定" style:UIAlertActionStyleDefault handler:nil]];
-        [self presentViewController:alert animated:YES completion:nil];
-        return;
-    }
-    // 3. 主机端收到客户端的投票（玩家编号）
-    if ([object isKindOfClass:[NSNumber class]] && self.isHost) {
-        NSNumber *votedNum = (NSNumber *)object;
-        NSString *role = self.playerIdentities[votedNum];
-        NSLog(@"[LOG] 玩家投票：%@ -> %@", votedNum, role ?: @"未知");
-        NSDictionary *resultDict = @{
-            @"voted": votedNum,
-            @"role": role ?: @"未知"
-        };
-        NSData *resultData = [NSKeyedArchiver archivedDataWithRootObject:resultDict requiringSecureCoding:NO error:nil];
-        [self.session sendData:resultData toPeers:self.session.connectedPeers withMode:MCSessionSendDataReliable error:nil];
-        if ([role isEqualToString:@"卧底"]) {
-            [self showAlert:@"平民胜利" message:[NSString stringWithFormat:@"玩家%@是卧底", votedNum]];
-        } else {
-            [self.eliminatedPlayers addObject:votedNum];
-            NSInteger aliveCount = self.playerIdentities.count - self.eliminatedPlayers.count;
-            NSInteger spyLeft = 0;
-            for (NSNumber *key in self.playerIdentities) {
-                if (![self.eliminatedPlayers containsObject:key] &&
-                    [self.playerIdentities[key] isEqualToString:@"卧底"]) {
-                    spyLeft++;
-                }
-            }
-            if (aliveCount <= 2 && spyLeft > 0) {
-                [self showAlert:@"卧底胜利" message:@"剩下两人，卧底胜利"];
-            } else {
-                [self startVoting];
-            }
-        }
-        return;
-    }
-    // 4. 默认处理（身份字符串）
-    NSString *msg = [[NSString alloc] initWithData:data encoding:NSUTF8StringEncoding];
-    dispatch_async(dispatch_get_main_queue(), ^{
-        self.identityString = msg;
-        self.viewIdentityBtn.hidden = NO;
-        UIAlertController *alert = [UIAlertController alertControllerWithTitle:@"你的身份" message:msg preferredStyle:UIAlertControllerStyleAlert];
-        [alert addAction:[UIAlertAction actionWithTitle:@"OK" style:UIAlertActionStyleDefault handler:nil]];
-        [self presentViewController:alert animated:YES completion:nil];
-    });
-}
-
-- (void)session:(MCSession *)session didReceiveStream:(NSInputStream *)stream withName:(NSString *)streamName fromPeer:(MCPeerID *)peerID {}
-- (void)session:(MCSession *)session didStartReceivingResourceWithName:(NSString *)resourceName fromPeer:(MCPeerID *)peerID withProgress:(NSProgress *)progress {}
-- (void)session:(MCSession *)session didFinishReceivingResourceWithName:(NSString *)resourceName fromPeer:(MCPeerID *)peerID atURL:(NSURL *)localURL withError:(NSError *)error {}
-
-#pragma mark - Game 逻辑
-
-- (void)startGame {
+- (void)actionStart {
     if (!self.isHost) return;
-    
-    NSArray<MCPeerID *> *peers = self.session.connectedPeers;
-    NSInteger playerCount = peers.count + 1;
+    NSArray<JFGamePeer *> *peers = self.session.connectedPeers;
+    NSInteger playerCount = peers.count + 1; // 含房主
     if (playerCount < 2) {
-        self.statusLabel.text = @"至少2人才能开始游戏";
+        self.statusLabel.text = @"至少 2 人才能开始";
         return;
     }
-    
-    // 题库
-    NSArray *wordPairs = @[
-        @[@"苹果", @"香蕉"],
-        @[@"飞机", @"火车"],
-        @[@"篮球", @"足球"],
-        @[@"铅笔", @"钢笔"],
-        @[@"猫", @"狗"]
+
+    [JFTheme hapticImpactMedium];
+
+    // 词库
+    NSArray<NSArray<NSString *> *> *wordPairs = @[
+        @[@"苹果", @"香蕉"], @[@"飞机", @"火车"], @[@"篮球", @"足球"],
+        @[@"铅笔", @"钢笔"], @[@"猫", @"狗"]
     ];
-    NSString *spyWord = self.spyWordField.text.length > 0 ? self.spyWordField.text : nil;
+    NSString *spyWord   = self.spyWordField.text.length   > 0 ? self.spyWordField.text   : nil;
     NSString *civilWord = self.civilWordField.text.length > 0 ? self.civilWordField.text : nil;
     if (!spyWord || !civilWord) {
         NSArray *pair = wordPairs[arc4random_uniform((uint32_t)wordPairs.count)];
         civilWord = civilWord ?: pair[0];
-        spyWord = spyWord ?: pair[1];
+        spyWord   = spyWord   ?: pair[1];
     }
-    
+
     NSInteger spyCount = self.spyCountField.text.integerValue;
     if (spyCount <= 0) {
         if (playerCount >= 9) spyCount = 3;
         else if (playerCount >= 6) spyCount = 2;
         else spyCount = 1;
     }
-    
-    NSMutableArray *allPeers = [NSMutableArray arrayWithArray:peers]; // 房主不加入
-    
+    if (spyCount >= playerCount) spyCount = playerCount - 1;
+
+    // 房主不参与游戏(沿用原逻辑) —— 把卧底分配给随机的客户端
     self.playerIdentities = [NSMutableDictionary dictionary];
     self.eliminatedPlayers = [NSMutableSet set];
-    
+    [self.peerByNumber removeAllObjects];
+
     NSMutableArray<NSNumber *> *spyIndexes = [NSMutableArray array];
     while (spyIndexes.count < spyCount) {
-        NSInteger idx = arc4random_uniform((uint32_t)allPeers.count);
-        if (![spyIndexes containsObject:@(idx)]) {
-            [spyIndexes addObject:@(idx)];
-        }
+        NSInteger idx = arc4random_uniform((uint32_t)peers.count);
+        if (![spyIndexes containsObject:@(idx)]) [spyIndexes addObject:@(idx)];
     }
-    
-    for (NSInteger i = 0; i < allPeers.count; i++) {
-        BOOL isSpy = [spyIndexes containsObject:@(i)];
-        NSString *word = isSpy ? spyWord : civilWord;
-        NSString *role = isSpy ? @"卧底" : @"平民";
-        self.playerIdentities[@(i+1)] = role;
-        
-        // 使用JSON格式发送身份信息
-        NSDictionary *identityDict = @{
-            @"type": @"identity",
-            @"number": @(i + 1),
-            @"role": role,
-            @"word": word
-        };
-        NSData *identityData = [NSJSONSerialization dataWithJSONObject:identityDict options:0 error:nil];
-        [self.session sendData:identityData toPeers:@[allPeers[i]] withMode:MCSessionSendDataReliable error:nil];
-    }
-    
-    self.statusLabel.text = @"身份已分发";
-    self.viewIdentityBtn.hidden = YES; // 房主无法查看身份
-    
-    if (self.isHost) {
-        NSMutableString *summary = [NSMutableString string];
-        for (NSInteger i = 0; i < allPeers.count; i++) {
-            BOOL isSpy = [spyIndexes containsObject:@(i)];
-            NSString *word = isSpy ? spyWord : civilWord;
-            NSString *role = isSpy ? @"卧底" : @"平民";
-            [summary appendFormat:@"玩家%ld：%@ - %@\n", (long)(i+1), role, word];
-        }
-        UITextView *summaryView = [[UITextView alloc] initWithFrame:CGRectMake(20, CGRectGetMaxY(self.voteButton.frame) + 10, self.view.bounds.size.width - 40, 200)];
-        summaryView.editable = NO;
-        summaryView.text = summary;
-        summaryView.font = [UIFont systemFontOfSize:16];
-        summaryView.layer.borderColor = [UIColor lightGrayColor].CGColor;
-        summaryView.layer.borderWidth = 1;
-        self.summaryView = summaryView;
-        [self.view addSubview:summaryView];
-    }
-    
-    // 确保投票按钮在主机可见
-    if (self.isHost) {
-        [self showVoteButton];
-    }
-}
 
-- (void)showVoteButton {
+    NSMutableString *summary = [NSMutableString string];
+    for (NSInteger i = 0; i < peers.count; i++) {
+        BOOL isSpy = [spyIndexes containsObject:@(i)];
+        NSString *role = isSpy ? @"卧底" : @"平民";
+        NSString *word = isSpy ? spyWord : civilWord;
+        NSNumber *num  = @(i + 1);
+        self.playerIdentities[num] = role;
+        [self.peerByNumber setObject:peers[i] forKey:num];
+
+        JFGameMessage *msg = [JFGameMessage messageWithType:JFMessageTypeIdentity
+                                                    payload:@{@"number": num,
+                                                              @"role": role,
+                                                              @"word": word}];
+        [self.session sendMessage:msg toPeer:peers[i]];
+
+        [summary appendFormat:@"玩家%@:%@ - %@\n", num, role, word];
+    }
+
+    self.statusLabel.text = [NSString stringWithFormat:@"已开局 · %ld 玩家", (long)peers.count];
+    self.viewIdentityBtn.hidden = YES;     // 房主无身份
+    self.summaryView.hidden = NO;
+    self.summaryView.text = summary;
     self.voteButton.hidden = NO;
 }
 
-// 开始投票：主机广播玩家编号，所有端展示投票按钮
-- (void)startVoting {
-    // 主机端广播当前所有未淘汰玩家编号
-    if (self.isHost) {
-        NSArray<NSNumber *> *activePlayers = [self.playerIdentities.allKeys filteredArrayUsingPredicate:[NSPredicate predicateWithBlock:^BOOL(NSNumber *num, NSDictionary *bindings) {
-            return ![self.eliminatedPlayers containsObject:num];
-        }]];
-        NSData *data = [NSKeyedArchiver archivedDataWithRootObject:activePlayers requiringSecureCoding:NO error:nil];
-        [self.session sendData:data toPeers:self.session.connectedPeers withMode:MCSessionSendDataReliable error:nil];
-    }
-    // 主机本地也展示投票按钮
-    NSArray<NSNumber *> *activePlayers = [self.playerIdentities.allKeys filteredArrayUsingPredicate:[NSPredicate predicateWithBlock:^BOOL(NSNumber *num, NSDictionary *bindings) {
-        return ![self.eliminatedPlayers containsObject:num];
-    }]];
-    [self showVoteButtonsForPlayerNumbers:activePlayers];
+- (void)actionStartVoting {
+    if (!self.isHost) return;
+    [JFTheme hapticImpactMedium];
+    NSArray<NSNumber *> *active = [self activePlayerNumbers];
+
+    JFGameMessage *msg = [JFGameMessage messageWithType:JFMessageTypeVoteList
+                                                payload:@{@"players": active}];
+    [self.session sendMessage:msg toPeer:nil]; // 广播
+
+    NSMutableString *log = [(self.summaryView.text ?: @"") mutableCopy];
+    [log appendFormat:@"\n— 投票轮 (%@) —\n", [NSDate date]];
+    self.summaryView.text = log;
 }
 
-// 新增：展示投票按钮列表，适配任意玩家数
-- (void)showVoteButtonsForPlayerNumbers:(NSArray<NSNumber *> *)numbers {
-    // 如果是主机，则不显示投票按钮区域
-    if (self.isHost) return;
-    [[self.view viewWithTag:999] removeFromSuperview];
-    NSInteger count = numbers.count;
-    CGFloat areaW = self.view.bounds.size.width - 40;
-    CGFloat areaH = 200;
-    UIView *voteView = [[UIView alloc] initWithFrame:CGRectMake(20, CGRectGetMaxY(self.viewIdentityBtn.frame) + 10, areaW, areaH)];
-    voteView.tag = 999;
-
-    // 动态布局：一行最多4个，多的分多行
-    NSInteger maxCol = 4;
-    NSInteger rowCount = (count + maxCol - 1) / maxCol;
-    CGFloat buttonW = 60;
-    CGFloat buttonH = 60;
-    CGFloat spacing = 20;
-    CGFloat totalHeight = rowCount * buttonH + (rowCount - 1) * spacing;
-    CGFloat startY = (areaH - totalHeight) / 2;
-    for (NSInteger i = 0; i < count; i++) {
-        NSInteger row = i / maxCol;
-        NSInteger col = i % maxCol;
-        // 计算本行有多少按钮
-        NSInteger buttonsInRow = (row == rowCount - 1 && count % maxCol != 0) ? (count % maxCol) : maxCol;
-        CGFloat totalW = buttonsInRow * buttonW + (buttonsInRow-1)*spacing;
-        CGFloat startX = (areaW - totalW) / 2;
-        CGFloat x = startX + col * (buttonW + spacing);
-        CGFloat y = startY + row * (buttonH + spacing);
-
-        UIButton *btn = [UIButton buttonWithType:UIButtonTypeSystem];
-        btn.frame = CGRectMake(x, y, buttonW, buttonH);
-        btn.layer.cornerRadius = buttonW / 2;
-        btn.clipsToBounds = YES;
-        btn.backgroundColor = [UIColor colorWithRed:0.9 green:0.9 blue:1 alpha:1];
-        [btn setTitle:[NSString stringWithFormat:@"玩家%@", numbers[i]] forState:UIControlStateNormal];
-        btn.titleLabel.font = [UIFont boldSystemFontOfSize:16];
-        btn.tag = [numbers[i] integerValue];
-        [btn addTarget:self action:@selector(voteButtonTapped:) forControlEvents:UIControlEventTouchUpInside];
-        [voteView addSubview:btn];
+- (NSArray<NSNumber *> *)activePlayerNumbers {
+    NSMutableArray *arr = [NSMutableArray array];
+    for (NSNumber *n in self.playerIdentities.allKeys) {
+        if (![self.eliminatedPlayers containsObject:n]) [arr addObject:n];
     }
-    [self.view addSubview:voteView];
-}
-
-// 投票按钮点击事件：客户端发送投票到主机
-- (void)voteButtonTapped:(UIButton *)sender {
-    // 客户端发起投票
-    if (!self.isHost) {
-        NSInteger targetIndex = sender.tag;
-        NSInteger myIndex = self.myPlayerNumber;
-        [self sendVoteToHost:targetIndex fromPlayer:myIndex];
-        // 提交后隐藏投票按钮，防止重复投票
-        [[self.view viewWithTag:999] removeFromSuperview];
-    }
+    [arr sortUsingSelector:@selector(compare:)];
+    return arr;
 }
 
 - (void)showIdentity {
-    if (!self.identityString) return;
-    UIAlertController *alert = [UIAlertController alertControllerWithTitle:@"我的身份" message:self.identityString preferredStyle:UIAlertControllerStyleAlert];
+    if (!self.identityString.length) return;
+    UIAlertController *alert = [UIAlertController alertControllerWithTitle:@"我的身份"
+                                                                   message:self.identityString
+                                                            preferredStyle:UIAlertControllerStyleAlert];
     [alert addAction:[UIAlertAction actionWithTitle:@"OK" style:UIAlertActionStyleDefault handler:nil]];
     [self presentViewController:alert animated:YES completion:nil];
 }
 
-- (BOOL)textFieldShouldReturn:(UITextField *)textField {
-    [textField resignFirstResponder];
-    return YES;
-}
+#pragma mark - Vote UI(客户端)
 
-// 其它代理方法
-- (void)advertiser:(MCNearbyServiceAdvertiser *)advertiser didNotStartAdvertisingPeer:(NSError *)error {
-    dispatch_async(dispatch_get_main_queue(), ^{
-        self.statusLabel.text = [NSString stringWithFormat:@"房主广播失败: %@", error.localizedDescription];
-        NSLog(@"MCNearbyServiceAdvertiser failed: %@", error);
-    });
-}
+- (void)showVoteButtonsForPlayerNumbers:(NSArray<NSNumber *> *)numbers {
+    if (self.isHost) return;
+    [self.voteContainer.subviews makeObjectsPerformSelector:@selector(removeFromSuperview)];
+    self.voteContainer.hidden = NO;
 
-- (void)browser:(MCNearbyServiceBrowser *)browser didNotStartBrowsingForPeers:(NSError *)error {
-    dispatch_async(dispatch_get_main_queue(), ^{
-        self.statusLabel.text = [NSString stringWithFormat:@"浏览器启动失败: %@", error.localizedDescription];
-        NSLog(@"NSNetServiceBrowser did not search with error: %@", error);
-    });
-}
+    UILabel *hint = [[UILabel alloc] init];
+    hint.text = @"投票:";
+    hint.font = [JFTheme fontCallout];
+    hint.textColor = [JFTheme textSecondary];
+    hint.translatesAutoresizingMaskIntoConstraints = NO;
+    [self.voteContainer addSubview:hint];
 
+    UIStackView *grid = [[UIStackView alloc] init];
+    grid.axis = UILayoutConstraintAxisVertical;
+    grid.spacing = JFSpacing8;
+    grid.translatesAutoresizingMaskIntoConstraints = NO;
+    [self.voteContainer addSubview:grid];
 
-
-// 辅助弹窗方法
-- (void)showAlert:(NSString *)title message:(NSString *)msg {
-    dispatch_async(dispatch_get_main_queue(), ^{
-        UIAlertController *alert = [UIAlertController alertControllerWithTitle:title message:msg preferredStyle:UIAlertControllerStyleAlert];
-        [alert addAction:[UIAlertAction actionWithTitle:@"确定" style:UIAlertActionStyleDefault handler:nil]];
-        [self presentViewController:alert animated:YES completion:nil];
-    });
-}
-
-
-// 新增：客户端发送投票到主机
-- (void)sendVoteToHost:(NSInteger)targetIndex fromPlayer:(NSInteger)myIndex {
-    NSDictionary *voteDict = @{
-        @"type": @"vote",
-        @"from": @(myIndex),
-        @"to": @(targetIndex)
-    };
-    NSError *error;
-    NSData *data = [NSJSONSerialization dataWithJSONObject:voteDict options:0 error:&error];
-    if (!error && data) {
-        if (self.session.connectedPeers.count > 0) {
-            [self.session sendData:data
-                           toPeers:self.session.connectedPeers
-                          withMode:MCSessionSendDataReliable
-                             error:&error];
-            if (error) {
-                NSLog(@"📤 投票发送失败: %@", error.localizedDescription);
-            } else {
-                NSLog(@"📤 投票发送成功: %@ -> %@", voteDict[@"from"], voteDict[@"to"]);
-            }
-        } else {
-            NSLog(@"⚠️ 没有连接的主机，投票未发送");
+    NSInteger maxCol = 4;
+    NSInteger total = numbers.count;
+    NSInteger rows = (total + maxCol - 1) / maxCol;
+    NSInteger idx = 0;
+    for (NSInteger r = 0; r < rows; r++) {
+        UIStackView *row = [[UIStackView alloc] init];
+        row.axis = UILayoutConstraintAxisHorizontal;
+        row.spacing = JFSpacing8;
+        row.distribution = UIStackViewDistributionFillEqually;
+        for (NSInteger c = 0; c < maxCol && idx < total; c++) {
+            NSNumber *n = numbers[idx++];
+            UIButton *b = [UIButton buttonWithType:UIButtonTypeSystem];
+            b.layer.cornerRadius = JFRadiusMedium;
+            b.layer.cornerCurve = kCACornerCurveContinuous;
+            b.backgroundColor = [JFTheme brandSecondary];
+            [b.heightAnchor constraintEqualToConstant:48].active = YES;
+            [b setTitle:[NSString stringWithFormat:@"#%@", n] forState:UIControlStateNormal];
+            [b setTitleColor:[JFTheme textOnAccent] forState:UIControlStateNormal];
+            b.titleLabel.font = [JFTheme fontHeadline];
+            b.tag = n.integerValue;
+            [b addTarget:self action:@selector(voteButtonTapped:) forControlEvents:UIControlEventTouchUpInside];
+            [row addArrangedSubview:b];
         }
-    } else {
-        NSLog(@"⚠️ JSON 序列化失败: %@", error.localizedDescription);
+        // 不足一行时补占位
+        while (row.arrangedSubviews.count < maxCol) {
+            UIView *p = [[UIView alloc] init];
+            [row addArrangedSubview:p];
+        }
+        [grid addArrangedSubview:row];
+    }
+
+    [NSLayoutConstraint activateConstraints:@[
+        [hint.topAnchor      constraintEqualToAnchor:self.voteContainer.topAnchor],
+        [hint.leadingAnchor  constraintEqualToAnchor:self.voteContainer.leadingAnchor],
+        [grid.topAnchor      constraintEqualToAnchor:hint.bottomAnchor constant:JFSpacing8],
+        [grid.leadingAnchor  constraintEqualToAnchor:self.voteContainer.leadingAnchor],
+        [grid.trailingAnchor constraintEqualToAnchor:self.voteContainer.trailingAnchor],
+        [grid.bottomAnchor   constraintEqualToAnchor:self.voteContainer.bottomAnchor],
+    ]];
+}
+
+- (void)voteButtonTapped:(UIButton *)sender {
+    if (self.isHost) return;
+    [JFTheme hapticImpactLight];
+    NSInteger to = sender.tag;
+    JFGameMessage *msg = [JFGameMessage messageWithType:JFMessageTypeVote
+                                                payload:@{@"from": @(self.myPlayerNumber),
+                                                          @"to": @(to)}];
+    [self.session sendMessage:msg toPeer:nil];   // 广播,房主收
+    self.voteContainer.hidden = YES;
+    [self.voteContainer.subviews makeObjectsPerformSelector:@selector(removeFromSuperview)];
+}
+
+#pragma mark - JFGameSessionDelegate
+
+- (void)gameSession:(id<JFGameSession>)session
+               peer:(JFGamePeer *)peer
+     didChangeState:(JFSessionPeerState)state {
+    NSInteger n = self.session.connectedPeers.count;
+    switch (state) {
+        case JFSessionPeerStateConnected:
+            self.statusLabel.text = self.isHost
+                ? [NSString stringWithFormat:@"已加入 %ld 人", (long)n]
+                : [NSString stringWithFormat:@"已连接到房主:%@", peer.displayName];
+            break;
+        case JFSessionPeerStateConnecting:
+            self.statusLabel.text = @"连接中...";
+            break;
+        case JFSessionPeerStateNotConnected:
+            self.statusLabel.text = self.isHost
+                ? [NSString stringWithFormat:@"%@ 离开 · 当前 %ld 人", peer.displayName, (long)n]
+                : @"连接断开,稍候重试...";
+            break;
     }
 }
+
+- (void)gameSession:(id<JFGameSession>)session
+  didReceiveMessage:(JFGameMessage *)message
+           fromPeer:(JFGamePeer *)peer {
+    NSString *type = message.type;
+    NSDictionary *p = message.payload ?: @{};
+
+    if ([type isEqualToString:JFMessageTypeIdentity] && !self.isHost) {
+        // 客户端拿到身份
+        NSInteger num = [p[@"number"] integerValue];
+        NSString *role = p[@"role"];
+        NSString *word = p[@"word"];
+        self.myPlayerNumber = num;
+        self.identityString = [NSString stringWithFormat:@"你是第%ld号玩家\n身份:%@\n词语:%@",
+                               (long)num, role, word];
+        self.viewIdentityBtn.hidden = NO;
+        [self showIdentity];
+        return;
+    }
+
+    if ([type isEqualToString:JFMessageTypeVoteList] && !self.isHost) {
+        NSArray *players = p[@"players"] ?: @[];
+        [self showVoteButtonsForPlayerNumbers:players];
+        return;
+    }
+
+    if ([type isEqualToString:JFMessageTypeVote] && self.isHost) {
+        [self handleVoteFrom:[p[@"from"] integerValue] target:[p[@"to"] integerValue]];
+        return;
+    }
+
+    if ([type isEqualToString:JFMessageTypeVoteResult] && !self.isHost) {
+        NSString *title = [p[@"role"] isEqualToString:@"卧底"] ? @"平民胜利!" : @"继续游戏";
+        NSString *msg = [NSString stringWithFormat:@"玩家%@ 是 %@", p[@"voted"], p[@"role"]];
+        UIAlertController *a = [UIAlertController alertControllerWithTitle:title
+                                                                   message:msg
+                                                            preferredStyle:UIAlertControllerStyleAlert];
+        [a addAction:[UIAlertAction actionWithTitle:@"确定" style:UIAlertActionStyleDefault handler:nil]];
+        [self presentViewController:a animated:YES completion:nil];
+        return;
+    }
+}
+
+- (void)handleVoteFrom:(NSInteger)from target:(NSInteger)to {
+    if (!self.isHost) return;
+    NSNumber *votedNum = @(to);
+    NSString *role = self.playerIdentities[votedNum] ?: @"未知";
+
+    NSString *log = [NSString stringWithFormat:@"玩家%ld 投给 玩家%ld\n", (long)from, (long)to];
+    self.summaryView.text = [(self.summaryView.text ?: @"") stringByAppendingString:log];
+
+    // 简单模式:直接把"被投者"按角色判定输赢(沿用原逻辑)
+    JFGameMessage *result = [JFGameMessage messageWithType:JFMessageTypeVoteResult
+                                                   payload:@{@"voted": votedNum, @"role": role}];
+    [self.session sendMessage:result toPeer:nil];
+
+    if ([role isEqualToString:@"卧底"]) {
+        [self showAlert:@"平民胜利" message:[NSString stringWithFormat:@"玩家%@ 是卧底", votedNum]];
+    } else {
+        [self.eliminatedPlayers addObject:votedNum];
+        NSInteger alive = self.playerIdentities.count - self.eliminatedPlayers.count;
+        NSInteger spyLeft = 0;
+        for (NSNumber *k in self.playerIdentities) {
+            if (![self.eliminatedPlayers containsObject:k] &&
+                [self.playerIdentities[k] isEqualToString:@"卧底"]) spyLeft++;
+        }
+        if (alive <= 2 && spyLeft > 0) {
+            [self showAlert:@"卧底胜利" message:@"剩下两人,卧底胜利"];
+        } else {
+            [self actionStartVoting]; // 自动进入下一轮
+        }
+    }
+}
+
+- (void)gameSession:(id<JFGameSession>)session didFailWithError:(NSError *)error {
+    self.statusLabel.text = [NSString stringWithFormat:@"联机错误:%@", error.localizedDescription];
+}
+
+#pragma mark - Helpers
+
+- (void)showAlert:(NSString *)title message:(NSString *)msg {
+    UIAlertController *a = [UIAlertController alertControllerWithTitle:title
+                                                               message:msg
+                                                        preferredStyle:UIAlertControllerStyleAlert];
+    [a addAction:[UIAlertAction actionWithTitle:@"确定" style:UIAlertActionStyleDefault handler:nil]];
+    [self presentViewController:a animated:YES completion:nil];
+}
+
+- (BOOL)textFieldShouldReturn:(UITextField *)textField {
+    [textField resignFirstResponder]; return YES;
+}
+
 @end

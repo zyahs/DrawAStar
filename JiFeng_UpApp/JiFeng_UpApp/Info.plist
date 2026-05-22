@@ -4,6 +4,8 @@
 <dict>
 	<key>NSPhotoLibraryAddUsageDescription</key>
 	<string>用于照片作画</string>
+	<key>NSPhotoLibraryUsageDescription</key>
+	<string>用于拼图游戏选择照片</string>
 	<key>NSBonjourServices</key>
 	<array>
 		<string>_kinggame._tcp</string>
@@ -28,8 +30,6 @@
 					<string>Default Configuration</string>
 					<key>UISceneDelegateClassName</key>
 					<string>SceneDelegate</string>
-					<key>UISceneStoryboardFile</key>
-					<string>Main</string>
 				</dict>
 			</array>
 		</dict>

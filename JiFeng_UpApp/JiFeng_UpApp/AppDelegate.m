@@ -6,6 +6,7 @@
 //
 
 #import "AppDelegate.h"
+#import "JFNotificationScheduler.h"
 
 @interface AppDelegate ()
 
@@ -15,8 +16,37 @@
 
 
 - (BOOL)application:(UIApplication *)application didFinishLaunchingWithOptions:(NSDictionary *)launchOptions {
-    // Override point for customization after application launch.
+    // 申请通知权限并安排周报(每周日 20:00 推送本周战绩)
+    [[JFNotificationScheduler shared] setupOnLaunch];
     return YES;
+}
+
+#pragma mark - 屏幕方向
+
+/// 把方向控制下沉到当前 keyWindow 的 rootVC,这样具体页面通过
+/// supportedInterfaceOrientations 即可独立决定支持的方向(默认竖屏,
+/// 五子棋页面强制横屏)。
+- (UIInterfaceOrientationMask)application:(UIApplication *)application
+  supportedInterfaceOrientationsForWindow:(UIWindow *)window {
+    UIViewController *root = window.rootViewController;
+    UIViewController *top = [self jf_topMostFor:root];
+    if (top) {
+        return top.supportedInterfaceOrientations;
+    }
+    return UIInterfaceOrientationMaskPortrait;
+}
+
+- (UIViewController *)jf_topMostFor:(UIViewController *)vc {
+    if ([vc isKindOfClass:[UINavigationController class]]) {
+        return [self jf_topMostFor:[(UINavigationController *)vc topViewController]];
+    }
+    if ([vc isKindOfClass:[UITabBarController class]]) {
+        return [self jf_topMostFor:[(UITabBarController *)vc selectedViewController]];
+    }
+    if (vc.presentedViewController) {
+        return [self jf_topMostFor:vc.presentedViewController];
+    }
+    return vc;
 }
 
 

@@ -2,265 +2,201 @@
 //  FiveQiVc.m
 //  漫天都是小星星的说
 //
-//  Created by 飞奔的羊 on 16/9/2.
-//  Copyright © 2016年 itcast. All rights reserved.
+//  五子棋 —— 强制横屏。棋盘按可用高度撑到最大,左侧贴近返回按钮,右侧放控制按钮。
 //
 
 #import "FiveQiVc.h"
 #import "CheckerboardView.h"
-#define ScreenW [UIScreen mainScreen].bounds.size.width
+#import "JFTheme.h"
+#import "JFProfileStore.h"
+#import "JFDailyChallengeStore.h"
 
 @interface FiveQiVc ()
-@property (nonatomic, strong) CheckerboardView * boardView;
-@property (nonatomic,weak) UIButton * backButton;
-@property (nonatomic,weak) UIButton * reStartBtn;
-@property (nonatomic,weak) UIButton * changeBoardButton;
-@property (nonatomic, strong) UILabel *resultLabel;
-@property (nonatomic, strong) CAGradientLayer *resultGradientLayer;
-@property (nonatomic,strong)UIImageView *bgImageView;
-@property (nonatomic, strong) UIButton *navBackButton;
+
+@property (nonatomic, strong) CheckerboardView *boardView;
+@property (nonatomic, strong) UIButton         *undoButton;     // 悔棋
+@property (nonatomic, strong) UIButton         *restartButton;  // 新游戏
+@property (nonatomic, strong) UILabel          *titleLabel;
+@property (nonatomic, strong) UIImageView      *bgImageView;
 
 @end
+
 @implementation FiveQiVc
 
+#pragma mark - 屏幕方向(强制横屏)
 
+- (BOOL)shouldAutorotate { return YES; }
+
+- (UIInterfaceOrientationMask)supportedInterfaceOrientations {
+    return UIInterfaceOrientationMaskLandscape;
+}
+
+- (UIInterfaceOrientation)preferredInterfaceOrientationForPresentation {
+    return UIInterfaceOrientationLandscapeRight;
+}
+
+- (void)viewWillAppear:(BOOL)animated {
+    [super viewWillAppear:animated];
+    [self jf_requestLandscape];
+}
+
+- (void)jf_requestLandscape {
+    if (@available(iOS 16.0, *)) {
+        UIWindowScene *scene = nil;
+        for (UIScene *s in UIApplication.sharedApplication.connectedScenes) {
+            if ([s isKindOfClass:[UIWindowScene class]] && s.activationState == UISceneActivationStateForegroundActive) {
+                scene = (UIWindowScene *)s;
+                break;
+            }
+        }
+        if (scene) {
+            UIWindowSceneGeometryPreferencesIOS *pref =
+                [[UIWindowSceneGeometryPreferencesIOS alloc] initWithInterfaceOrientations:UIInterfaceOrientationMaskLandscape];
+            [scene requestGeometryUpdateWithPreferences:pref errorHandler:^(NSError * _Nonnull error) {
+                NSLog(@"[FiveQi] request landscape failed: %@", error);
+            }];
+        }
+        [self setNeedsUpdateOfSupportedInterfaceOrientations];
+    } else {
+        [[UIDevice currentDevice] setValue:@(UIInterfaceOrientationLandscapeRight) forKey:@"orientation"];
+        [UIViewController attemptRotationToDeviceOrientation];
+    }
+}
+
+- (void)viewWillDisappear:(BOOL)animated {
+    [super viewWillDisappear:animated];
+    // 离开时请求恢复竖屏 —— 由上一个页面的 supportedInterfaceOrientations 决定
+    if (@available(iOS 16.0, *)) {
+        UIWindowScene *scene = nil;
+        for (UIScene *s in UIApplication.sharedApplication.connectedScenes) {
+            if ([s isKindOfClass:[UIWindowScene class]] && s.activationState == UISceneActivationStateForegroundActive) {
+                scene = (UIWindowScene *)s;
+                break;
+            }
+        }
+        if (scene) {
+            UIWindowSceneGeometryPreferencesIOS *pref =
+                [[UIWindowSceneGeometryPreferencesIOS alloc] initWithInterfaceOrientations:UIInterfaceOrientationMaskPortrait];
+            [scene requestGeometryUpdateWithPreferences:pref errorHandler:^(NSError * _Nonnull error) { }];
+        }
+    } else {
+        [[UIDevice currentDevice] setValue:@(UIInterfaceOrientationPortrait) forKey:@"orientation"];
+        [UIViewController attemptRotationToDeviceOrientation];
+    }
+}
 
 - (void)viewDidLoad {
     [super viewDidLoad];
-
-//    for (UIView *subview in self.view.subviews) {
-//        [subview removeFromSuperview];
-//    }
 
     self.bgImageView = [[UIImageView alloc] initWithImage:[UIImage imageNamed:@"b5"]];
     self.bgImageView.frame = self.view.bounds;
     self.bgImageView.autoresizingMask = UIViewAutoresizingFlexibleWidth | UIViewAutoresizingFlexibleHeight;
     self.bgImageView.contentMode = UIViewContentModeScaleAspectFill;
     [self.view addSubview:self.bgImageView];
-    [self setUp];
-//    self.title = @"这是五子棋";
-    [self setupResultLabel];
 
-    // Hide system nav bar (we use a custom back button)
-    [self.navigationController setNavigationBarHidden:YES animated:NO];
+    UIView *overlay = [[UIView alloc] initWithFrame:self.view.bounds];
+    overlay.autoresizingMask = UIViewAutoresizingFlexibleWidth | UIViewAutoresizingFlexibleHeight;
+    overlay.backgroundColor = [[UIColor blackColor] colorWithAlphaComponent:0.35];
+    [self.view addSubview:overlay];
 
-    // Create custom back button in top-left, respecting safe area
-    if (!self.navBackButton) {
-        UIButton *back = [UIButton buttonWithType:UIButtonTypeCustom];
-        [back setImage:[UIImage imageNamed:@"back"] forState:UIControlStateNormal];
-        back.adjustsImageWhenHighlighted = YES;
-        back.contentEdgeInsets = UIEdgeInsetsMake(8, 8, 8, 8);
-        [back addTarget:self action:@selector(back) forControlEvents:UIControlEventTouchUpInside];
-        self.navBackButton = back;
-        [self.view addSubview:back];
-    }
-    [self.view bringSubviewToFront:self.navBackButton];
+    [self setupUI];
+
+    [[NSNotificationCenter defaultCenter] addObserver:self
+                                              selector:@selector(onFiveDidFinish:)
+                                                  name:@"JFFiveInRowDidFinishNotification"
+                                                object:nil];
 }
 
+- (void)dealloc {
+    [[NSNotificationCenter defaultCenter] removeObserver:self];
+}
+
+- (void)onFiveDidFinish:(NSNotification *)note {
+    JFGameResult *r = [JFGameResult resultWithKind:JFGameKindFiveInRow score:100 win:YES];
+    [[JFProfileStore shared] reportResult:r];
+    [[JFDailyChallengeStore shared] recordResultForToday:JFGameKindFiveInRow difficulty:0 score:100 win:YES];
+}
+
+- (void)setupUI {
+    UILayoutGuide *safe = self.view.safeAreaLayoutGuide;
+
+    // 标题(左上,与返回按钮并排)
+    self.titleLabel = [[UILabel alloc] init];
+    self.titleLabel.translatesAutoresizingMaskIntoConstraints = NO;
+    self.titleLabel.text = @"五子棋";
+    self.titleLabel.textColor = [JFTheme textPrimary];
+    self.titleLabel.font = [JFTheme fontTitle];
+    self.titleLabel.textAlignment = NSTextAlignmentCenter;
+    [self.view addSubview:self.titleLabel];
+
+    // 棋盘 —— 居中,正方形,按可用高度撑到最大
+    self.boardView = [[CheckerboardView alloc] initWithFrame:CGRectZero];
+    self.boardView.translatesAutoresizingMaskIntoConstraints = NO;
+    self.boardView.backgroundColor = [UIColor colorWithRed:240/255.0 green:215/255.0 blue:155/255.0 alpha:0.95];
+    self.boardView.layer.cornerRadius = JFRadiusMedium;
+    self.boardView.layer.cornerCurve  = kCACornerCurveContinuous;
+    self.boardView.clipsToBounds = YES;
+    [self.view addSubview:self.boardView];
+
+    // 控制按钮 —— 横屏右侧竖排
+    self.undoButton    = [self primaryButtonWithTitle:@"悔棋"   action:@selector(onUndo)];
+    self.restartButton = [self primaryButtonWithTitle:@"新游戏" action:@selector(onRestart)];
+
+    UIStackView *btnStack = [[UIStackView alloc] initWithArrangedSubviews:@[self.restartButton, self.undoButton]];
+    btnStack.translatesAutoresizingMaskIntoConstraints = NO;
+    btnStack.axis = UILayoutConstraintAxisVertical;
+    btnStack.spacing = JFSpacing12;
+    btnStack.distribution = UIStackViewDistributionFillEqually;
+    [self.view addSubview:btnStack];
+
+    [NSLayoutConstraint activateConstraints:@[
+        // 标题:顶部居中
+        [self.titleLabel.topAnchor      constraintEqualToAnchor:safe.topAnchor constant:JFSpacing8],
+        [self.titleLabel.centerXAnchor  constraintEqualToAnchor:self.view.centerXAnchor],
+
+        // 棋盘:垂直居中、左右各留出一点;高度铺满,宽 = 高;最大宽度受到屏宽 - 按钮区限制
+        [self.boardView.topAnchor      constraintEqualToAnchor:safe.topAnchor constant:JFSpacing8 + 36],
+        [self.boardView.bottomAnchor   constraintEqualToAnchor:safe.bottomAnchor constant:-JFSpacing12],
+        [self.boardView.widthAnchor    constraintEqualToAnchor:self.boardView.heightAnchor],
+        [self.boardView.centerXAnchor  constraintEqualToAnchor:self.view.centerXAnchor],
+
+        // 按钮组:右侧竖排
+        [btnStack.trailingAnchor   constraintEqualToAnchor:safe.trailingAnchor constant:-JFSpacing16],
+        [btnStack.centerYAnchor    constraintEqualToAnchor:self.view.centerYAnchor],
+        [btnStack.widthAnchor      constraintEqualToConstant:120],
+        [btnStack.heightAnchor     constraintEqualToConstant:48 * 2 + JFSpacing12],
+    ]];
+}
 
 - (void)viewDidLayoutSubviews {
     [super viewDidLayoutSubviews];
-    UIEdgeInsets insets;
-    if (@available(iOS 11.0, *)) {
-        insets = self.view.safeAreaInsets;
-    } else {
-        insets = UIEdgeInsetsMake(20, 0, 0, 0);
-    }
-    CGFloat size = 36.0; // visible tap target will be larger due to edge insets
-    self.navBackButton.frame = CGRectMake(insets.left + 12, insets.top + 8, size, size);
-    [self.view bringSubviewToFront:self.navBackButton];
+    // CheckerboardView 内部会基于 bounds 重画,触发刷新
+    [self.boardView setNeedsDisplay];
 }
 
-- (void)setupResultLabel {
-    // Avoid duplicating gradient layer on repeated setup calls
-    if (self.resultGradientLayer.superlayer) {
-        [self.resultGradientLayer removeFromSuperlayer];
-        self.resultGradientLayer = nil;
-    }
-
-    CGFloat labelWidth = self.view.bounds.size.width;
-    CGFloat labelHeight = 44;
-    CGRect labelFrame = CGRectMake((self.view.bounds.size.width - labelWidth) / 2, 100, labelWidth, labelHeight);
-
-    // 创建渐变图层
-    CAGradientLayer *gradientLayer = [CAGradientLayer layer];
-    gradientLayer.frame = labelFrame;
-    gradientLayer.colors = @[(__bridge id)[UIColor redColor].CGColor,
-                             (__bridge id)[UIColor blueColor].CGColor,
-                             (__bridge id)[UIColor purpleColor].CGColor];
-    gradientLayer.startPoint = CGPointMake(0, 0);
-    gradientLayer.endPoint = CGPointMake(1, 0);
-    // Insert as background layer to avoid covering buttons
-    [self.view.layer insertSublayer:gradientLayer atIndex:0];
-    self.resultGradientLayer = gradientLayer;
-    // self.resultLabel.numberOfLines = 0; // removed to avoid nil access
-    // 创建文字图层
-    CATextLayer *textLayer = [CATextLayer layer];
-    textLayer.frame = gradientLayer.bounds;
-    textLayer.string = @"五子棋";
-    textLayer.alignmentMode = kCAAlignmentCenter;
-    textLayer.contentsScale = [UIScreen mainScreen].scale;
-    textLayer.font = (__bridge CFTypeRef)([UIFont boldSystemFontOfSize:28].fontName);
-    textLayer.fontSize = 32;
-    textLayer.wrapped = YES;
-    textLayer.truncationMode = kCATruncationEnd;
-//    self.resultTextLayer = textLayer;
-
-    // 使用文字图层作为渐变图层的遮罩
-    gradientLayer.mask = textLayer;
-
-    // 添加颜色动画
-    CABasicAnimation *colorShift = [CABasicAnimation animationWithKeyPath:@"colors"];
-    colorShift.toValue = @[(__bridge id)[UIColor blueColor].CGColor,
-                           (__bridge id)[UIColor greenColor].CGColor,
-                           (__bridge id)[UIColor redColor].CGColor];
-    colorShift.duration = 3.0;
-    colorShift.autoreverses = YES;
-    colorShift.repeatCount = HUGE_VALF;
-    [gradientLayer addAnimation:colorShift forKey:@"colorShift"];
-
-    // 添加轻微抖动动画
-    CAKeyframeAnimation *shakeAnim = [CAKeyframeAnimation animationWithKeyPath:@"transform.translation.x"];
-    shakeAnim.values = @[@0, @-4, @4, @-4, @4, @0];
-    shakeAnim.keyTimes = @[@0, @0.2, @0.4, @0.6, @0.8, @1];
-    shakeAnim.duration = 1.2;
-    shakeAnim.repeatCount = HUGE_VALF;
-    [gradientLayer addAnimation:shakeAnim forKey:@"shake"];
-
-    // 添加呼吸光动画（透明度闪烁）
-    CABasicAnimation *breathAnim = [CABasicAnimation animationWithKeyPath:@"opacity"];
-    breathAnim.fromValue = @0.8;
-    breathAnim.toValue = @1.0;
-    breathAnim.duration = 2.0;
-    breathAnim.autoreverses = YES;
-    breathAnim.repeatCount = HUGE_VALF;
-    [gradientLayer addAnimation:breathAnim forKey:@"breath"];
-
-    // 添加缩放脉动动画
-    CABasicAnimation *scaleAnim = [CABasicAnimation animationWithKeyPath:@"transform.scale"];
-    scaleAnim.fromValue = @1.0;
-    scaleAnim.toValue = @1.08;
-    scaleAnim.duration = 1.5;
-    scaleAnim.autoreverses = YES;
-    scaleAnim.repeatCount = HUGE_VALF;
-    [gradientLayer addAnimation:scaleAnim forKey:@"pulse"];
-
-    // 添加拖尾（发光拖尾）动画
-    CABasicAnimation *shadowAnim = [CABasicAnimation animationWithKeyPath:@"shadowRadius"];
-    shadowAnim.fromValue = @2;
-    shadowAnim.toValue = @10;
-    shadowAnim.duration = 1.5;
-    shadowAnim.autoreverses = YES;
-    shadowAnim.repeatCount = HUGE_VALF;
-    gradientLayer.shadowColor = [UIColor whiteColor].CGColor;
-    gradientLayer.shadowOpacity = 0.8;
-    gradientLayer.shadowOffset = CGSizeZero;
-    [gradientLayer addAnimation:shadowAnim forKey:@"trail"];
-
-    // 添加粒子光点围绕 label 飘动的动画
-    CAEmitterLayer *orbitEmitter = [CAEmitterLayer layer];
-    orbitEmitter.emitterPosition = CGPointMake(CGRectGetMidX(gradientLayer.frame), CGRectGetMidY(gradientLayer.frame));
-    orbitEmitter.emitterSize = CGSizeMake(gradientLayer.bounds.size.width, gradientLayer.bounds.size.height);
-    orbitEmitter.emitterShape = kCAEmitterLayerCircle;
-    orbitEmitter.renderMode = kCAEmitterLayerAdditive;
-
-    CAEmitterCell *orbitCell = [CAEmitterCell emitterCell];
-    orbitCell.contents = (__bridge id)[[UIImage imageNamed:@"spark.png"] CGImage];
-    orbitCell.birthRate = 5;
-    orbitCell.lifetime = 5;
-    orbitCell.velocity = 50;
-    orbitCell.scale = 0.05;
-    orbitCell.alphaSpeed = -0.4;
-    orbitCell.emissionRange = 2 * M_PI;
-    orbitCell.spin = 4;
-
-    orbitEmitter.emitterCells = @[orbitCell];
-    [self.resultGradientLayer removeAllAnimations];
-    [self.resultGradientLayer addAnimation:colorShift forKey:@"colorShift"];
-    [self.resultGradientLayer addAnimation:shakeAnim forKey:@"shake"];
-    [self.resultGradientLayer addAnimation:breathAnim forKey:@"breath"];
-    [self.resultGradientLayer addAnimation:scaleAnim forKey:@"pulse"];
-    [self.resultGradientLayer addAnimation:shadowAnim forKey:@"trail"];
-    self.resultGradientLayer.masksToBounds = NO;
-    // Keep emitter just above gradient but below UI
-    NSUInteger gradientIndex = [self.view.layer.sublayers indexOfObject:self.resultGradientLayer];
-    [self.view.layer insertSublayer:orbitEmitter atIndex:(gradientIndex != NSNotFound ? gradientIndex + 1 : 1)];
+- (UIButton *)primaryButtonWithTitle:(NSString *)title action:(SEL)sel {
+    UIButton *b = [UIButton buttonWithType:UIButtonTypeSystem];
+    b.translatesAutoresizingMaskIntoConstraints = NO;
+    b.backgroundColor = [JFTheme brandPrimary];
+    b.layer.cornerRadius = JFRadiusMedium;
+    b.layer.cornerCurve  = kCACornerCurveContinuous;
+    b.titleLabel.font = [JFTheme fontHeadline];
+    [b setTitle:title forState:UIControlStateNormal];
+    [b setTitleColor:[JFTheme textOnAccent] forState:UIControlStateNormal];
+    [b addTarget:self action:sel forControlEvents:UIControlEventTouchUpInside];
+    return b;
 }
 
+#pragma mark - Actions
 
-- (void)back
-{
-    [self.navigationController popViewControllerAnimated:YES];
-    
-}
-- (void)viewDidAppear:(BOOL)animated {
-    [super viewDidAppear:animated];
-    
-    if ([self.boardView isKindOfClass:[CheckerboardView class]]) {
-        NSLog(@"[JFTD] 是正确的 CheckerboardView，尝试刷新");
-        [self.boardView setNeedsDisplay];
-    } else {
-        NSLog(@"[JFTD] 错误！boardView 不是 CheckerboardView 类型：%@", self.boardView);
-    }
+- (void)onUndo {
+    [JFTheme hapticImpactLight];
+    [self.boardView backOneStep:nil];
 }
 
-- (void)setUp{
-    
-    self.view.backgroundColor = [UIColor colorWithWhite:1 alpha:0.8];
-    
-    //添加棋盘
-    CheckerboardView * boardView = [[CheckerboardView alloc]initWithFrame:CGRectMake(20, 30, ScreenW * 0.95, ScreenW * 0.95)];
-    boardView.center = self.view.center;
-    [self.view addSubview:boardView];
-    self.boardView = boardView;
-    
-    
-    //悔棋
-    UIButton * changeBoardButton = [UIButton buttonWithType:UIButtonTypeCustom];
-    [changeBoardButton setTitle:@"初级棋盘" forState:UIControlStateNormal];
-    [changeBoardButton setTitleColor:[UIColor grayColor] forState:UIControlStateDisabled];
-    changeBoardButton.backgroundColor = [UIColor colorWithRed:200/255.0 green:160/255.0 blue:130/255.0 alpha:1];
-    changeBoardButton.frame = CGRectMake(CGRectGetMidX(boardView.frame) - CGRectGetWidth(boardView.frame) * 0.3, CGRectGetMinY(boardView.frame) - 50, CGRectGetWidth(boardView.frame) * 0.6, 35);
-    changeBoardButton.layer.cornerRadius = 4;
-    [self.view addSubview:changeBoardButton];
-    self.changeBoardButton = changeBoardButton;
-    [changeBoardButton addTarget:self action:@selector(changeBoard:) forControlEvents:UIControlEventTouchUpInside];
-    
-    
-    //悔棋
-    UIButton * backButton = [UIButton buttonWithType:UIButtonTypeCustom];
-    [backButton setTitle:@"悔棋" forState:UIControlStateNormal];
-    [backButton setTitleColor:[UIColor grayColor] forState:UIControlStateDisabled];
-    backButton.backgroundColor = [UIColor colorWithRed:200/255.0 green:160/255.0 blue:130/255.0 alpha:1];
-    backButton.frame = CGRectMake(CGRectGetMinX(boardView.frame), CGRectGetMaxY(boardView.frame) + 15, CGRectGetWidth(boardView.frame) * 0.45, 30);
-    backButton.layer.cornerRadius = 4;
-    [self.view addSubview:backButton];
-    self.backButton = backButton;
-    [backButton addTarget:self action:@selector(backOneStep:) forControlEvents:UIControlEventTouchUpInside];
-    
-    //新游戏
-    UIButton * reStartBtn = [UIButton buttonWithType:UIButtonTypeCustom];
-    [reStartBtn setTitle:@"新游戏" forState:UIControlStateNormal];
-    reStartBtn.backgroundColor = [UIColor colorWithRed:200/255.0 green:160/255.0 blue:130/255.0 alpha:1];
-    reStartBtn.frame = CGRectMake(CGRectGetMaxX(boardView.frame) - CGRectGetWidth(boardView.frame) * 0.45, CGRectGetMaxY(boardView.frame) + 15, CGRectGetWidth(boardView.frame) * 0.45, 30);
-    reStartBtn.layer.cornerRadius = 4;
-    [self.view addSubview:reStartBtn];
-    self.reStartBtn = reStartBtn;
-    [reStartBtn addTarget:self action:@selector(newGame) forControlEvents:UIControlEventTouchUpInside];
-}
-
-- (void)backOneStep:(UIButton *)sender{
-    [self.boardView backOneStep:(UIButton *)sender];
-}
-
-- (void)newGame{
-    
+- (void)onRestart {
+    [JFTheme hapticImpactMedium];
     [self.boardView newGame];
 }
 
-- (void)changeBoard:(UIButton *)btn{
-    
-    [self.boardView changeBoardLevel];
-    [_changeBoardButton setTitle:[btn.currentTitle isEqualToString:@"高级棋盘"]?@"初级棋盘":@"高级棋盘" forState:UIControlStateNormal];
-}
 @end
