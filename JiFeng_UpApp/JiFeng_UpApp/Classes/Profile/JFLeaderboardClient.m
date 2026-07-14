@@ -51,6 +51,9 @@ static NSString * const kJFLBScoresKey     = @"jf_lb_local_scores"; // {gameKey:
 - (void)submitScore:(NSInteger)score
             forGame:(JFGameKind)kind
          difficulty:(NSInteger)difficulty
+            duration:(NSTimeInterval)duration
+                 win:(BOOL)win
+               extra:(NSDictionary<NSString *,id> *)extra
          completion:(JFLeaderboardSubmitCompletion)completion {
     NSUserDefaults *ud = [NSUserDefaults standardUserDefaults];
     NSMutableDictionary *all = [[ud dictionaryForKey:kJFLBScoresKey] mutableCopy] ?: [NSMutableDictionary dictionary];

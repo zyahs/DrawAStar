@@ -17,7 +17,7 @@
 @property (nonatomic, strong) UIButton         *undoButton;     // 悔棋
 @property (nonatomic, strong) UIButton         *restartButton;  // 新游戏
 @property (nonatomic, strong) UILabel          *titleLabel;
-@property (nonatomic, strong) UIImageView      *bgImageView;
+@property (nonatomic, assign) BOOL             shouldRestorePortraitOnExit;
 
 @end
 
@@ -65,8 +65,21 @@
 
 - (void)viewWillDisappear:(BOOL)animated {
     [super viewWillDisappear:animated];
-    // 离开时请求恢复竖屏 —— 由上一个页面的 supportedInterfaceOrientations 决定
+    self.shouldRestorePortraitOnExit = self.isMovingFromParentViewController || self.isBeingDismissed || self.navigationController.isBeingDismissed;
+}
+
+- (void)viewDidDisappear:(BOOL)animated {
+    [super viewDidDisappear:animated];
+    if (!self.shouldRestorePortraitOnExit) return;
+    self.shouldRestorePortraitOnExit = NO;
+    dispatch_async(dispatch_get_main_queue(), ^{
+        [self jf_requestPortraitAfterExit];
+    });
+}
+
+- (void)jf_requestPortraitAfterExit {
     if (@available(iOS 16.0, *)) {
+        [self.navigationController setNeedsUpdateOfSupportedInterfaceOrientations];
         UIWindowScene *scene = nil;
         for (UIScene *s in UIApplication.sharedApplication.connectedScenes) {
             if ([s isKindOfClass:[UIWindowScene class]] && s.activationState == UISceneActivationStateForegroundActive) {
@@ -88,15 +101,9 @@
 - (void)viewDidLoad {
     [super viewDidLoad];
 
-    self.bgImageView = [[UIImageView alloc] initWithImage:[UIImage imageNamed:@"b5"]];
-    self.bgImageView.frame = self.view.bounds;
-    self.bgImageView.autoresizingMask = UIViewAutoresizingFlexibleWidth | UIViewAutoresizingFlexibleHeight;
-    self.bgImageView.contentMode = UIViewContentModeScaleAspectFill;
-    [self.view addSubview:self.bgImageView];
-
     UIView *overlay = [[UIView alloc] initWithFrame:self.view.bounds];
     overlay.autoresizingMask = UIViewAutoresizingFlexibleWidth | UIViewAutoresizingFlexibleHeight;
-    overlay.backgroundColor = [[UIColor blackColor] colorWithAlphaComponent:0.35];
+    overlay.backgroundColor = [[UIColor blackColor] colorWithAlphaComponent:0.18];
     [self.view addSubview:overlay];
 
     [self setupUI];
@@ -129,7 +136,7 @@
     self.titleLabel.textAlignment = NSTextAlignmentCenter;
     [self.view addSubview:self.titleLabel];
 
-    // 棋盘 —— 居中,正方形,按可用高度撑到最大
+    // 棋盘 —— 横屏下铺成更宽的长方形,内部网格按宽高分别撑满。
     self.boardView = [[CheckerboardView alloc] initWithFrame:CGRectZero];
     self.boardView.translatesAutoresizingMaskIntoConstraints = NO;
     self.boardView.backgroundColor = [UIColor colorWithRed:240/255.0 green:215/255.0 blue:155/255.0 alpha:0.95];
@@ -154,11 +161,11 @@
         [self.titleLabel.topAnchor      constraintEqualToAnchor:safe.topAnchor constant:JFSpacing8],
         [self.titleLabel.centerXAnchor  constraintEqualToAnchor:self.view.centerXAnchor],
 
-        // 棋盘:垂直居中、左右各留出一点;高度铺满,宽 = 高;最大宽度受到屏宽 - 按钮区限制
+        // 棋盘:横向铺满左侧主区域,不再强制正方形。
         [self.boardView.topAnchor      constraintEqualToAnchor:safe.topAnchor constant:JFSpacing8 + 36],
         [self.boardView.bottomAnchor   constraintEqualToAnchor:safe.bottomAnchor constant:-JFSpacing12],
-        [self.boardView.widthAnchor    constraintEqualToAnchor:self.boardView.heightAnchor],
-        [self.boardView.centerXAnchor  constraintEqualToAnchor:self.view.centerXAnchor],
+        [self.boardView.leadingAnchor  constraintEqualToAnchor:safe.leadingAnchor constant:JFSpacing16],
+        [self.boardView.trailingAnchor constraintEqualToAnchor:btnStack.leadingAnchor constant:-JFSpacing16],
 
         // 按钮组:右侧竖排
         [btnStack.trailingAnchor   constraintEqualToAnchor:safe.trailingAnchor constant:-JFSpacing16],

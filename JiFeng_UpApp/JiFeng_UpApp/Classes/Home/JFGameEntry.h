@@ -16,7 +16,7 @@ typedef NS_ENUM(NSInteger, JFGameKind) {
     JFGameKindFiveInRow,       // 五子棋
     JFGameKindUndercover,      // 谁是卧底(联机)
     JFGameKindKing,            // 国王游戏(联机)
-    JFGameKindCard,            // 小姐牌
+    JFGameKindCard,            // 纸牌游乐场
     JFGameKindGesture,         // 手势炸弹
     JFGameKindPuzzle,          // 拼图(相册照片+难度三档)
     JFGameKindSnake,           // 贪吃蛇
@@ -25,6 +25,8 @@ typedef NS_ENUM(NSInteger, JFGameKind) {
     JFGameKindMemory,          // 记忆翻牌
     JFGameKindReaction,        // 反应力测试
     JFGameKindRhythm,          // 节奏点点
+    JFGameKindSokoban,         // 推箱子
+    JFGameKindPacman,          // 吃豆人
 };
 
 @interface JFGameEntry : NSObject

@@ -1,453 +1,427 @@
 //
 //  TruthOrDareViewController.m
-//  JiFeng_test
-//
-//  Created by 继风(周毅) on 2025/8/4.
+//  JiFeng_UpApp
 //
 
 #import "TruthOrDareViewController.h"
 #import <QuartzCore/QuartzCore.h>
+#import "JFTheme.h"
 #import "JFProfileStore.h"
 #import "JFDailyChallengeStore.h"
 
-@interface TruthOrDareViewController () <UIPickerViewDataSource, UIPickerViewDelegate>
-@property (nonatomic, strong) UIPickerView *pickerView;
+@interface TruthOrDareViewController ()
+
+@property (nonatomic, strong) UIImageView *bgImageView;
+@property (nonatomic, strong) UIView *scrimView;
+@property (nonatomic, strong) CAGradientLayer *ambientLayer;
+@property (nonatomic, strong) CAEmitterLayer *sparkLayer;
+
+@property (nonatomic, strong) UILabel *titleLabel;
+@property (nonatomic, strong) UILabel *hintLabel;
+@property (nonatomic, strong) UIView *wheelPanel;
+@property (nonatomic, strong) UILabel *previousLabel;
+@property (nonatomic, strong) UILabel *currentLabel;
+@property (nonatomic, strong) UILabel *nextLabel;
+@property (nonatomic, strong) UIView *centerLine;
+
+@property (nonatomic, strong) UIView *resultCard;
+@property (nonatomic, strong) CAGradientLayer *resultBorderLayer;
+@property (nonatomic, strong) UILabel *resultTitleLabel;
+@property (nonatomic, strong) UILabel *resultBodyLabel;
+
 @property (nonatomic, strong) UIButton *startButton;
 @property (nonatomic, strong) NSArray<NSString *> *items;
 @property (nonatomic, assign) NSInteger selectedRow;
-@property (nonatomic, strong) UILabel *resultLabel;
-@property (nonatomic, strong) CAGradientLayer *resultGradientLayer;
-@property (nonatomic, strong) CAGradientLayer *resultGradientLayer1;
-@property (nonatomic, strong) CATextLayer *resultTextLayer;
-@property (nonatomic, strong) CATextLayer *resultTextLayer1;
-@property (nonatomic, strong) UIView *hudView;
-@property (nonatomic, strong) UILabel *resultLabel1;
-@property (nonatomic, strong) UIImageView *bgImageView;
+@property (nonatomic, assign) NSInteger spinIndex;
+@property (nonatomic, assign) NSInteger remainingSteps;
+@property (nonatomic, assign) NSInteger finalIndex;
+@property (nonatomic, assign) BOOL rolling;
+@property (nonatomic, assign) CFTimeInterval rollStartedAt;
+@property (nonatomic, assign) NSTimeInterval rollDuration;
+@property (nonatomic, assign) NSInteger rollStepCount;
+
 @end
 
 @implementation TruthOrDareViewController
 
 - (void)viewDidLoad {
     [super viewDidLoad];
-    self.view.backgroundColor = UIColor.blackColor;
-    self.bgImageView = [[UIImageView alloc] initWithImage:[UIImage imageNamed:self.imageName]];
-    self.bgImageView.frame = self.view.bounds;
-    self.bgImageView.autoresizingMask = UIViewAutoresizingFlexibleWidth | UIViewAutoresizingFlexibleHeight;
-    self.bgImageView.contentMode = UIViewContentModeScaleAspectFill;
-    [self.view addSubview:self.bgImageView];
-   
-    
-    UITapGestureRecognizer *tripleTap = [[UITapGestureRecognizer alloc] initWithTarget:self action:@selector(handleTripleTap)];
-    tripleTap.numberOfTapsRequired = 3;
-    tripleTap.numberOfTouchesRequired = 1;
-    [self.view addGestureRecognizer:tripleTap];
-    [self setupBackgroundGlow];
-    self.items = self.item;
+    self.items = self.item.count > 0 ? self.item : @[@"准备好了吗？"];
     self.selectedRow = 0;
-    [self setupPickerView];
-    [self setupStartButton];
-    [self setupResultLabel];
-    [self setupResultLabel1];
+    self.view.backgroundColor = [JFTheme backgroundPrimary];
+
+    [self setupBackground];
+    [self setupContent];
     [self setupParticles];
-    self.hudView = [[UIView alloc]initWithFrame:CGRectMake(0, self.view.center.y - 100, self.view.bounds.size.width, 200)];
-    self.hudView.userInteractionEnabled = YES;
-    self.hudView.backgroundColor = [UIColor redColor];
-    self.hudView.alpha = 0.2;
-    [self.view addSubview:self.hudView];
+    [self updateWheelLabelsAnimated:NO];
+    [self animateEntrance];
 }
 
-- (void)handleTripleTap {
-    NSLog(@"检测到三连击！");
-    [self.hudView removeFromSuperview];
-    // 在这里添加你需要的逻辑
+- (void)viewDidLayoutSubviews {
+    [super viewDidLayoutSubviews];
+    self.ambientLayer.frame = self.view.bounds;
+    self.resultBorderLayer.frame = self.resultCard.bounds;
+    self.resultBorderLayer.cornerRadius = self.resultCard.layer.cornerRadius;
+    self.sparkLayer.emitterPosition = CGPointMake(self.view.bounds.size.width * 0.5, -12);
+    self.sparkLayer.emitterSize = CGSizeMake(self.view.bounds.size.width, 1);
 }
 
-- (void)setupResultLabel {
-    CGFloat labelWidth = self.view.bounds.size.width;
-    CGFloat labelHeight = 1000;
-    CGRect labelFrame = CGRectMake((self.view.bounds.size.width - labelWidth) / 2, 200, labelWidth, labelHeight);
+- (void)setupBackground {
+    self.scrimView = [[UIView alloc] init];
+    self.scrimView.translatesAutoresizingMaskIntoConstraints = NO;
+    self.scrimView.backgroundColor = [UIColor colorWithWhite:0 alpha:0.24];
+    [self.view addSubview:self.scrimView];
 
-    // 创建渐变图层
-    CAGradientLayer *gradientLayer = [CAGradientLayer layer];
-    gradientLayer.frame = labelFrame;
-    gradientLayer.colors = @[(__bridge id)[UIColor redColor].CGColor,
-                             (__bridge id)[UIColor blueColor].CGColor,
-                             (__bridge id)[UIColor purpleColor].CGColor];
-    gradientLayer.startPoint = CGPointMake(0, 0);
-    gradientLayer.endPoint = CGPointMake(1, 0);
-    [self.view.layer addSublayer:gradientLayer];
-    self.resultGradientLayer = gradientLayer;
-    self.resultLabel.numberOfLines = 0;
-    // 创建文字图层
-    CATextLayer *textLayer = [CATextLayer layer];
-    textLayer.frame = gradientLayer.bounds;
-    textLayer.string = @"准备好了吗？";
-    textLayer.alignmentMode = kCAAlignmentCenter;
-    textLayer.contentsScale = [UIScreen mainScreen].scale;
-    textLayer.font = (__bridge CFTypeRef)([UIFont boldSystemFontOfSize:28].fontName);
-    textLayer.fontSize = 32;
-    textLayer.wrapped = YES;
-    textLayer.truncationMode = kCATruncationEnd;
-    self.resultTextLayer = textLayer;
+    self.ambientLayer = [CAGradientLayer layer];
+    self.ambientLayer.colors = @[
+        (__bridge id)[[JFTheme brandPrimary] colorWithAlphaComponent:0.34].CGColor,
+        (__bridge id)[[JFTheme backgroundPrimary] colorWithAlphaComponent:0.72].CGColor,
+        (__bridge id)[[JFTheme accent] colorWithAlphaComponent:0.22].CGColor,
+    ];
+    self.ambientLayer.startPoint = CGPointMake(0, 0);
+    self.ambientLayer.endPoint = CGPointMake(1, 1);
+    [self.view.layer addSublayer:self.ambientLayer];
 
-    // 使用文字图层作为渐变图层的遮罩
-    gradientLayer.mask = textLayer;
+    CABasicAnimation *flow = [CABasicAnimation animationWithKeyPath:@"colors"];
+    flow.toValue = @[
+        (__bridge id)[[JFTheme brandSecondary] colorWithAlphaComponent:0.36].CGColor,
+        (__bridge id)[[JFTheme backgroundSecondary] colorWithAlphaComponent:0.72].CGColor,
+        (__bridge id)[[self accentColor] colorWithAlphaComponent:0.30].CGColor,
+    ];
+    flow.duration = 5.5;
+    flow.autoreverses = YES;
+    flow.repeatCount = HUGE_VALF;
+    [self.ambientLayer addAnimation:flow forKey:@"ambient.flow"];
 
-    // 添加颜色动画
-    CABasicAnimation *colorShift = [CABasicAnimation animationWithKeyPath:@"colors"];
-    colorShift.toValue = @[(__bridge id)[UIColor blueColor].CGColor,
-                           (__bridge id)[UIColor greenColor].CGColor,
-                           (__bridge id)[UIColor redColor].CGColor];
-    colorShift.duration = 3.0;
-    colorShift.autoreverses = YES;
-    colorShift.repeatCount = HUGE_VALF;
-    [gradientLayer addAnimation:colorShift forKey:@"colorShift"];
-
-    // 添加轻微抖动动画
-    CAKeyframeAnimation *shakeAnim = [CAKeyframeAnimation animationWithKeyPath:@"transform.translation.x"];
-    shakeAnim.values = @[@0, @-4, @4, @-4, @4, @0];
-    shakeAnim.keyTimes = @[@0, @0.2, @0.4, @0.6, @0.8, @1];
-    shakeAnim.duration = 1.2;
-    shakeAnim.repeatCount = HUGE_VALF;
-    [gradientLayer addAnimation:shakeAnim forKey:@"shake"];
-
-    // 添加呼吸光动画（透明度闪烁）
-    CABasicAnimation *breathAnim = [CABasicAnimation animationWithKeyPath:@"opacity"];
-    breathAnim.fromValue = @0.8;
-    breathAnim.toValue = @1.0;
-    breathAnim.duration = 2.0;
-    breathAnim.autoreverses = YES;
-    breathAnim.repeatCount = HUGE_VALF;
-    [gradientLayer addAnimation:breathAnim forKey:@"breath"];
-
-    // 添加缩放脉动动画
-    CABasicAnimation *scaleAnim = [CABasicAnimation animationWithKeyPath:@"transform.scale"];
-    scaleAnim.fromValue = @1.0;
-    scaleAnim.toValue = @1.08;
-    scaleAnim.duration = 1.5;
-    scaleAnim.autoreverses = YES;
-    scaleAnim.repeatCount = HUGE_VALF;
-    [gradientLayer addAnimation:scaleAnim forKey:@"pulse"];
-
-    // 添加拖尾（发光拖尾）动画
-    CABasicAnimation *shadowAnim = [CABasicAnimation animationWithKeyPath:@"shadowRadius"];
-    shadowAnim.fromValue = @2;
-    shadowAnim.toValue = @10;
-    shadowAnim.duration = 1.5;
-    shadowAnim.autoreverses = YES;
-    shadowAnim.repeatCount = HUGE_VALF;
-    gradientLayer.shadowColor = [UIColor whiteColor].CGColor;
-    gradientLayer.shadowOpacity = 0.8;
-    gradientLayer.shadowOffset = CGSizeZero;
-    [gradientLayer addAnimation:shadowAnim forKey:@"trail"];
-
-    // 添加粒子光点围绕 label 飘动的动画
-    CAEmitterLayer *orbitEmitter = [CAEmitterLayer layer];
-    orbitEmitter.emitterPosition = CGPointMake(CGRectGetMidX(gradientLayer.frame), CGRectGetMidY(gradientLayer.frame));
-    orbitEmitter.emitterSize = CGSizeMake(gradientLayer.bounds.size.width, gradientLayer.bounds.size.height);
-    orbitEmitter.emitterShape = kCAEmitterLayerCircle;
-    orbitEmitter.renderMode = kCAEmitterLayerAdditive;
-
-    CAEmitterCell *orbitCell = [CAEmitterCell emitterCell];
-    orbitCell.contents = (__bridge id)[[UIImage imageNamed:@"spark.png"] CGImage];
-    orbitCell.birthRate = 5;
-    orbitCell.lifetime = 5;
-    orbitCell.velocity = 50;
-    orbitCell.scale = 0.05;
-    orbitCell.alphaSpeed = -0.4;
-    orbitCell.emissionRange = 2 * M_PI;
-    orbitCell.spin = 4;
-
-    orbitEmitter.emitterCells = @[orbitCell];
-    [self.resultGradientLayer removeAllAnimations];
-    [self.resultGradientLayer addAnimation:colorShift forKey:@"colorShift"];
-    [self.resultGradientLayer addAnimation:shakeAnim forKey:@"shake"];
-    [self.resultGradientLayer addAnimation:breathAnim forKey:@"breath"];
-    [self.resultGradientLayer addAnimation:scaleAnim forKey:@"pulse"];
-    [self.resultGradientLayer addAnimation:shadowAnim forKey:@"trail"];
-    self.resultGradientLayer.masksToBounds = NO;
-    // 注意：粒子层添加在 self.view.layer，确保不会被 gradientLayer.mask 遮住
-    [self.view.layer insertSublayer:orbitEmitter above:self.resultGradientLayer];
+    [NSLayoutConstraint activateConstraints:@[
+        [self.scrimView.topAnchor constraintEqualToAnchor:self.view.topAnchor],
+        [self.scrimView.leadingAnchor constraintEqualToAnchor:self.view.leadingAnchor],
+        [self.scrimView.trailingAnchor constraintEqualToAnchor:self.view.trailingAnchor],
+        [self.scrimView.bottomAnchor constraintEqualToAnchor:self.view.bottomAnchor],
+    ]];
 }
 
-#pragma mark - UIPickerView Setup
+- (void)setupContent {
+    UILayoutGuide *safe = self.view.safeAreaLayoutGuide;
 
--(void)setupPickerView {
-    self.pickerView = [[UIPickerView alloc] initWithFrame:CGRectMake(0, self.view.center.y - 100, self.view.bounds.size.width, 200)];
-    self.pickerView.dataSource = (id)self;
-    self.pickerView.delegate = (id)self;
-    self.pickerView.showsSelectionIndicator = YES;
-    [self.pickerView selectRow:self.items.count * 500 inComponent:0 animated:NO];
-  
-    [self.view addSubview:self.pickerView];
-}
+    self.titleLabel = [[UILabel alloc] init];
+    self.titleLabel.translatesAutoresizingMaskIntoConstraints = NO;
+    self.titleLabel.text = self.displayText ?: @"真心话大冒险";
+    self.titleLabel.font = [UIFont systemFontOfSize:32 weight:UIFontWeightBlack];
+    self.titleLabel.textColor = [JFTheme textPrimary];
+    self.titleLabel.textAlignment = NSTextAlignmentCenter;
+    [self.view addSubview:self.titleLabel];
 
-- (void)setupStartButton {
+    self.hintLabel = [[UILabel alloc] init];
+    self.hintLabel.translatesAutoresizingMaskIntoConstraints = NO;
+    self.hintLabel.text = @"让命运停在那一格";
+    self.hintLabel.font = [JFTheme fontCallout];
+    self.hintLabel.textColor = [JFTheme textSecondary];
+    self.hintLabel.textAlignment = NSTextAlignmentCenter;
+    [self.view addSubview:self.hintLabel];
+
+    self.wheelPanel = [[UIView alloc] init];
+    self.wheelPanel.translatesAutoresizingMaskIntoConstraints = NO;
+    self.wheelPanel.backgroundColor = [UIColor colorWithWhite:1 alpha:0.08];
+    self.wheelPanel.layer.cornerRadius = 28;
+    self.wheelPanel.layer.cornerCurve = kCACornerCurveContinuous;
+    self.wheelPanel.layer.borderWidth = 1;
+    self.wheelPanel.layer.borderColor = [[UIColor whiteColor] colorWithAlphaComponent:0.16].CGColor;
+    self.wheelPanel.layer.shadowColor = [UIColor blackColor].CGColor;
+    self.wheelPanel.layer.shadowOpacity = 0.35;
+    self.wheelPanel.layer.shadowRadius = 22;
+    self.wheelPanel.layer.shadowOffset = CGSizeMake(0, 12);
+    self.wheelPanel.clipsToBounds = YES;
+    [self.view addSubview:self.wheelPanel];
+
+    self.previousLabel = [self wheelLabelWithScale:0.72 alpha:0.42];
+    self.currentLabel = [self wheelLabelWithScale:1.0 alpha:1.0];
+    self.nextLabel = [self wheelLabelWithScale:0.72 alpha:0.42];
+    [self.wheelPanel addSubview:self.previousLabel];
+    [self.wheelPanel addSubview:self.currentLabel];
+    [self.wheelPanel addSubview:self.nextLabel];
+
+    self.centerLine = [[UIView alloc] init];
+    self.centerLine.translatesAutoresizingMaskIntoConstraints = NO;
+    self.centerLine.backgroundColor = [[self accentColor] colorWithAlphaComponent:0.28];
+    self.centerLine.layer.cornerRadius = 24;
+    self.centerLine.layer.cornerCurve = kCACornerCurveContinuous;
+    [self.wheelPanel insertSubview:self.centerLine atIndex:0];
+
+    self.resultCard = [[UIView alloc] init];
+    self.resultCard.translatesAutoresizingMaskIntoConstraints = NO;
+    self.resultCard.backgroundColor = [UIColor colorWithWhite:0.06 alpha:0.70];
+    self.resultCard.layer.cornerRadius = 26;
+    self.resultCard.layer.cornerCurve = kCACornerCurveContinuous;
+    self.resultCard.layer.shadowColor = [self accentColor].CGColor;
+    self.resultCard.layer.shadowOpacity = 0.0;
+    self.resultCard.layer.shadowRadius = 30;
+    self.resultCard.layer.shadowOffset = CGSizeZero;
+    self.resultCard.alpha = 0.78;
+    [self.view addSubview:self.resultCard];
+
+    self.resultBorderLayer = [CAGradientLayer layer];
+    self.resultBorderLayer.colors = @[
+        (__bridge id)[[self accentColor] colorWithAlphaComponent:0.90].CGColor,
+        (__bridge id)[[self secondaryColor] colorWithAlphaComponent:0.62].CGColor,
+        (__bridge id)[UIColor colorWithWhite:1 alpha:0.20].CGColor,
+    ];
+    self.resultBorderLayer.startPoint = CGPointMake(0, 0);
+    self.resultBorderLayer.endPoint = CGPointMake(1, 1);
+    [self.resultCard.layer insertSublayer:self.resultBorderLayer atIndex:0];
+
+    UIView *inner = [[UIView alloc] init];
+    inner.translatesAutoresizingMaskIntoConstraints = NO;
+    inner.backgroundColor = [UIColor colorWithWhite:0.05 alpha:0.82];
+    inner.layer.cornerRadius = 24;
+    inner.layer.cornerCurve = kCACornerCurveContinuous;
+    [self.resultCard addSubview:inner];
+
+    self.resultTitleLabel = [[UILabel alloc] init];
+    self.resultTitleLabel.translatesAutoresizingMaskIntoConstraints = NO;
+    self.resultTitleLabel.text = @"待抽取";
+    self.resultTitleLabel.font = [UIFont systemFontOfSize:15 weight:UIFontWeightSemibold];
+    self.resultTitleLabel.textColor = [self accentColor];
+    [inner addSubview:self.resultTitleLabel];
+
+    self.resultBodyLabel = [[UILabel alloc] init];
+    self.resultBodyLabel.translatesAutoresizingMaskIntoConstraints = NO;
+    self.resultBodyLabel.text = @"点击开始，让滚轮替你决定。";
+    self.resultBodyLabel.font = [UIFont systemFontOfSize:22 weight:UIFontWeightBold];
+    self.resultBodyLabel.textColor = [JFTheme textPrimary];
+    self.resultBodyLabel.numberOfLines = 0;
+    [inner addSubview:self.resultBodyLabel];
+
     self.startButton = [UIButton buttonWithType:UIButtonTypeSystem];
-    self.startButton.frame = CGRectMake((self.view.bounds.size.width - 120) / 2, CGRectGetMaxY(self.pickerView.frame) + 40, 120, 50);
-    [self.startButton setTitle:@"开始" forState:UIControlStateNormal];
-    self.startButton.titleLabel.font = [UIFont boldSystemFontOfSize:24];
-    [self.startButton setTitleColor:UIColor.whiteColor forState:UIControlStateNormal];
+    self.startButton.translatesAutoresizingMaskIntoConstraints = NO;
+    self.startButton.tintColor = [JFTheme textOnAccent];
+    self.startButton.backgroundColor = [self accentColor];
+    self.startButton.layer.cornerRadius = 24;
+    self.startButton.layer.cornerCurve = kCACornerCurveContinuous;
+    self.startButton.titleLabel.font = [UIFont systemFontOfSize:18 weight:UIFontWeightBold];
+    [self.startButton setTitle:@"开始抽取" forState:UIControlStateNormal];
+    [self.startButton setImage:[UIImage systemImageNamed:@"sparkles"] forState:UIControlStateNormal];
     [self.startButton addTarget:self action:@selector(startRolling) forControlEvents:UIControlEventTouchUpInside];
     [self.view addSubview:self.startButton];
+
+    [NSLayoutConstraint activateConstraints:@[
+        [self.titleLabel.topAnchor constraintEqualToAnchor:safe.topAnchor constant:64],
+        [self.titleLabel.leadingAnchor constraintEqualToAnchor:safe.leadingAnchor constant:JFSpacing24],
+        [self.titleLabel.trailingAnchor constraintEqualToAnchor:safe.trailingAnchor constant:-JFSpacing24],
+
+        [self.hintLabel.topAnchor constraintEqualToAnchor:self.titleLabel.bottomAnchor constant:JFSpacing8],
+        [self.hintLabel.leadingAnchor constraintEqualToAnchor:self.titleLabel.leadingAnchor],
+        [self.hintLabel.trailingAnchor constraintEqualToAnchor:self.titleLabel.trailingAnchor],
+
+        [self.wheelPanel.topAnchor constraintEqualToAnchor:self.hintLabel.bottomAnchor constant:JFSpacing24],
+        [self.wheelPanel.leadingAnchor constraintEqualToAnchor:safe.leadingAnchor constant:JFSpacing20],
+        [self.wheelPanel.trailingAnchor constraintEqualToAnchor:safe.trailingAnchor constant:-JFSpacing20],
+        [self.wheelPanel.heightAnchor constraintEqualToConstant:184],
+
+        [self.centerLine.leadingAnchor constraintEqualToAnchor:self.wheelPanel.leadingAnchor constant:JFSpacing12],
+        [self.centerLine.trailingAnchor constraintEqualToAnchor:self.wheelPanel.trailingAnchor constant:-JFSpacing12],
+        [self.centerLine.centerYAnchor constraintEqualToAnchor:self.wheelPanel.centerYAnchor],
+        [self.centerLine.heightAnchor constraintEqualToConstant:64],
+
+        [self.previousLabel.leadingAnchor constraintEqualToAnchor:self.wheelPanel.leadingAnchor constant:JFSpacing20],
+        [self.previousLabel.trailingAnchor constraintEqualToAnchor:self.wheelPanel.trailingAnchor constant:-JFSpacing20],
+        [self.previousLabel.centerYAnchor constraintEqualToAnchor:self.wheelPanel.centerYAnchor constant:-58],
+
+        [self.currentLabel.leadingAnchor constraintEqualToAnchor:self.previousLabel.leadingAnchor],
+        [self.currentLabel.trailingAnchor constraintEqualToAnchor:self.previousLabel.trailingAnchor],
+        [self.currentLabel.centerYAnchor constraintEqualToAnchor:self.wheelPanel.centerYAnchor],
+
+        [self.nextLabel.leadingAnchor constraintEqualToAnchor:self.previousLabel.leadingAnchor],
+        [self.nextLabel.trailingAnchor constraintEqualToAnchor:self.previousLabel.trailingAnchor],
+        [self.nextLabel.centerYAnchor constraintEqualToAnchor:self.wheelPanel.centerYAnchor constant:58],
+
+        [self.resultCard.topAnchor constraintEqualToAnchor:self.wheelPanel.bottomAnchor constant:JFSpacing24],
+        [self.resultCard.leadingAnchor constraintEqualToAnchor:self.wheelPanel.leadingAnchor],
+        [self.resultCard.trailingAnchor constraintEqualToAnchor:self.wheelPanel.trailingAnchor],
+        [self.resultCard.heightAnchor constraintGreaterThanOrEqualToConstant:164],
+
+        [inner.topAnchor constraintEqualToAnchor:self.resultCard.topAnchor constant:2],
+        [inner.leadingAnchor constraintEqualToAnchor:self.resultCard.leadingAnchor constant:2],
+        [inner.trailingAnchor constraintEqualToAnchor:self.resultCard.trailingAnchor constant:-2],
+        [inner.bottomAnchor constraintEqualToAnchor:self.resultCard.bottomAnchor constant:-2],
+
+        [self.resultTitleLabel.topAnchor constraintEqualToAnchor:inner.topAnchor constant:JFSpacing20],
+        [self.resultTitleLabel.leadingAnchor constraintEqualToAnchor:inner.leadingAnchor constant:JFSpacing20],
+        [self.resultTitleLabel.trailingAnchor constraintEqualToAnchor:inner.trailingAnchor constant:-JFSpacing20],
+
+        [self.resultBodyLabel.topAnchor constraintEqualToAnchor:self.resultTitleLabel.bottomAnchor constant:JFSpacing12],
+        [self.resultBodyLabel.leadingAnchor constraintEqualToAnchor:self.resultTitleLabel.leadingAnchor],
+        [self.resultBodyLabel.trailingAnchor constraintEqualToAnchor:self.resultTitleLabel.trailingAnchor],
+        [self.resultBodyLabel.bottomAnchor constraintLessThanOrEqualToAnchor:inner.bottomAnchor constant:-JFSpacing20],
+
+        [self.startButton.topAnchor constraintGreaterThanOrEqualToAnchor:self.resultCard.bottomAnchor constant:JFSpacing24],
+        [self.startButton.leadingAnchor constraintEqualToAnchor:safe.leadingAnchor constant:JFSpacing32],
+        [self.startButton.trailingAnchor constraintEqualToAnchor:safe.trailingAnchor constant:-JFSpacing32],
+        [self.startButton.heightAnchor constraintEqualToConstant:54],
+        [self.startButton.bottomAnchor constraintEqualToAnchor:safe.bottomAnchor constant:-JFSpacing24],
+    ]];
 }
 
-// 实现流畅滚动效果并在末尾自然停下
-- (void)startRolling {
-    [self.startButton setEnabled:NO];
-
-    // 一次抽签算一局
-    JFGameResult *r = [JFGameResult resultWithKind:JFGameKindTruthOrDare score:10 win:YES];
-    [[JFProfileStore shared] reportResult:r];
-    [[JFDailyChallengeStore shared] recordResultForToday:JFGameKindTruthOrDare difficulty:0 score:10 win:YES];
-    
-    NSInteger currentRow = [self.pickerView selectedRowInComponent:0];
-//    NSInteger totalRows = self.items.count * 1000;
-    NSInteger randomIndex = arc4random_uniform((uint32_t)self.items.count);
-    NSInteger finalRow = currentRow + 30 + randomIndex;
-
-    self.selectedRow = finalRow % self.items.count;
-    
-    // 模拟丝滑滚动
-    [self animateRollingFromRow:currentRow toRow:finalRow duration:2.0];
-}
-
-- (void)animateRollingFromRow:(NSInteger)startRow toRow:(NSInteger)endRow duration:(NSTimeInterval)duration {
-    NSInteger steps = 60;
-    NSTimeInterval interval = duration / steps;
-    NSInteger diff = endRow - startRow;
-
-    for (int i = 1; i <= steps; i++) {
-        dispatch_after(dispatch_time(DISPATCH_TIME_NOW, (int64_t)(i * interval * NSEC_PER_SEC)), dispatch_get_main_queue(), ^{
-            NSInteger intermediateRow = startRow + diff * i / steps;
-            [self.pickerView selectRow:intermediateRow inComponent:0 animated:NO];
-        });
-    }
-
-    dispatch_after(dispatch_time(DISPATCH_TIME_NOW, (int64_t)(duration * NSEC_PER_SEC)), dispatch_get_main_queue(), ^{
-        [self highlightSelectedRow];
-        [self.startButton setEnabled:YES];
-        // 更新文字内容
-        self.resultTextLayer.string = [NSString stringWithFormat:@"你抽到的是：%@", self.items[self.selectedRow]];
-    });
-}
-
-- (void)highlightSelectedRow {
-    NSInteger actualRow = [self.pickerView selectedRowInComponent:0] % self.items.count;
-    self.selectedRow = actualRow;
-    [self.pickerView reloadAllComponents];
-}
-
-#pragma mark - UIPickerView DataSource & Delegate
-
-- (NSInteger)numberOfComponentsInPickerView:(UIPickerView *)pickerView {
-    return 1;
-}
-
-- (NSInteger)pickerView:(UIPickerView *)pickerView numberOfRowsInComponent:(NSInteger)component {
-    return self.items.count * 1000; // 支持无限滚动
-}
-
-- (UIView *)pickerView:(UIPickerView *)pickerView viewForRow:(NSInteger)row forComponent:(NSInteger)component reusingView:(UIView *)view {
-    UILabel *label = [[UILabel alloc] initWithFrame:CGRectMake(0, 0, pickerView.bounds.size.width, 44)];
-    label.text = self.items[row % self.items.count];
+- (UILabel *)wheelLabelWithScale:(CGFloat)scale alpha:(CGFloat)alpha {
+    UILabel *label = [[UILabel alloc] init];
+    label.translatesAutoresizingMaskIntoConstraints = NO;
     label.textAlignment = NSTextAlignmentCenter;
-    label.textColor = UIColor.whiteColor;
-    label.font = ((row % self.items.count) == self.selectedRow) ? [UIFont boldSystemFontOfSize:30] : [UIFont systemFontOfSize:22];
-    
+    label.textColor = [JFTheme textPrimary];
+    label.font = [UIFont systemFontOfSize:scale > 0.9 ? 24 : 18 weight:scale > 0.9 ? UIFontWeightBlack : UIFontWeightSemibold];
+    label.numberOfLines = 2;
+    label.alpha = alpha;
+    label.transform = CGAffineTransformMakeScale(scale, scale);
     return label;
 }
 
 - (void)setupParticles {
-    CAEmitterLayer *emitter = [CAEmitterLayer layer];
-    emitter.emitterPosition = CGPointMake(self.view.center.x, -10);
-    emitter.emitterShape = kCAEmitterLayerLine;
-    emitter.emitterSize = CGSizeMake(self.view.bounds.size.width, 1.0);
+    self.sparkLayer = [CAEmitterLayer layer];
+    self.sparkLayer.emitterShape = kCAEmitterLayerLine;
+    self.sparkLayer.renderMode = kCAEmitterLayerAdditive;
 
     CAEmitterCell *cell = [CAEmitterCell emitterCell];
+    cell.contents = (__bridge id)[[UIImage imageNamed:@"spark"] CGImage];
     cell.birthRate = 5;
-    cell.lifetime = 5.0;
-    cell.velocity = 80;
-    cell.velocityRange = 50;
-    cell.scale = 0.04;
-    cell.scaleRange = 0.02;
-    cell.contents = (__bridge id)[[UIImage imageNamed:@"spark.png"] CGImage];
-    cell.color = nil;
-    cell.redRange = 1.0;
-    cell.greenRange = 1.0;
-    cell.blueRange = 1.0;
-    cell.alphaRange = 0.5;
-    cell.spin = 2;
+    cell.lifetime = 4.0;
+    cell.velocity = 34;
+    cell.velocityRange = 24;
+    cell.yAcceleration = 16;
+    cell.scale = 0.035;
+    cell.scaleRange = 0.025;
+    cell.alphaSpeed = -0.20;
     cell.emissionRange = M_PI;
-
-    emitter.emitterCells = @[cell];
-    [self.view.layer addSublayer:emitter];
+    cell.spin = 1.4;
+    self.sparkLayer.emitterCells = @[cell];
+    [self.view.layer addSublayer:self.sparkLayer];
 }
 
-- (void)setupBackgroundGlow {
-    UILabel *animatedLabel = [[UILabel alloc] initWithFrame:self.view.bounds];
-    animatedLabel.text = self.displayText ?: @"默认显示内容";;
-    animatedLabel.textAlignment = NSTextAlignmentCenter;
-    animatedLabel.font = [UIFont boldSystemFontOfSize:36];
-    animatedLabel.textColor = [UIColor whiteColor];
-    animatedLabel.numberOfLines = 0;
-//    [self.view addSubview:animatedLabel];
-
-    // 背景渐变动画
-    CAGradientLayer *gradient = [CAGradientLayer layer];
-    gradient.frame = self.view.bounds;
-    gradient.colors = @[(__bridge id)[UIColor systemPinkColor].CGColor,
-                        (__bridge id)[UIColor systemPurpleColor].CGColor,
-                        (__bridge id)[UIColor systemBlueColor].CGColor];
-    gradient.startPoint = CGPointMake(0, 0);
-    gradient.endPoint = CGPointMake(1, 1);
-    [self.view.layer insertSublayer:gradient atIndex:0];
-
-    CABasicAnimation *bgAnim = [CABasicAnimation animationWithKeyPath:@"colors"];
-    bgAnim.fromValue = gradient.colors;
-    bgAnim.toValue = @[(__bridge id)[UIColor systemTealColor].CGColor,
-                       (__bridge id)[UIColor systemOrangeColor].CGColor,
-                       (__bridge id)[UIColor systemGreenColor].CGColor];
-    bgAnim.duration = 4.0;
-    bgAnim.autoreverses = YES;
-    bgAnim.repeatCount = HUGE_VALF;
-    [gradient addAnimation:bgAnim forKey:@"colorChange"];
-
-    // label 漂浮动画
-    CAKeyframeAnimation *move = [CAKeyframeAnimation animationWithKeyPath:@"position"];
-    move.path = ({
-        CGMutablePathRef path = CGPathCreateMutable();
-        CGRect bounds = self.view.bounds;
-        CGPathMoveToPoint(path, NULL, bounds.size.width/2, bounds.size.height/2);
-        CGPathAddCurveToPoint(path, NULL,
-                              bounds.size.width * 0.8, bounds.size.height * 0.3,
-                              bounds.size.width * 0.2, bounds.size.height * 0.7,
-                              bounds.size.width/2, bounds.size.height/2);
-        path;
-    });
-    move.duration = 6.0;
-    move.repeatCount = HUGE_VALF;
-    move.autoreverses = YES;
-    [animatedLabel.layer addAnimation:move forKey:@"floatAround"];
-
-    // 文字颜色渐变
-    CABasicAnimation *textColorAnim = [CABasicAnimation animationWithKeyPath:@"foregroundColor"];
-    textColorAnim.duration = 2.0;
-    textColorAnim.toValue = (__bridge id)[UIColor systemYellowColor].CGColor;
-    textColorAnim.autoreverses = YES;
-    textColorAnim.repeatCount = HUGE_VALF;
-    [animatedLabel.layer addAnimation:textColorAnim forKey:@"textColorFlash"];
+- (void)animateEntrance {
+    NSArray<UIView *> *views = @[self.titleLabel, self.hintLabel, self.wheelPanel, self.resultCard, self.startButton];
+    for (NSInteger i = 0; i < views.count; i++) {
+        UIView *view = views[i];
+        view.alpha = 0;
+        view.transform = CGAffineTransformMakeTranslation(0, 18);
+        [UIView animateWithDuration:0.55 delay:0.08 * i usingSpringWithDamping:0.86 initialSpringVelocity:0.2 options:UIViewAnimationOptionCurveEaseOut animations:^{
+            view.alpha = 1;
+            view.transform = CGAffineTransformIdentity;
+        } completion:nil];
+    }
 }
 
+#pragma mark - Rolling
 
-- (void)setupResultLabel1 {
-    CGFloat labelWidth = self.view.bounds.size.width;
-    CGFloat labelHeight = 1000;
-    CGRect labelFrame = CGRectMake((self.view.bounds.size.width - labelWidth) / 2, 800, labelWidth, labelHeight);
+- (void)startRolling {
+    if (self.rolling || self.items.count == 0) return;
+    self.rolling = YES;
+    self.startButton.enabled = NO;
+    self.startButton.alpha = 0.72;
+    [JFTheme hapticImpactMedium];
 
-    // 创建渐变图层
-    CAGradientLayer *gradientLayer = [CAGradientLayer layer];
-    gradientLayer.frame = labelFrame;
-    gradientLayer.colors = @[(__bridge id)[UIColor redColor].CGColor,
-                             (__bridge id)[UIColor blueColor].CGColor,
-                             (__bridge id)[UIColor purpleColor].CGColor];
-    gradientLayer.startPoint = CGPointMake(0, 0);
-    gradientLayer.endPoint = CGPointMake(1, 0);
-    [self.view.layer addSublayer:gradientLayer];
-    self.resultGradientLayer1 = gradientLayer;
-    self.resultLabel1.numberOfLines = 0;
-    // 创建文字图层
-    CATextLayer *textLayer = [CATextLayer layer];
-    textLayer.frame = gradientLayer.bounds;
-    textLayer.string = self.displayText?:@"GoGoGo";
-    textLayer.alignmentMode = kCAAlignmentCenter;
-    textLayer.contentsScale = [UIScreen mainScreen].scale;
-    textLayer.font = (__bridge CFTypeRef)([UIFont boldSystemFontOfSize:28].fontName);
-    textLayer.fontSize = 32;
-    textLayer.wrapped = YES;
-    textLayer.truncationMode = kCATruncationEnd;
-    self.resultTextLayer1 = textLayer;
+    JFGameResult *r = [JFGameResult resultWithKind:JFGameKindTruthOrDare score:10 win:YES];
+    [[JFProfileStore shared] reportResult:r];
+    [[JFDailyChallengeStore shared] recordResultForToday:JFGameKindTruthOrDare difficulty:0 score:10 win:YES];
 
-    // 使用文字图层作为渐变图层的遮罩
-    gradientLayer.mask = textLayer;
-
-    // 添加颜色动画
-    CABasicAnimation *colorShift = [CABasicAnimation animationWithKeyPath:@"colors"];
-    colorShift.toValue = @[(__bridge id)[UIColor blueColor].CGColor,
-                           (__bridge id)[UIColor greenColor].CGColor,
-                           (__bridge id)[UIColor redColor].CGColor];
-    colorShift.duration = 3.0;
-    colorShift.autoreverses = YES;
-    colorShift.repeatCount = HUGE_VALF;
-    [gradientLayer addAnimation:colorShift forKey:@"colorShift"];
-
-    // 添加轻微抖动动画
-    CAKeyframeAnimation *shakeAnim = [CAKeyframeAnimation animationWithKeyPath:@"transform.translation.x"];
-    shakeAnim.values = @[@0, @-4, @4, @-4, @4, @0];
-    shakeAnim.keyTimes = @[@0, @0.2, @0.4, @0.6, @0.8, @1];
-    shakeAnim.duration = 1.2;
-    shakeAnim.repeatCount = HUGE_VALF;
-    [gradientLayer addAnimation:shakeAnim forKey:@"shake"];
-
-    // 添加呼吸光动画（透明度闪烁）
-    CABasicAnimation *breathAnim = [CABasicAnimation animationWithKeyPath:@"opacity"];
-    breathAnim.fromValue = @0.8;
-    breathAnim.toValue = @1.0;
-    breathAnim.duration = 2.0;
-    breathAnim.autoreverses = YES;
-    breathAnim.repeatCount = HUGE_VALF;
-    [gradientLayer addAnimation:breathAnim forKey:@"breath"];
-
-    // 添加缩放脉动动画
-    CABasicAnimation *scaleAnim = [CABasicAnimation animationWithKeyPath:@"transform.scale"];
-    scaleAnim.fromValue = @1.0;
-    scaleAnim.toValue = @1.08;
-    scaleAnim.duration = 1.5;
-    scaleAnim.autoreverses = YES;
-    scaleAnim.repeatCount = HUGE_VALF;
-    [gradientLayer addAnimation:scaleAnim forKey:@"pulse"];
-
-    // 添加拖尾（发光拖尾）动画
-    CABasicAnimation *shadowAnim = [CABasicAnimation animationWithKeyPath:@"shadowRadius"];
-    shadowAnim.fromValue = @2;
-    shadowAnim.toValue = @10;
-    shadowAnim.duration = 1.5;
-    shadowAnim.autoreverses = YES;
-    shadowAnim.repeatCount = HUGE_VALF;
-    gradientLayer.shadowColor = [UIColor whiteColor].CGColor;
-    gradientLayer.shadowOpacity = 0.8;
-    gradientLayer.shadowOffset = CGSizeZero;
-    [gradientLayer addAnimation:shadowAnim forKey:@"trail"];
-
-    // 添加粒子光点围绕 label 飘动的动画
-    CAEmitterLayer *orbitEmitter = [CAEmitterLayer layer];
-    orbitEmitter.emitterPosition = CGPointMake(CGRectGetMidX(gradientLayer.frame), CGRectGetMidY(gradientLayer.frame));
-    orbitEmitter.emitterSize = CGSizeMake(gradientLayer.bounds.size.width, gradientLayer.bounds.size.height);
-    orbitEmitter.emitterShape = kCAEmitterLayerCircle;
-    orbitEmitter.renderMode = kCAEmitterLayerAdditive;
-
-    CAEmitterCell *orbitCell = [CAEmitterCell emitterCell];
-    orbitCell.contents = (__bridge id)[[UIImage imageNamed:@"spark.png"] CGImage];
-    orbitCell.birthRate = 5;
-    orbitCell.lifetime = 5;
-    orbitCell.velocity = 50;
-    orbitCell.scale = 0.05;
-    orbitCell.alphaSpeed = -0.4;
-    orbitCell.emissionRange = 2 * M_PI;
-    orbitCell.spin = 4;
-
-    orbitEmitter.emitterCells = @[orbitCell];
-    [self.resultGradientLayer1 removeAllAnimations];
-    [self.resultGradientLayer1 addAnimation:colorShift forKey:@"colorShift"];
-    [self.resultGradientLayer1 addAnimation:shakeAnim forKey:@"shake"];
-    [self.resultGradientLayer1 addAnimation:breathAnim forKey:@"breath"];
-    [self.resultGradientLayer1 addAnimation:scaleAnim forKey:@"pulse"];
-    [self.resultGradientLayer1 addAnimation:shadowAnim forKey:@"trail"];
-    self.resultGradientLayer1.masksToBounds = NO;
-    // 注意：粒子层添加在 self.view.layer，确保不会被 gradientLayer.mask 遮住
-    [self.view.layer insertSublayer:orbitEmitter above:self.resultGradientLayer1];
+    NSInteger randomIndex = arc4random_uniform((uint32_t)self.items.count);
+    self.finalIndex = randomIndex;
+    self.rollDuration = 3.0;
+    self.rollStartedAt = CACurrentMediaTime();
+    self.rollStepCount = 0;
+    self.remainingSteps = NSIntegerMax;
+    self.spinIndex = self.selectedRow;
+    self.resultTitleLabel.text = @"抽取中";
+    self.resultBodyLabel.text = @"屏住呼吸...";
+    [self animateNextStep];
 }
 
+- (void)animateNextStep {
+    CFTimeInterval elapsed = CACurrentMediaTime() - self.rollStartedAt;
+    if (elapsed >= self.rollDuration && self.rollStepCount >= 10) {
+        self.selectedRow = self.finalIndex;
+        [self updateWheelLabelsAnimated:YES];
+        [self revealResult:self.items[self.selectedRow]];
+        return;
+    }
 
+    self.spinIndex = (self.spinIndex + 1) % self.items.count;
+    self.selectedRow = self.spinIndex;
+    self.remainingSteps -= 1;
+    self.rollStepCount += 1;
+
+    NSTimeInterval progress = MIN(1.0, MAX(0.0, elapsed / MAX(0.01, self.rollDuration)));
+    NSTimeInterval duration = 0.045 + progress * progress * 0.17;
+
+    [UIView animateWithDuration:duration * 0.48 delay:0 options:UIViewAnimationOptionCurveEaseIn animations:^{
+        self.wheelPanel.transform = CGAffineTransformMakeTranslation(0, -14);
+        self.currentLabel.alpha = 0.42;
+    } completion:^(__unused BOOL finished) {
+        [self updateWheelLabelsAnimated:NO];
+        self.wheelPanel.transform = CGAffineTransformMakeTranslation(0, 18);
+        [UIView animateWithDuration:duration * 0.52 delay:0 options:UIViewAnimationOptionCurveEaseOut animations:^{
+            self.wheelPanel.transform = CGAffineTransformIdentity;
+            self.currentLabel.alpha = 1.0;
+        } completion:^(__unused BOOL done) {
+            [self animateNextStep];
+        }];
+    }];
+}
+
+- (void)updateWheelLabelsAnimated:(BOOL)animated {
+    NSInteger count = self.items.count;
+    if (count == 0) return;
+    NSInteger prev = (self.selectedRow - 1 + count) % count;
+    NSInteger next = (self.selectedRow + 1) % count;
+    void (^changes)(void) = ^{
+        self.previousLabel.text = self.items[prev];
+        self.currentLabel.text = self.items[self.selectedRow];
+        self.nextLabel.text = self.items[next];
+    };
+    if (animated) {
+        [UIView transitionWithView:self.wheelPanel duration:0.22 options:UIViewAnimationOptionTransitionCrossDissolve animations:changes completion:nil];
+    } else {
+        changes();
+    }
+}
+
+- (void)revealResult:(NSString *)text {
+    [JFTheme hapticNotification:UINotificationFeedbackTypeSuccess];
+    self.rolling = NO;
+    self.startButton.enabled = YES;
+    self.startButton.alpha = 1;
+
+    self.resultTitleLabel.text = @"抽取结果";
+    self.resultBodyLabel.text = text;
+    self.resultCard.alpha = 0;
+    self.resultCard.transform = CGAffineTransformMakeScale(0.92, 0.92);
+    self.resultCard.layer.shadowOpacity = 0.0;
+
+    CABasicAnimation *border = [CABasicAnimation animationWithKeyPath:@"locations"];
+    border.fromValue = @[@0.0, @0.15, @0.36];
+    border.toValue = @[@0.62, @0.86, @1.0];
+    border.duration = 1.05;
+    border.timingFunction = [CAMediaTimingFunction functionWithName:kCAMediaTimingFunctionEaseInEaseOut];
+    [self.resultBorderLayer addAnimation:border forKey:@"border.sweep"];
+
+    [UIView animateWithDuration:0.62 delay:0 usingSpringWithDamping:0.72 initialSpringVelocity:0.35 options:UIViewAnimationOptionCurveEaseOut animations:^{
+        self.resultCard.alpha = 1;
+        self.resultCard.transform = CGAffineTransformIdentity;
+        self.resultCard.layer.shadowOpacity = 0.36;
+    } completion:nil];
+}
+
+#pragma mark - Colors
+
+- (UIColor *)accentColor {
+    if ([self.displayText containsString:@"冒险"]) {
+        return [UIColor colorWithRed:0.24 green:0.68 blue:1.0 alpha:1.0];
+    }
+    return [UIColor colorWithRed:1.0 green:0.36 blue:0.66 alpha:1.0];
+}
+
+- (UIColor *)secondaryColor {
+    if ([self.displayText containsString:@"冒险"]) {
+        return [UIColor colorWithRed:0.56 green:0.96 blue:1.0 alpha:1.0];
+    }
+    return [UIColor colorWithRed:1.0 green:0.72 blue:0.34 alpha:1.0];
+}
 
 @end

@@ -9,6 +9,7 @@
 #import "UndercoverViewController.h"
 #import "JFTheme.h"
 #import "JFGameSession.h"
+#import "JFPlayerSetup.h"
 
 static NSString * const kServiceType = @"undercover";
 
@@ -19,7 +20,6 @@ static NSString * const kServiceType = @"undercover";
 @property (nonatomic, assign) BOOL isHost;
 
 #pragma mark UI
-@property (nonatomic, strong) UIImageView *bgImageView;
 @property (nonatomic, strong) UIView      *contentCard;        // 玻璃卡片容器
 @property (nonatomic, strong) UILabel     *titleLabel;
 @property (nonatomic, strong) UILabel     *statusLabel;
@@ -41,6 +41,7 @@ static NSString * const kServiceType = @"undercover";
 @property (nonatomic, copy)   NSString *identityString;
 @property (nonatomic, assign) NSInteger myPlayerNumber;
 @property (nonatomic, strong) NSMutableDictionary<NSNumber *, NSString *> *playerIdentities; // 编号 -> 角色
+@property (nonatomic, strong) NSMutableDictionary<NSNumber *, NSString *> *playerNames; // 编号 -> 昵称
 @property (nonatomic, strong) NSMutableSet<NSNumber *> *eliminatedPlayers;
 @property (nonatomic, strong) NSMapTable<NSNumber *, JFGamePeer *> *peerByNumber; // 编号 -> peer(房主用)
 
@@ -56,7 +57,7 @@ static NSString * const kServiceType = @"undercover";
     [super viewDidLoad];
     self.view.backgroundColor = [JFTheme backgroundPrimary];
 
-    self.session = [JFGameSessionFactory localSessionForServiceType:kServiceType];
+    self.session = [JFGameSessionFactory sessionForServiceType:kServiceType mode:JFSessionModeRemote];
     self.session.delegate = self;
     self.peerByNumber = [NSMapTable strongToStrongObjectsMapTable];
 
@@ -68,19 +69,18 @@ static NSString * const kServiceType = @"undercover";
     [self.session stop];
 }
 
+- (void)viewDidAppear:(BOOL)animated {
+    [super viewDidAppear:animated];
+    [JFPlayerSetup ensureFromViewController:self completion:nil];
+}
+
 #pragma mark - 背景
 
 - (void)setupBackground {
-    self.bgImageView = [[UIImageView alloc] initWithImage:[UIImage imageNamed:@"b3"]];
-    self.bgImageView.frame = self.view.bounds;
-    self.bgImageView.autoresizingMask = UIViewAutoresizingFlexibleWidth | UIViewAutoresizingFlexibleHeight;
-    self.bgImageView.contentMode = UIViewContentModeScaleAspectFill;
-    [self.view insertSubview:self.bgImageView atIndex:0];
-
     UIView *overlay = [[UIView alloc] initWithFrame:self.view.bounds];
     overlay.autoresizingMask = UIViewAutoresizingFlexibleWidth | UIViewAutoresizingFlexibleHeight;
-    overlay.backgroundColor = [UIColor colorWithRed:0.06 green:0.06 blue:0.10 alpha:0.55];
-    [self.view insertSubview:overlay aboveSubview:self.bgImageView];
+    overlay.backgroundColor = [[UIColor blackColor] colorWithAlphaComponent:0.24];
+    [self.view addSubview:overlay];
 }
 
 #pragma mark - UI
@@ -303,6 +303,17 @@ static NSString * const kServiceType = @"undercover";
 #pragma mark - Actions
 
 - (void)actionCreateHost {
+    if (![JFPlayerSetup isComplete]) {
+        __weak typeof(self) weakSelf = self;
+        [JFPlayerSetup ensureFromViewController:self completion:^(BOOL complete) {
+            if (complete) [weakSelf beginCreateHost];
+        }];
+        return;
+    }
+    [self beginCreateHost];
+}
+
+- (void)beginCreateHost {
     [JFTheme hapticImpactMedium];
     self.isHost = YES;
     [self.session startAsHost];
@@ -314,6 +325,17 @@ static NSString * const kServiceType = @"undercover";
 }
 
 - (void)actionJoin {
+    if (![JFPlayerSetup isComplete]) {
+        __weak typeof(self) weakSelf = self;
+        [JFPlayerSetup ensureFromViewController:self completion:^(BOOL complete) {
+            if (complete) [weakSelf beginJoin];
+        }];
+        return;
+    }
+    [self beginJoin];
+}
+
+- (void)beginJoin {
     [JFTheme hapticImpactMedium];
     self.isHost = NO;
     [self.session startAsClient];
@@ -325,9 +347,9 @@ static NSString * const kServiceType = @"undercover";
 - (void)actionStart {
     if (!self.isHost) return;
     NSArray<JFGamePeer *> *peers = self.session.connectedPeers;
-    NSInteger playerCount = peers.count + 1; // 含房主
-    if (playerCount < 2) {
-        self.statusLabel.text = @"至少 2 人才能开始";
+    NSInteger playerCount = peers.count; // 房主负责主持，不占玩家身份
+    if (playerCount < 3) {
+        self.statusLabel.text = @"至少需要 3 名玩家加入，房主负责主持";
         return;
     }
 
@@ -356,6 +378,7 @@ static NSString * const kServiceType = @"undercover";
 
     // 房主不参与游戏(沿用原逻辑) —— 把卧底分配给随机的客户端
     self.playerIdentities = [NSMutableDictionary dictionary];
+    self.playerNames = [NSMutableDictionary dictionary];
     self.eliminatedPlayers = [NSMutableSet set];
     [self.peerByNumber removeAllObjects];
 
@@ -371,16 +394,19 @@ static NSString * const kServiceType = @"undercover";
         NSString *role = isSpy ? @"卧底" : @"平民";
         NSString *word = isSpy ? spyWord : civilWord;
         NSNumber *num  = @(i + 1);
+        NSString *name = peers[i].displayName.length > 0 ? peers[i].displayName : [NSString stringWithFormat:@"玩家%@", num];
         self.playerIdentities[num] = role;
+        self.playerNames[num] = name;
         [self.peerByNumber setObject:peers[i] forKey:num];
 
         JFGameMessage *msg = [JFGameMessage messageWithType:JFMessageTypeIdentity
                                                     payload:@{@"number": num,
                                                               @"role": role,
-                                                              @"word": word}];
+                                                              @"word": word,
+                                                              @"displayName": name}];
         [self.session sendMessage:msg toPeer:peers[i]];
 
-        [summary appendFormat:@"玩家%@:%@ - %@\n", num, role, word];
+        [summary appendFormat:@"%@ (#%@)：%@ - %@\n", name, num, role, word];
     }
 
     self.statusLabel.text = [NSString stringWithFormat:@"已开局 · %ld 玩家", (long)peers.count];
@@ -394,9 +420,13 @@ static NSString * const kServiceType = @"undercover";
     if (!self.isHost) return;
     [JFTheme hapticImpactMedium];
     NSArray<NSNumber *> *active = [self activePlayerNumbers];
+    NSMutableDictionary<NSString *, NSString *> *names = [NSMutableDictionary dictionary];
+    for (NSNumber *number in active) {
+        names[number.stringValue] = self.playerNames[number] ?: [NSString stringWithFormat:@"玩家%@", number];
+    }
 
     JFGameMessage *msg = [JFGameMessage messageWithType:JFMessageTypeVoteList
-                                                payload:@{@"players": active}];
+                                                payload:@{@"players": active, @"names": names}];
     [self.session sendMessage:msg toPeer:nil]; // 广播
 
     NSMutableString *log = [(self.summaryView.text ?: @"") mutableCopy];
@@ -442,7 +472,7 @@ static NSString * const kServiceType = @"undercover";
     grid.translatesAutoresizingMaskIntoConstraints = NO;
     [self.voteContainer addSubview:grid];
 
-    NSInteger maxCol = 4;
+    NSInteger maxCol = 2;
     NSInteger total = numbers.count;
     NSInteger rows = (total + maxCol - 1) / maxCol;
     NSInteger idx = 0;
@@ -458,7 +488,8 @@ static NSString * const kServiceType = @"undercover";
             b.layer.cornerCurve = kCACornerCurveContinuous;
             b.backgroundColor = [JFTheme brandSecondary];
             [b.heightAnchor constraintEqualToConstant:48].active = YES;
-            [b setTitle:[NSString stringWithFormat:@"#%@", n] forState:UIControlStateNormal];
+            NSString *name = self.playerNames[n] ?: [NSString stringWithFormat:@"玩家 %@", n];
+            [b setTitle:name forState:UIControlStateNormal];
             [b setTitleColor:[JFTheme textOnAccent] forState:UIControlStateNormal];
             b.titleLabel.font = [JFTheme fontHeadline];
             b.tag = n.integerValue;
@@ -529,9 +560,10 @@ static NSString * const kServiceType = @"undercover";
         NSInteger num = [p[@"number"] integerValue];
         NSString *role = p[@"role"];
         NSString *word = p[@"word"];
+        NSString *displayName = [p[@"displayName"] isKindOfClass:[NSString class]] ? p[@"displayName"] : JFPlayerSetup.currentDisplayName;
         self.myPlayerNumber = num;
-        self.identityString = [NSString stringWithFormat:@"你是第%ld号玩家\n身份:%@\n词语:%@",
-                               (long)num, role, word];
+        self.identityString = [NSString stringWithFormat:@"%@ · 第%ld号\n身份：%@\n词语：%@",
+                               displayName, (long)num, role, word];
         self.viewIdentityBtn.hidden = NO;
         [self showIdentity];
         return;
@@ -539,6 +571,12 @@ static NSString * const kServiceType = @"undercover";
 
     if ([type isEqualToString:JFMessageTypeVoteList] && !self.isHost) {
         NSArray *players = p[@"players"] ?: @[];
+        NSDictionary *names = [p[@"names"] isKindOfClass:[NSDictionary class]] ? p[@"names"] : @{};
+        self.playerNames = [NSMutableDictionary dictionary];
+        for (NSNumber *number in players) {
+            NSString *name = [names[number.stringValue] isKindOfClass:[NSString class]] ? names[number.stringValue] : nil;
+            self.playerNames[number] = name ?: [NSString stringWithFormat:@"玩家 %@", number];
+        }
         [self showVoteButtonsForPlayerNumbers:players];
         return;
     }
@@ -550,7 +588,8 @@ static NSString * const kServiceType = @"undercover";
 
     if ([type isEqualToString:JFMessageTypeVoteResult] && !self.isHost) {
         NSString *title = [p[@"role"] isEqualToString:@"卧底"] ? @"平民胜利!" : @"继续游戏";
-        NSString *msg = [NSString stringWithFormat:@"玩家%@ 是 %@", p[@"voted"], p[@"role"]];
+        NSString *name = [p[@"votedName"] isKindOfClass:[NSString class]] ? p[@"votedName"] : [NSString stringWithFormat:@"玩家%@", p[@"voted"]];
+        NSString *msg = [NSString stringWithFormat:@"%@ 是 %@", name, p[@"role"]];
         UIAlertController *a = [UIAlertController alertControllerWithTitle:title
                                                                    message:msg
                                                             preferredStyle:UIAlertControllerStyleAlert];
@@ -564,17 +603,19 @@ static NSString * const kServiceType = @"undercover";
     if (!self.isHost) return;
     NSNumber *votedNum = @(to);
     NSString *role = self.playerIdentities[votedNum] ?: @"未知";
+    NSString *fromName = self.playerNames[@(from)] ?: [NSString stringWithFormat:@"玩家%ld", (long)from];
+    NSString *votedName = self.playerNames[votedNum] ?: [NSString stringWithFormat:@"玩家%ld", (long)to];
 
-    NSString *log = [NSString stringWithFormat:@"玩家%ld 投给 玩家%ld\n", (long)from, (long)to];
+    NSString *log = [NSString stringWithFormat:@"%@ 投给 %@\n", fromName, votedName];
     self.summaryView.text = [(self.summaryView.text ?: @"") stringByAppendingString:log];
 
     // 简单模式:直接把"被投者"按角色判定输赢(沿用原逻辑)
     JFGameMessage *result = [JFGameMessage messageWithType:JFMessageTypeVoteResult
-                                                   payload:@{@"voted": votedNum, @"role": role}];
+                                                   payload:@{@"voted": votedNum, @"votedName": votedName, @"role": role}];
     [self.session sendMessage:result toPeer:nil];
 
     if ([role isEqualToString:@"卧底"]) {
-        [self showAlert:@"平民胜利" message:[NSString stringWithFormat:@"玩家%@ 是卧底", votedNum]];
+        [self showAlert:@"平民胜利" message:[NSString stringWithFormat:@"%@ 是卧底", votedName]];
     } else {
         [self.eliminatedPlayers addObject:votedNum];
         NSInteger alive = self.playerIdentities.count - self.eliminatedPlayers.count;

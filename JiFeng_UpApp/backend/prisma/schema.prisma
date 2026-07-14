@@ -1,0 +1,231 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "mysql"
+  url      = env("DATABASE_URL")
+}
+
+enum IdentityProvider {
+  GUEST
+  APPLE
+  PHONE
+  PASSWORD
+}
+
+enum UserStatus {
+  ACTIVE
+  BANNED
+  DELETED
+}
+
+enum GameKind {
+  DRAW_BOARD
+  TRUTH_OR_DARE
+  DICE
+  FIVE_IN_ROW
+  UNDERCOVER
+  KING
+  CARD
+  GESTURE
+  PUZZLE
+  SNAKE
+  GAME_2048
+  SUDOKU
+  MEMORY
+  REACTION
+  RHYTHM
+  SOKOBAN
+  PACMAN
+}
+
+enum AdminRole {
+  OWNER
+  OPERATOR
+  VIEWER
+}
+
+model User {
+  id             String         @id @default(cuid())
+  status         UserStatus     @default(ACTIVE)
+  displayName    String         @default("继风玩家") @db.VarChar(32)
+  avatarUrl      String?        @db.VarChar(512)
+  avatarSymbol   String         @default("person.crop.circle.fill") @db.VarChar(80)
+  background     String         @default("aurora") @db.VarChar(40)
+  signature      String         @default("今晚也要赢一局") @db.VarChar(80)
+  coins          Int            @default(0)
+  level          Int            @default(1)
+  totalScore     Int            @default(0)
+  totalGames     Int            @default(0)
+  currentStreak  Int            @default(0)
+  longestStreak  Int            @default(0)
+  lastActiveAt   DateTime?
+  createdAt      DateTime       @default(now())
+  updatedAt      DateTime       @updatedAt
+  identities     UserIdentity[]
+  sessions       UserSession[]
+  gameRecords    GameRecord[]
+  analyticsEvents AnalyticsEvent[]
+  appSessions     AppSession[]
+  gameSessions    GameSession[]
+  chatMessages   ChatMessage[]
+  auditLogs      AdminAuditLog[]
+}
+
+model UserIdentity {
+  id             String           @id @default(cuid())
+  provider       IdentityProvider
+  providerUserId String           @db.VarChar(191)
+  userId         String
+  createdAt      DateTime         @default(now())
+  user           User             @relation(fields: [userId], references: [id])
+
+  @@unique([provider, providerUserId])
+  @@index([userId])
+}
+
+model UserSession {
+  id               String   @id @default(cuid())
+  userId           String
+  refreshTokenHash String   @db.VarChar(255)
+  deviceId         String?  @db.VarChar(128)
+  deviceName       String?  @db.VarChar(128)
+  ipAddress        String?  @db.VarChar(64)
+  expiresAt        DateTime
+  revokedAt        DateTime?
+  createdAt        DateTime @default(now())
+  user             User     @relation(fields: [userId], references: [id])
+
+  @@index([userId])
+  @@index([expiresAt])
+}
+
+model GameRecord {
+  id          String   @id @default(cuid())
+  userId      String
+  kind        GameKind
+  score       Int      @default(0)
+  difficulty  Int      @default(0)
+  durationMs  Int      @default(0)
+  win         Boolean  @default(true)
+  extra       Json?
+  createdAt   DateTime @default(now())
+  user        User     @relation(fields: [userId], references: [id])
+
+  @@index([userId, kind])
+  @@index([kind, score])
+  @@index([createdAt])
+}
+
+model AnalyticsEvent {
+  id            String    @id @default(cuid())
+  eventId       String    @unique @db.VarChar(64)
+  userId        String
+  appSessionId  String    @db.VarChar(64)
+  gameSessionId String?   @db.VarChar(64)
+  name          String    @db.VarChar(64)
+  kind          GameKind?
+  platform      String    @db.VarChar(16)
+  appVersion    String    @db.VarChar(32)
+  properties    Json?
+  occurredAt    DateTime
+  receivedAt    DateTime  @default(now())
+  user          User      @relation(fields: [userId], references: [id])
+
+  @@index([userId, occurredAt])
+  @@index([name, occurredAt])
+  @@index([kind, occurredAt])
+  @@index([appSessionId])
+  @@index([gameSessionId])
+  @@index([occurredAt])
+}
+
+model AppSession {
+  id          String    @id @db.VarChar(64)
+  userId      String
+  platform    String    @db.VarChar(16)
+  appVersion  String    @db.VarChar(32)
+  startedAt   DateTime
+  endedAt     DateTime?
+  durationMs  Int       @default(0)
+  createdAt   DateTime  @default(now())
+  updatedAt   DateTime  @updatedAt
+  user        User      @relation(fields: [userId], references: [id])
+
+  @@index([userId, startedAt])
+  @@index([startedAt])
+  @@index([platform, startedAt])
+}
+
+model GameSession {
+  id            String    @id @db.VarChar(64)
+  userId        String
+  appSessionId  String    @db.VarChar(64)
+  kind          GameKind
+  source        String    @default("home") @db.VarChar(32)
+  platform      String    @db.VarChar(16)
+  appVersion    String    @db.VarChar(32)
+  startedAt     DateTime
+  endedAt       DateTime?
+  durationMs    Int       @default(0)
+  completed     Boolean   @default(false)
+  win           Boolean?
+  score         Int?
+  difficulty    Int?
+  exitReason    String?   @db.VarChar(40)
+  properties    Json?
+  createdAt     DateTime  @default(now())
+  updatedAt     DateTime  @updatedAt
+  user          User      @relation(fields: [userId], references: [id])
+
+  @@index([userId, startedAt])
+  @@index([kind, startedAt])
+  @@index([startedAt])
+  @@index([completed, startedAt])
+}
+
+model GameConfig {
+  key       String   @id @db.VarChar(80)
+  value     Json
+  note      String?  @db.VarChar(255)
+  updatedAt DateTime @updatedAt
+  createdAt DateTime @default(now())
+}
+
+model ChatMessage {
+  id        String   @id @default(cuid())
+  room      String   @default("global") @db.VarChar(80)
+  userId    String
+  content   String   @db.VarChar(500)
+  createdAt DateTime @default(now())
+  user      User     @relation(fields: [userId], references: [id])
+
+  @@index([room, createdAt])
+  @@index([userId])
+}
+
+model AdminUser {
+  id           String          @id @default(cuid())
+  username     String          @unique @db.VarChar(64)
+  passwordHash String          @db.VarChar(255)
+  role         AdminRole       @default(OPERATOR)
+  createdAt    DateTime        @default(now())
+  updatedAt    DateTime        @updatedAt
+  auditLogs    AdminAuditLog[]
+}
+
+model AdminAuditLog {
+  id        String     @id @default(cuid())
+  adminId   String?
+  targetId  String?
+  action    String     @db.VarChar(80)
+  detail    Json?
+  createdAt DateTime   @default(now())
+  admin     AdminUser? @relation(fields: [adminId], references: [id])
+  target    User?      @relation(fields: [targetId], references: [id])
+
+  @@index([adminId])
+  @@index([targetId])
+  @@index([createdAt])
+}

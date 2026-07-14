@@ -5,11 +5,11 @@
 //  Created by 继风(周毅) on 2025/10/9.
 //
 
-#import <UIKit/UIKit.h>
+#import "rootVcViewController.h"
 
 NS_ASSUME_NONNULL_BEGIN
 
-@interface GestureBombViewController : UIViewController
+@interface GestureBombViewController : rootVcViewController
 
 @end
 

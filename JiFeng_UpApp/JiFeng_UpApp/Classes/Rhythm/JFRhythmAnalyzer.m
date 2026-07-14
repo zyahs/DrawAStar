@@ -7,8 +7,8 @@
 
 static const NSInteger kLanes = 4;
 static const double    kHopSec = 0.011609;       // 约 86 fps,512 / 44100
-static const double    kMinNoteGap = 0.085;       // 同轨最小间隔
-static const double    kGlobalMinGap = 0.060;     // 任意轨最小间隔
+static const double    kMinNoteGap = 0.165;       // 同轨最小间隔
+static const double    kGlobalMinGap = 0.125;     // 任意轨最小间隔
 
 @implementation JFRhythmAnalyzer
 
@@ -72,7 +72,7 @@ static inline double lpCoeff(double fc, double fs) {
         } @catch (__unused NSException *e) { break; }
         AVAudioFrameCount got = buffer.frameLength;
         if (got == 0) break;
-        float **chan = buffer.floatChannelData;
+        float * const *chan = buffer.floatChannelData;
         if (!chan) break;
         for (AVAudioFrameCount i = 0; i < got; i++) {
             double s = 0;
@@ -213,9 +213,8 @@ static inline double lpCoeff(double fc, double fs) {
         for (NSInteger l = 1; l < 4; l++) {
             if (rels[l] > maxRel) { maxRel = rels[l]; lane = l; }
         }
-        // 同轨刚刚响过 -> 退到次大轨
+        // 同轨刚刚响过 -> 退到足够清晰的次大轨;没有合适候选就丢弃,避免挤成连块
         if (i - lastFrameByLane[lane] < (NSInteger)(kMinNoteGap / kHopSec)) {
-            // 找次大
             NSInteger second = -1; double secRel = -1;
             for (NSInteger l = 0; l < 4; l++) {
                 if (l == lane) continue;
@@ -223,7 +222,11 @@ static inline double lpCoeff(double fc, double fs) {
                     secRel = rels[l]; second = l;
                 }
             }
-            if (second >= 0) lane = second;
+            if (second >= 0 && secRel >= maxRel * 0.72) {
+                lane = second;
+            } else {
+                continue;
+            }
         }
 
         // strength:相对自身长期均值的倍数,归一到 0..1

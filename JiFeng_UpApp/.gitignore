@@ -1,0 +1,14 @@
+# Xcode user state
+*.xcuserstate
+xcuserdata/
+
+# Build products
+DerivedData/
+build/
+android/.gradle/
+android/build/
+android/app/build/
+android/local.properties
+
+# macOS
+.DS_Store

@@ -1,0 +1,802 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>继风后台</title>
+  <style>
+    :root {
+      color-scheme: dark;
+      --bg: #101116;
+      --panel: #181b24;
+      --panel-2: #202431;
+      --line: rgba(255,255,255,.1);
+      --text: #f5f7fb;
+      --muted: rgba(245,247,251,.68);
+      --accent: #46d7c7;
+      --danger: #ff6574;
+      --warn: #ffd36a;
+    }
+    * { box-sizing: border-box; }
+    body {
+      margin: 0;
+      min-height: 100vh;
+      background: var(--bg);
+      color: var(--text);
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+    }
+    header {
+      position: sticky;
+      top: 0;
+      z-index: 2;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 16px;
+      height: 64px;
+      padding: 0 24px;
+      border-bottom: 1px solid var(--line);
+      background: rgba(16,17,22,.92);
+      backdrop-filter: blur(16px);
+    }
+    h1 { margin: 0; font-size: 20px; letter-spacing: 0; }
+    main.user-page {
+      display: grid;
+      grid-template-columns: minmax(0, 1fr) 360px;
+      gap: 16px;
+      padding: 16px;
+    }
+    section, .login {
+      background: var(--panel);
+      border: 1px solid var(--line);
+      border-radius: 8px;
+    }
+    .login {
+      width: min(420px, calc(100vw - 32px));
+      margin: 12vh auto 0;
+      padding: 20px;
+    }
+    .login h2, section h2 {
+      margin: 0;
+      font-size: 16px;
+    }
+    .section-head {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 14px 16px;
+      border-bottom: 1px solid var(--line);
+    }
+    .toolbar {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      flex-wrap: wrap;
+    }
+    .brand {
+      display: flex;
+      align-items: baseline;
+      gap: 10px;
+    }
+    .brand small { color: var(--muted); font-size: 12px; }
+    .view-tabs {
+      display: inline-flex;
+      padding: 3px;
+      border: 1px solid var(--line);
+      border-radius: 7px;
+      background: var(--panel);
+    }
+    .view-tabs button {
+      min-height: 30px;
+      border: 0;
+      background: transparent;
+      color: var(--muted);
+    }
+    .view-tabs button.active {
+      background: var(--panel-2);
+      color: var(--text);
+      box-shadow: inset 0 0 0 1px var(--line);
+    }
+    input, textarea, select {
+      width: 100%;
+      min-height: 40px;
+      border: 1px solid var(--line);
+      border-radius: 6px;
+      background: var(--panel-2);
+      color: var(--text);
+      padding: 9px 10px;
+      font: inherit;
+      outline: none;
+    }
+    textarea {
+      min-height: 160px;
+      resize: vertical;
+      font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+      font-size: 13px;
+    }
+    label {
+      display: block;
+      margin: 14px 0 6px;
+      color: var(--muted);
+      font-size: 13px;
+    }
+    button {
+      min-height: 36px;
+      border: 1px solid var(--line);
+      border-radius: 6px;
+      background: var(--panel-2);
+      color: var(--text);
+      padding: 0 12px;
+      font: inherit;
+      cursor: pointer;
+    }
+    button.primary {
+      border-color: transparent;
+      background: var(--accent);
+      color: #06110f;
+      font-weight: 700;
+    }
+    button.danger { color: var(--danger); }
+    button:disabled { opacity: .5; cursor: default; }
+    table {
+      width: 100%;
+      border-collapse: collapse;
+      table-layout: fixed;
+    }
+    th, td {
+      padding: 12px 14px;
+      border-bottom: 1px solid var(--line);
+      text-align: left;
+      vertical-align: middle;
+      overflow: hidden;
+      text-overflow: ellipsis;
+      white-space: nowrap;
+      font-size: 13px;
+    }
+    th { color: var(--muted); font-weight: 600; }
+    tr { cursor: pointer; }
+    tr:hover td { background: rgba(255,255,255,.035); }
+    .pill {
+      display: inline-flex;
+      align-items: center;
+      min-height: 24px;
+      padding: 0 8px;
+      border-radius: 999px;
+      background: rgba(70,215,199,.13);
+      color: var(--accent);
+      font-size: 12px;
+      font-weight: 700;
+    }
+    .pill.banned { background: rgba(255,101,116,.12); color: var(--danger); }
+    .side {
+      display: grid;
+      gap: 16px;
+      align-content: start;
+    }
+    .body { padding: 16px; }
+    .kv {
+      display: grid;
+      grid-template-columns: 92px minmax(0, 1fr);
+      gap: 8px;
+      font-size: 13px;
+      line-height: 1.5;
+    }
+    .kv span:nth-child(odd) { color: var(--muted); }
+    .log {
+      max-height: 260px;
+      overflow: auto;
+      display: grid;
+      gap: 8px;
+      font-size: 12px;
+      color: var(--muted);
+    }
+    .analytics-page {
+      display: grid;
+      gap: 16px;
+      padding: 16px;
+    }
+    .range-control {
+      display: inline-flex;
+      gap: 2px;
+      padding: 3px;
+      border: 1px solid var(--line);
+      border-radius: 7px;
+      background: var(--panel-2);
+    }
+    .range-control button {
+      min-width: 58px;
+      min-height: 30px;
+      border: 0;
+      background: transparent;
+      color: var(--muted);
+    }
+    .range-control button.active {
+      background: var(--accent);
+      color: #06110f;
+      font-weight: 700;
+    }
+    .metric-grid {
+      display: grid;
+      grid-template-columns: repeat(5, minmax(130px, 1fr));
+    }
+    .metric {
+      min-width: 0;
+      min-height: 104px;
+      padding: 18px 16px;
+      border-right: 1px solid var(--line);
+      border-bottom: 1px solid var(--line);
+    }
+    .metric:nth-child(5n) { border-right: 0; }
+    .metric-label {
+      color: var(--muted);
+      font-size: 12px;
+    }
+    .metric-value {
+      margin-top: 10px;
+      color: var(--text);
+      font-size: 26px;
+      font-weight: 750;
+      line-height: 1.1;
+    }
+    .metric-note {
+      margin-top: 6px;
+      color: var(--muted);
+      font-size: 11px;
+    }
+    .trend-wrap { padding: 18px 16px 14px; }
+    .trend-legend {
+      display: flex;
+      gap: 18px;
+      margin-bottom: 14px;
+      color: var(--muted);
+      font-size: 12px;
+    }
+    .legend-dot {
+      display: inline-block;
+      width: 8px;
+      height: 8px;
+      margin-right: 6px;
+      border-radius: 2px;
+    }
+    .legend-dot.active { background: var(--accent); }
+    .legend-dot.games { background: var(--warn); }
+    .trend-chart {
+      display: grid;
+      grid-auto-flow: column;
+      grid-auto-columns: minmax(14px, 1fr);
+      align-items: end;
+      gap: 5px;
+      height: 220px;
+      padding-top: 8px;
+      border-bottom: 1px solid var(--line);
+      overflow-x: auto;
+      overflow-y: hidden;
+    }
+    .trend-day {
+      display: grid;
+      grid-template-rows: 180px 24px;
+      align-items: end;
+      min-width: 0;
+    }
+    .trend-bars {
+      display: flex;
+      align-items: end;
+      justify-content: center;
+      gap: 2px;
+      height: 180px;
+    }
+    .trend-bar {
+      width: min(9px, 42%);
+      min-height: 2px;
+      border-radius: 2px 2px 0 0;
+    }
+    .trend-bar.active { background: var(--accent); }
+    .trend-bar.games { background: var(--warn); opacity: .86; }
+    .trend-label {
+      overflow: hidden;
+      color: var(--muted);
+      font-size: 10px;
+      text-align: center;
+      white-space: nowrap;
+    }
+    .table-scroll { overflow-x: auto; }
+    .analytics-table { min-width: 980px; }
+    .analytics-table tr { cursor: default; }
+    .analytics-table td:first-child { font-weight: 700; }
+    .empty-state {
+      padding: 28px 16px;
+      color: var(--muted);
+      text-align: center;
+      font-size: 13px;
+    }
+    .notice {
+      min-height: 20px;
+      color: var(--warn);
+      font-size: 13px;
+    }
+    .hidden { display: none !important; }
+    .loading { opacity: .55; pointer-events: none; }
+    @media (max-width: 900px) {
+      main.user-page { grid-template-columns: 1fr; }
+      header { height: auto; min-height: 64px; padding: 10px 16px; flex-wrap: wrap; }
+      .metric-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+      .metric:nth-child(5n) { border-right: 1px solid var(--line); }
+      .metric:nth-child(2n) { border-right: 0; }
+      .trend-chart { grid-auto-columns: minmax(12px, 1fr); }
+      main.user-page th:nth-child(1), main.user-page td:nth-child(1) { display: none; }
+    }
+  </style>
+</head>
+<body>
+  <div id="login" class="login">
+    <h2>后台登录</h2>
+    <label for="username">账号</label>
+    <input id="username" autocomplete="username" value="admin">
+    <label for="password">密码</label>
+    <input id="password" type="password" autocomplete="current-password">
+    <div style="height:14px"></div>
+    <button class="primary" id="loginBtn">登录</button>
+    <p class="notice" id="loginMsg"></p>
+  </div>
+
+  <div id="app" class="hidden">
+    <header>
+      <div class="brand">
+        <h1>继风后台</h1>
+        <small id="syncStatus">数据已就绪</small>
+      </div>
+      <div class="toolbar">
+        <div class="view-tabs">
+          <button id="analyticsTab" class="active">数据概览</button>
+          <button id="usersTab">用户管理</button>
+        </div>
+        <button id="refreshBtn">刷新</button>
+        <button id="logoutBtn">退出</button>
+      </div>
+    </header>
+
+    <div id="analyticsView" class="analytics-page">
+      <section>
+        <div class="section-head">
+          <div>
+            <h2>核心指标</h2>
+            <div class="metric-note" id="analyticsUpdatedAt">等待刷新</div>
+          </div>
+          <div class="range-control" id="rangeControl">
+            <button data-days="7">7 天</button>
+            <button data-days="30" class="active">30 天</button>
+            <button data-days="90">90 天</button>
+          </div>
+        </div>
+        <div class="metric-grid">
+          <div class="metric">
+            <div class="metric-label">今日活跃 DAU</div>
+            <div class="metric-value" id="metricDau">0</div>
+            <div class="metric-note">今日启动过 App 的用户</div>
+          </div>
+          <div class="metric">
+            <div class="metric-label">近 7 日活跃 WAU</div>
+            <div class="metric-value" id="metricWau">0</div>
+            <div class="metric-note">最近 7 个自然日去重</div>
+          </div>
+          <div class="metric">
+            <div class="metric-label">近 30 日活跃 MAU</div>
+            <div class="metric-value" id="metricMau">0</div>
+            <div class="metric-note">最近 30 个自然日去重</div>
+          </div>
+          <div class="metric">
+            <div class="metric-label">区间新增用户</div>
+            <div class="metric-value" id="metricNewUsers">0</div>
+            <div class="metric-note" id="metricTotalUsers">累计用户 0</div>
+          </div>
+          <div class="metric">
+            <div class="metric-label">App 启动会话</div>
+            <div class="metric-value" id="metricAppSessions">0</div>
+            <div class="metric-note">每次进入前台记为一次</div>
+          </div>
+          <div class="metric">
+            <div class="metric-label">平均前台时长</div>
+            <div class="metric-value" id="metricAppDuration">0 秒</div>
+            <div class="metric-note">仅统计已正常收口会话</div>
+          </div>
+          <div class="metric">
+            <div class="metric-label">游戏访问次数</div>
+            <div class="metric-value" id="metricGameSessions">0</div>
+            <div class="metric-note">从进入游戏到返回主页</div>
+          </div>
+          <div class="metric">
+            <div class="metric-label">平均游玩时长</div>
+            <div class="metric-value" id="metricGameDuration">0 秒</div>
+            <div class="metric-note" id="metricTotalGameDuration">累计 0 分钟</div>
+          </div>
+          <div class="metric">
+            <div class="metric-label">有效完成率</div>
+            <div class="metric-value" id="metricCompletion">0%</div>
+            <div class="metric-note" id="metricCompletedGames">完成访问 0</div>
+          </div>
+          <div class="metric">
+            <div class="metric-label">最常玩的游戏</div>
+            <div class="metric-value" id="metricTopGame">暂无</div>
+            <div class="metric-note">按有效游戏访问次数</div>
+          </div>
+        </div>
+      </section>
+
+      <section>
+        <div class="section-head">
+          <h2>活跃与游玩趋势</h2>
+          <span class="metric-note">Asia/Shanghai</span>
+        </div>
+        <div class="trend-wrap">
+          <div class="trend-legend">
+            <span><i class="legend-dot active"></i>活跃用户</span>
+            <span><i class="legend-dot games"></i>游戏访问</span>
+          </div>
+          <div id="trendChart" class="trend-chart"></div>
+        </div>
+      </section>
+
+      <section>
+        <div class="section-head">
+          <div>
+            <h2>游戏偏好与质量</h2>
+            <div class="metric-note">点击、独立玩家、重复游玩、完成情况和有效时长</div>
+          </div>
+        </div>
+        <div class="table-scroll">
+          <table class="analytics-table">
+            <thead>
+              <tr>
+                <th style="width:150px">游戏</th>
+                <th>入口点击</th>
+                <th>独立玩家</th>
+                <th>访问次数</th>
+                <th>回玩用户</th>
+                <th>完成访问</th>
+                <th>完成局数</th>
+                <th>完成率</th>
+                <th>平均时长</th>
+                <th>总时长</th>
+              </tr>
+            </thead>
+            <tbody id="gameMetrics"></tbody>
+          </table>
+          <div id="gameMetricsEmpty" class="empty-state hidden">新版 iOS 开始上报后，这里会出现游戏偏好和时长数据。</div>
+        </div>
+      </section>
+    </div>
+
+    <main id="usersView" class="user-page hidden">
+      <section>
+        <div class="section-head">
+          <h2>用户</h2>
+          <div class="toolbar">
+            <select id="pageSize">
+              <option value="30">30 条</option>
+              <option value="60">60 条</option>
+              <option value="100">100 条</option>
+            </select>
+          </div>
+        </div>
+        <table>
+          <thead>
+            <tr>
+              <th style="width:190px">ID</th>
+              <th>昵称</th>
+              <th style="width:90px">状态</th>
+              <th style="width:86px">等级</th>
+              <th style="width:96px">总局数</th>
+              <th style="width:120px">积分</th>
+            </tr>
+          </thead>
+          <tbody id="users"></tbody>
+        </table>
+      </section>
+
+      <div class="side">
+        <section>
+          <div class="section-head">
+            <h2>用户详情</h2>
+            <button id="statusBtn" disabled>封禁</button>
+          </div>
+          <div class="body">
+            <div class="kv" id="detail"></div>
+          </div>
+        </section>
+
+        <section>
+          <div class="section-head">
+            <h2>游戏配置</h2>
+            <button class="primary" id="saveConfigBtn">保存</button>
+          </div>
+          <div class="body">
+            <label for="configKey">配置键</label>
+            <input id="configKey" value="truth_or_dare">
+            <label for="configValue">JSON</label>
+            <textarea id="configValue">{"enabled":true}</textarea>
+            <p class="notice" id="configMsg"></p>
+          </div>
+        </section>
+
+        <section>
+          <div class="section-head">
+            <h2>审计日志</h2>
+          </div>
+          <div class="body">
+            <div class="log" id="logs"></div>
+          </div>
+        </section>
+      </div>
+    </main>
+  </div>
+
+  <script>
+    const API = location.pathname.startsWith('/jifeng-api/') ? '/jifeng-api' : '/api';
+    const tokenKey = 'jifeng_admin_token';
+    let token = localStorage.getItem(tokenKey) || '';
+    let selectedUser = null;
+    let currentView = 'analytics';
+    let analyticsDays = 30;
+
+    const GAME_NAMES = {
+      DRAW_BOARD: '画板',
+      TRUTH_OR_DARE: '真心话大冒险',
+      DICE: '骰子游戏',
+      FIVE_IN_ROW: '五子棋',
+      UNDERCOVER: '谁是卧底',
+      KING: '国王游戏',
+      CARD: '纸牌游乐场',
+      GESTURE: '手势炸弹',
+      PUZZLE: '拼图',
+      SNAKE: '贪吃蛇',
+      GAME_2048: '2048',
+      SUDOKU: '数独',
+      MEMORY: '记忆翻牌',
+      REACTION: '反应力测试',
+      RHYTHM: '节奏点点',
+      SOKOBAN: '推箱子',
+      PACMAN: '吃豆人'
+    };
+
+    const $ = id => document.getElementById(id);
+
+    function showAuthed(authed) {
+      $('login').classList.toggle('hidden', authed);
+      $('app').classList.toggle('hidden', !authed);
+    }
+
+    async function api(path, options = {}) {
+      const headers = Object.assign({ 'content-type': 'application/json' }, options.headers || {});
+      if (token) headers.authorization = `Bearer ${token}`;
+      const res = await fetch(`${API}${path}`, Object.assign({}, options, { headers }));
+      const text = await res.text();
+      const data = text ? JSON.parse(text) : null;
+      if (!res.ok) throw new Error(data?.message || `HTTP ${res.status}`);
+      return data;
+    }
+
+    async function login() {
+      $('loginMsg').textContent = '';
+      $('loginBtn').disabled = true;
+      try {
+        const data = await api('/admin/login', {
+          method: 'POST',
+          body: JSON.stringify({ username: $('username').value, password: $('password').value })
+        });
+        token = data.accessToken;
+        localStorage.setItem(tokenKey, token);
+        showAuthed(true);
+        await loadAll();
+      } catch (err) {
+        $('loginMsg').textContent = err.message;
+      } finally {
+        $('loginBtn').disabled = false;
+      }
+    }
+
+    async function loadAll() {
+      if (currentView === 'analytics') {
+        await loadAnalytics();
+      } else {
+        await Promise.all([loadUsers(), loadLogs()]);
+      }
+    }
+
+    async function switchView(view) {
+      currentView = view;
+      $('analyticsView').classList.toggle('hidden', view !== 'analytics');
+      $('usersView').classList.toggle('hidden', view !== 'users');
+      $('analyticsTab').classList.toggle('active', view === 'analytics');
+      $('usersTab').classList.toggle('active', view === 'users');
+      await loadAll();
+    }
+
+    async function loadAnalytics() {
+      $('analyticsView').classList.add('loading');
+      $('syncStatus').textContent = '正在刷新';
+      try {
+        const [overview, gameData] = await Promise.all([
+          api(`/admin/analytics/overview?days=${analyticsDays}`),
+          api(`/admin/analytics/games?days=${analyticsDays}`)
+        ]);
+        renderOverview(overview, gameData.games || []);
+        renderGameMetrics(gameData.games || []);
+        $('syncStatus').textContent = '数据已更新';
+      } finally {
+        $('analyticsView').classList.remove('loading');
+      }
+    }
+
+    function renderOverview(data, games) {
+      const metrics = data.metrics || {};
+      $('metricDau').textContent = formatNumber(metrics.dau);
+      $('metricWau').textContent = formatNumber(metrics.wau);
+      $('metricMau').textContent = formatNumber(metrics.mau);
+      $('metricNewUsers').textContent = formatNumber(metrics.newUsers);
+      $('metricTotalUsers').textContent = `累计用户 ${formatNumber(metrics.totalUsers)}`;
+      $('metricAppSessions').textContent = formatNumber(metrics.appSessions);
+      $('metricAppDuration').textContent = formatDuration(metrics.averageAppSessionDurationMs);
+      $('metricGameSessions').textContent = formatNumber(metrics.gameSessions);
+      $('metricGameDuration').textContent = formatDuration(metrics.averageGameDurationMs);
+      $('metricTotalGameDuration').textContent = `累计 ${formatDuration(metrics.totalGameDurationMs)}`;
+      $('metricCompletion').textContent = formatPercent(metrics.gameCompletionRate);
+      $('metricCompletedGames').textContent = `完成访问 ${formatNumber(metrics.completedGameSessions)}`;
+
+      const topGame = games.find(game => game.sessions > 0);
+      $('metricTopGame').textContent = topGame ? (GAME_NAMES[topGame.kind] || topGame.kind) : '暂无';
+      $('analyticsUpdatedAt').textContent = `近 ${data.rangeDays || analyticsDays} 天 · ${new Date(data.generatedAt).toLocaleString()}`;
+      renderTrend(data.trend || []);
+    }
+
+    function renderTrend(trend) {
+      const maxValue = Math.max(1, ...trend.flatMap(day => [day.activeUsers || 0, day.gameSessions || 0]));
+      const labelStride = trend.length <= 14 ? 1 : trend.length <= 31 ? 5 : 10;
+      $('trendChart').innerHTML = trend.map((day, index) => {
+        const activeHeight = day.activeUsers > 0 ? Math.max(4, Math.round(day.activeUsers / maxValue * 176)) : 2;
+        const gameHeight = day.gameSessions > 0 ? Math.max(4, Math.round(day.gameSessions / maxValue * 176)) : 2;
+        const showLabel = index % labelStride === 0 || index === trend.length - 1;
+        return `
+          <div class="trend-day" title="${day.day} · 活跃 ${day.activeUsers} · 游戏访问 ${day.gameSessions}">
+            <div class="trend-bars">
+              <i class="trend-bar active" style="height:${activeHeight}px"></i>
+              <i class="trend-bar games" style="height:${gameHeight}px"></i>
+            </div>
+            <div class="trend-label">${showLabel ? day.day.slice(5) : ''}</div>
+          </div>
+        `;
+      }).join('');
+    }
+
+    function renderGameMetrics(games) {
+      $('gameMetricsEmpty').classList.toggle('hidden', games.length > 0);
+      $('gameMetrics').innerHTML = games.map(game => `
+        <tr>
+          <td>${escapeHtml(GAME_NAMES[game.kind] || game.kind)}</td>
+          <td>${formatNumber(game.clicks)}</td>
+          <td>${formatNumber(game.uniqueUsers)}</td>
+          <td>${formatNumber(game.sessions)}</td>
+          <td>${formatNumber(game.repeatUsers)}</td>
+          <td>${formatNumber(game.completedSessions)}</td>
+          <td>${formatNumber(game.rounds)}</td>
+          <td>${formatPercent(game.completionRate)}</td>
+          <td>${formatDuration(game.averageDurationMs)}</td>
+          <td>${formatDuration(game.totalDurationMs)}</td>
+        </tr>
+      `).join('');
+    }
+
+    async function loadUsers() {
+      const list = await api(`/admin/users?pageSize=${$('pageSize').value}`);
+      $('users').innerHTML = list.map(user => `
+        <tr data-id="${user.id}">
+          <td>${user.id}</td>
+          <td>${escapeHtml(user.displayName || '')}</td>
+          <td><span class="pill ${user.status === 'BANNED' ? 'banned' : ''}">${user.status}</span></td>
+          <td>Lv ${user.level}</td>
+          <td>${user.totalGames}</td>
+          <td>${user.totalScore}</td>
+        </tr>
+      `).join('');
+      document.querySelectorAll('#users tr').forEach(row => {
+        row.addEventListener('click', () => loadUser(row.dataset.id));
+      });
+    }
+
+    async function loadUser(id) {
+      selectedUser = await api(`/admin/users/${id}`);
+      $('statusBtn').disabled = false;
+      $('statusBtn').textContent = selectedUser.status === 'BANNED' ? '解封' : '封禁';
+      $('statusBtn').classList.toggle('danger', selectedUser.status !== 'BANNED');
+      $('detail').innerHTML = kv({
+        ID: selectedUser.id,
+        昵称: selectedUser.displayName,
+        状态: selectedUser.status,
+        等级: `Lv ${selectedUser.level}`,
+        风之币: selectedUser.coins,
+        总积分: selectedUser.totalScore,
+        总局数: selectedUser.totalGames,
+        身份: selectedUser.identities?.map(i => i.provider).join(', ') || '-',
+        最近记录: selectedUser.gameRecords?.length || 0
+      });
+    }
+
+    async function toggleStatus() {
+      if (!selectedUser) return;
+      const next = selectedUser.status === 'BANNED' ? 'ACTIVE' : 'BANNED';
+      selectedUser = await api(`/admin/users/${selectedUser.id}/status`, {
+        method: 'PATCH',
+        body: JSON.stringify({ status: next })
+      });
+      await Promise.all([loadUsers(), loadUser(selectedUser.id), loadLogs()]);
+    }
+
+    async function saveConfig() {
+      $('configMsg').textContent = '';
+      try {
+        const value = JSON.parse($('configValue').value);
+        await api(`/admin/game-config/${encodeURIComponent($('configKey').value)}`, {
+          method: 'POST',
+          body: JSON.stringify({ value, note: 'updated from admin panel' })
+        });
+        $('configMsg').textContent = '已保存';
+      } catch (err) {
+        $('configMsg').textContent = err.message;
+      }
+    }
+
+    async function loadLogs() {
+      const logs = await api('/admin/audit-logs?take=30');
+      $('logs').innerHTML = logs.map(log => `
+        <div>${new Date(log.createdAt).toLocaleString()} · ${escapeHtml(log.action)} · ${escapeHtml(log.admin?.username || '-')}</div>
+      `).join('') || '<div>暂无日志</div>';
+    }
+
+    function kv(obj) {
+      return Object.entries(obj).map(([k, v]) => `<span>${k}</span><span>${escapeHtml(String(v ?? '-'))}</span>`).join('');
+    }
+
+    function escapeHtml(value) {
+      return value.replace(/[&<>"']/g, ch => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#039;' }[ch]));
+    }
+
+    function formatNumber(value) {
+      return Number(value || 0).toLocaleString('zh-CN');
+    }
+
+    function formatPercent(value) {
+      return `${Math.round(Number(value || 0) * 100)}%`;
+    }
+
+    function formatDuration(value) {
+      const seconds = Math.max(0, Math.round(Number(value || 0) / 1000));
+      if (seconds < 60) return `${seconds} 秒`;
+      const minutes = Math.floor(seconds / 60);
+      const rest = seconds % 60;
+      if (minutes < 60) return rest ? `${minutes} 分 ${rest} 秒` : `${minutes} 分钟`;
+      const hours = Math.floor(minutes / 60);
+      const restMinutes = minutes % 60;
+      return restMinutes ? `${hours} 小时 ${restMinutes} 分` : `${hours} 小时`;
+    }
+
+    $('loginBtn').addEventListener('click', login);
+    $('password').addEventListener('keydown', event => { if (event.key === 'Enter') login(); });
+    $('refreshBtn').addEventListener('click', loadAll);
+    $('logoutBtn').addEventListener('click', () => { localStorage.removeItem(tokenKey); token = ''; showAuthed(false); });
+    $('analyticsTab').addEventListener('click', () => switchView('analytics'));
+    $('usersTab').addEventListener('click', () => switchView('users'));
+    document.querySelectorAll('#rangeControl button').forEach(button => {
+      button.addEventListener('click', async () => {
+        analyticsDays = Number(button.dataset.days || 30);
+        document.querySelectorAll('#rangeControl button').forEach(item => item.classList.toggle('active', item === button));
+        await loadAnalytics();
+      });
+    });
+    $('pageSize').addEventListener('change', loadUsers);
+    $('statusBtn').addEventListener('click', toggleStatus);
+    $('saveConfigBtn').addEventListener('click', saveConfig);
+
+    showAuthed(!!token);
+    if (token) loadAll().catch(() => showAuthed(false));
+  </script>
+</body>
+</html>

@@ -4,6 +4,7 @@
 
 #import "JFLocalGameSession.h"
 #import <MultipeerConnectivity/MultipeerConnectivity.h>
+#import "JFProfileStore.h"
 
 @interface JFLocalGameSession () <MCSessionDelegate, MCNearbyServiceAdvertiserDelegate, MCNearbyServiceBrowserDelegate>
 @property (nonatomic, copy, readwrite)   NSString *serviceType;
@@ -31,18 +32,7 @@
         _role = JFSessionRoleNone;
         _peerMap = [NSMapTable strongToStrongObjectsMapTable];
 
-        NSString *displayName = [UIDevice currentDevice].name ?: @"iPhone";
-        if (displayName.length > 60) displayName = [displayName substringToIndex:60];
-
-        _myPeerID = [[MCPeerID alloc] initWithDisplayName:displayName];
-        _mcSession = [[MCSession alloc] initWithPeer:_myPeerID
-                                    securityIdentity:nil
-                                encryptionPreference:MCEncryptionOptional];
-        _mcSession.delegate = self;
-
-        _localPeer = [[JFGamePeer alloc] init];
-        _localPeer.displayName = displayName;
-        _localPeer.peerId = [self idForPeer:_myPeerID];
+        [self rebuildIdentityWithDisplayName:[self currentDisplayName]];
     }
     return self;
 }
@@ -64,6 +54,34 @@
 
 - (NSString *)idForPeer:(MCPeerID *)peer {
     return [NSString stringWithFormat:@"%@#%lu", peer.displayName, (unsigned long)peer.hash];
+}
+
+- (NSString *)currentDisplayName {
+    NSString *name = [JFProfileStore shared].displayName;
+    if (name.length == 0) name = @"继风玩家";
+    if (name.length > 60) name = [name substringToIndex:60];
+    return name;
+}
+
+- (void)rebuildIdentityWithDisplayName:(NSString *)displayName {
+    self.mcSession.delegate = nil;
+    self.myPeerID = [[MCPeerID alloc] initWithDisplayName:displayName];
+    self.mcSession = [[MCSession alloc] initWithPeer:self.myPeerID
+                                   securityIdentity:nil
+                               encryptionPreference:MCEncryptionOptional];
+    self.mcSession.delegate = self;
+    [self.peerMap removeAllObjects];
+
+    self.localPeer = [[JFGamePeer alloc] init];
+    self.localPeer.displayName = displayName;
+    self.localPeer.peerId = [self idForPeer:self.myPeerID];
+}
+
+- (void)refreshIdentityIfNeeded {
+    NSString *name = [self currentDisplayName];
+    if (![self.myPeerID.displayName isEqualToString:name]) {
+        [self rebuildIdentityWithDisplayName:name];
+    }
 }
 
 #pragma mark - Public
@@ -89,6 +107,7 @@
 
 - (void)startAsHost {
     [self stop];
+    [self refreshIdentityIfNeeded];
     self.role = JFSessionRoleHost;
     self.advertiser = [[MCNearbyServiceAdvertiser alloc] initWithPeer:self.myPeerID
                                                         discoveryInfo:nil
@@ -99,6 +118,7 @@
 
 - (void)startAsClient {
     [self stop];
+    [self refreshIdentityIfNeeded];
     self.role = JFSessionRoleClient;
     self.browser = [[MCNearbyServiceBrowser alloc] initWithPeer:self.myPeerID
                                                     serviceType:self.serviceType];

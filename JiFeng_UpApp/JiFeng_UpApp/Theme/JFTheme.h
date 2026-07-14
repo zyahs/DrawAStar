@@ -39,6 +39,9 @@ extern const CGFloat JFRadiusPill;   // 999 —— 胶囊
 + (UIColor *)backgroundPrimary;     // 一级背景(深色)
 + (UIColor *)backgroundSecondary;   // 卡片底
 + (UIColor *)backgroundElevated;    // 浮层 / 弹窗
++ (NSArray<UIColor *> *)appBackgroundColors;
++ (NSString *)themePatternStyle;
++ (NSString *)themeSymbolName;
 
 + (UIColor *)textPrimary;      // 一级文本(白)
 + (UIColor *)textSecondary;    // 二级文本(灰)
@@ -71,6 +74,12 @@ extern const CGFloat JFRadiusPill;   // 999 —— 胶囊
 
 /// 标准模糊效果(暗色玻璃)
 + (UIVisualEffectView *)glassBlurView;
+
+/// 全局主题背景:渐变 + 图案层。返回添加的容器 view,调用方可保留并置底。
++ (UIView *)installThemedBackgroundInView:(UIView *)view;
+
+/// 统一玻璃卡片质感
++ (void)decorateGlassPanel:(UIView *)view;
 
 /// 标准返回按钮 —— 玻璃模糊胶囊 + chevron。
 /// target/action 由调用方决定;按钮已设好 translatesAutoresizingMaskIntoConstraints=NO,

@@ -9,6 +9,79 @@
 static NSString *const kArchiveName = @"jf_rhythm_library.archive";
 static NSString *const kAudioDirName = @"RhythmSongs";
 static NSString *const kPresetCacheName = @"jf_rhythm_preset_cache.archive";
+static NSString *const kPresetChartVersion = @"chart-v10-repeatable-tutorial";
+static NSString *const kChartSchema = @"jifeng-rhythm-chart-v1";
+
+static NSDictionary<NSString *, NSDictionary *> *JFLoadBundledChartManifests(NSBundle *bundle) {
+    NSMutableOrderedSet<NSString *> *paths = [NSMutableOrderedSet orderedSet];
+    [paths addObjectsFromArray:[bundle pathsForResourcesOfType:@"json" inDirectory:nil] ?: @[]];
+
+    NSString *chartDirectory = [bundle.resourcePath stringByAppendingPathComponent:@"Music/Charts"];
+    for (NSString *fileName in [[NSFileManager defaultManager] contentsOfDirectoryAtPath:chartDirectory error:nil] ?: @[]) {
+        if (![fileName.pathExtension.lowercaseString isEqualToString:@"json"]) continue;
+        [paths addObject:[chartDirectory stringByAppendingPathComponent:fileName]];
+    }
+
+    NSMutableDictionary<NSString *, NSDictionary *> *manifests = [NSMutableDictionary dictionary];
+    for (NSString *path in paths) {
+        NSData *data = [NSData dataWithContentsOfFile:path];
+        if (!data) continue;
+        NSDictionary *manifest = [NSJSONSerialization JSONObjectWithData:data options:0 error:nil];
+        if (![manifest isKindOfClass:NSDictionary.class]) continue;
+        if (![manifest[@"schema"] isEqual:kChartSchema]) continue;
+        NSString *audio = [manifest[@"audio"] isKindOfClass:NSString.class] ? manifest[@"audio"] : nil;
+        if (!audio.length) continue;
+        manifests[audio.lastPathComponent.lowercaseString] = manifest;
+    }
+    return manifests;
+}
+
+static NSArray<JFRhythmBeat *> *JFBeatsFromManifest(NSDictionary *manifest, NSTimeInterval songDuration) {
+    NSArray *rawNotes = [manifest[@"notes"] isKindOfClass:NSArray.class] ? manifest[@"notes"] : @[];
+    NSMutableArray<JFRhythmBeat *> *beats = [NSMutableArray arrayWithCapacity:rawNotes.count];
+    for (NSDictionary *raw in rawNotes) {
+        if (![raw isKindOfClass:NSDictionary.class]) continue;
+        NSTimeInterval time = [raw[@"t"] doubleValue];
+        NSTimeInterval duration = MAX(0, [raw[@"duration"] doubleValue]);
+        if (time < 0.2 || time + duration > songDuration - 0.15) continue;
+        NSInteger lane = MAX(0, MIN(3, [raw[@"lane"] integerValue]));
+        NSInteger endLane = raw[@"endLane"] ? MAX(0, MIN(3, [raw[@"endLane"] integerValue])) : lane;
+        NSString *typeName = [raw[@"type"] isKindOfClass:NSString.class] ? raw[@"type"] : @"tap";
+        JFRhythmBeatType type = JFRhythmBeatTypeTap;
+        if ([typeName isEqualToString:@"hold"]) type = JFRhythmBeatTypeHold;
+        else if ([typeName isEqualToString:@"slide"]) type = JFRhythmBeatTypeSlide;
+        if (type != JFRhythmBeatTypeTap && duration < 0.18) continue;
+        double strength = raw[@"strength"] ? MAX(0.25, MIN(1.0, [raw[@"strength"] doubleValue])) : 0.72;
+        JFRhythmBeat *beat = [JFRhythmBeat beatAt:time lane:lane strength:strength type:type duration:duration endLane:endLane];
+        beat.minimumDifficulty = MAX(0, MIN(2, [raw[@"level"] integerValue]));
+        [beats addObject:beat];
+    }
+    return [beats sortedArrayUsingComparator:^NSComparisonResult(JFRhythmBeat *a, JFRhythmBeat *b) {
+        if (a.time < b.time) return NSOrderedAscending;
+        if (a.time > b.time) return NSOrderedDescending;
+        if (a.lane < b.lane) return NSOrderedAscending;
+        if (a.lane > b.lane) return NSOrderedDescending;
+        return NSOrderedSame;
+    }];
+}
+
+static NSArray<NSDictionary *> *JFTutorialStepsFromManifest(NSDictionary *manifest, NSTimeInterval songDuration) {
+    NSArray *rawSteps = [manifest[@"tutorialSteps"] isKindOfClass:NSArray.class] ? manifest[@"tutorialSteps"] : @[];
+    NSMutableArray<NSDictionary *> *steps = [NSMutableArray arrayWithCapacity:rawSteps.count];
+    for (NSDictionary *raw in rawSteps) {
+        if (![raw isKindOfClass:NSDictionary.class]) continue;
+        NSTimeInterval from = MAX(0, [raw[@"from"] doubleValue]);
+        NSTimeInterval to = MIN(songDuration, [raw[@"to"] doubleValue]);
+        NSString *title = [raw[@"title"] isKindOfClass:NSString.class] ? raw[@"title"] : @"跟随节奏";
+        NSString *detail = [raw[@"detail"] isKindOfClass:NSString.class] ? raw[@"detail"] : @"看准判定线完成动作";
+        NSString *icon = [raw[@"icon"] isKindOfClass:NSString.class] ? raw[@"icon"] : @"sparkles";
+        if (to <= from || title.length == 0 || detail.length == 0) continue;
+        [steps addObject:@{ @"from": @(from), @"to": @(to), @"title": title, @"detail": detail, @"icon": icon }];
+    }
+    return [steps sortedArrayUsingComparator:^NSComparisonResult(NSDictionary *a, NSDictionary *b) {
+        return [a[@"from"] compare:b[@"from"]];
+    }];
+}
 
 @interface JFRhythmSongStore ()
 @property (nonatomic, strong) NSMutableArray<JFRhythmSong *> *userSongsInternal;
@@ -63,7 +136,7 @@ static NSString *const kPresetCacheName = @"jf_rhythm_preset_cache.archive";
     NSData *data = [NSData dataWithContentsOfFile:[self archivePath]];
     if (!data) return;
     NSError *err = nil;
-    NSSet *cls = [NSSet setWithObjects:NSArray.class, JFRhythmSong.class, JFRhythmBeat.class, NSDate.class, NSString.class, nil];
+    NSSet *cls = [NSSet setWithObjects:NSArray.class, NSDictionary.class, JFRhythmSong.class, JFRhythmBeat.class, NSDate.class, NSString.class, NSNumber.class, nil];
     NSArray *arr = [NSKeyedUnarchiver unarchivedObjectOfClasses:cls fromData:data error:&err];
     if ([arr isKindOfClass:NSArray.class]) {
         for (id obj in arr) if ([obj isKindOfClass:JFRhythmSong.class]) [self.userSongsInternal addObject:obj];
@@ -202,6 +275,7 @@ static NSString *const kPresetCacheName = @"jf_rhythm_preset_cache.archive";
         }
     }
 
+    NSDictionary<NSString *, NSDictionary *> *manifests = JFLoadBundledChartManifests(bundle);
     NSMutableDictionary<NSString *, JFRhythmSong *> *cache = [[self loadPresetCache] mutableCopy] ?: [NSMutableDictionary dictionary];
     NSMutableArray<JFRhythmSong *> *out = [NSMutableArray array];
     BOOL cacheChanged = NO;
@@ -211,6 +285,8 @@ static NSString *const kPresetCacheName = @"jf_rhythm_preset_cache.archive";
         NSString *abs = item[@"abs"];
         NSURL *url = [NSURL fileURLWithPath:abs];
         NSString *fn = abs.lastPathComponent;
+        NSDictionary *manifest = manifests[fn.lowercaseString];
+        BOOL tutorial = [manifest[@"tutorial"] boolValue];
 
         NSString *display = fn.stringByDeletingPathExtension;
         NSRange hashR = [display rangeOfString:@"#"];
@@ -223,21 +299,27 @@ static NSString *const kPresetCacheName = @"jf_rhythm_preset_cache.archive";
             title  = [[display substringToIndex:dashR.location] stringByTrimmingCharactersInSet:[NSCharacterSet whitespaceCharacterSet]];
             artist = [[display substringFromIndex:dashR.location + 1] stringByTrimmingCharactersInSet:[NSCharacterSet whitespaceCharacterSet]];
         }
+        if ([manifest[@"title"] isKindOfClass:NSString.class] && [manifest[@"title"] length] > 0) title = manifest[@"title"];
+        if ([manifest[@"artist"] isKindOfClass:NSString.class] && [manifest[@"artist"] length] > 0) artist = manifest[@"artist"];
 
-        NSString *songId = [@"preset_" stringByAppendingString:fn];
+        NSString *manifestId = [manifest[@"id"] isKindOfClass:NSString.class] ? manifest[@"id"] : nil;
+        NSString *songId = manifestId.length ? manifestId : [@"preset_" stringByAppendingString:fn];
 
         NSDictionary *attr = [fm attributesOfItemAtPath:abs error:nil];
         NSString *fingerprint = [NSString stringWithFormat:@"%@:%@:%@",
                                  attr[NSFileSize] ?: @"0",
                                  [attr[NSFileModificationDate] description] ?: @"",
                                  fn];
-        NSString *cacheKey = [NSString stringWithFormat:@"%@|%@", songId, fingerprint];
+        NSString *revision = manifest[@"revision"] ? [manifest[@"revision"] description] : @"auto";
+        NSString *cacheKey = [NSString stringWithFormat:@"%@|%@|%@|%@", kPresetChartVersion, revision, songId, fingerprint];
 
         JFRhythmSong *cached = cache[cacheKey];
         if (cached && (cached.fullChart.count > 0 || cached.chart.count > 0)) {
             cached.bundleAudioName = rel;
             cached.title = title;
-            cached.artist = artist.length ? artist : @"内置经典";
+            cached.artist = tutorial ? @"新手教学 · 可重复练习" : (artist.length ? artist : @"内置经典");
+            cached.tutorial = tutorial;
+            cached.tutorialSteps = tutorial ? JFTutorialStepsFromManifest(manifest, cached.duration) : @[];
             // 老缓存可能没 fullChart —— 兜底用 chart 当 fullChart
             if (cached.fullChart.count == 0 && cached.chart.count > 0) {
                 cached.fullChart = cached.chart;
@@ -249,19 +331,27 @@ static NSString *const kPresetCacheName = @"jf_rhythm_preset_cache.archive";
         AVAudioPlayer *p = [[AVAudioPlayer alloc] initWithContentsOfURL:url error:nil];
         NSTimeInterval duration = p.duration;
         if (duration <= 0) duration = 60;
-        double bpm = 0;
-        NSArray<JFRhythmBeat *> *full = [JFRhythmAnalyzer analyzeURL:url duration:duration outBPM:&bpm];
+        double bpm = [manifest[@"bpm"] doubleValue];
+        NSArray<JFRhythmBeat *> *full = manifest ? JFBeatsFromManifest(manifest, duration) : nil;
+        BOOL authoredChart = (full.count > 0);
+        if (!authoredChart) {
+            full = [JFRhythmAnalyzer analyzeURL:url duration:duration outBPM:&bpm];
+        }
 
         JFRhythmSong *s = [[JFRhythmSong alloc] init];
         s.kind = JFRhythmSongKindPreset;
         s.songId = songId;
         s.title = title;
-        s.artist = artist.length ? artist : @"内置经典";
+        s.artist = authoredChart ? (artist.length ? [NSString stringWithFormat:@"%@ · 手工谱", artist] : @"手工谱")
+                                 : (artist.length ? artist : @"内置经典");
         s.bundleAudioName = rel;
         s.duration = duration;
         s.bpm = bpm > 0 ? bpm : 110;
         s.fullChart = full;
         s.chart = [JFRhythmChart chartFromFull:full difficulty:JFRhythmDifficultyMedium];
+        s.tutorial = tutorial;
+        s.tutorialSteps = tutorial ? JFTutorialStepsFromManifest(manifest, duration) : @[];
+        if (tutorial) s.artist = @"新手教学 · 可重复练习";
         [out addObject:s];
 
         if (full.count > 0) {
@@ -271,8 +361,14 @@ static NSString *const kPresetCacheName = @"jf_rhythm_preset_cache.archive";
     }
     if (cacheChanged) [self savePresetCache:cache];
 
-    // 按标题稳定排序
+    // 清单中的 order 决定内置曲目顺序;没有清单的音频放在末尾。
     [out sortUsingComparator:^NSComparisonResult(JFRhythmSong *a, JFRhythmSong *b) {
+        NSDictionary *ma = manifests[a.bundleAudioName.lastPathComponent.lowercaseString];
+        NSDictionary *mb = manifests[b.bundleAudioName.lastPathComponent.lowercaseString];
+        NSInteger oa = ma[@"order"] ? [ma[@"order"] integerValue] : NSIntegerMax;
+        NSInteger ob = mb[@"order"] ? [mb[@"order"] integerValue] : NSIntegerMax;
+        if (oa < ob) return NSOrderedAscending;
+        if (oa > ob) return NSOrderedDescending;
         return [a.title localizedCompare:b.title];
     }];
     return out;

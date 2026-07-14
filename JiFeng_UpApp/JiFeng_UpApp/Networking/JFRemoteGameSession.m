@@ -7,6 +7,9 @@
 
 #import "JFRemoteGameSession.h"
 #import "JFRemoteEndpoint.h"
+#import "JFBackendClient.h"
+#import "JFProfileStore.h"
+#import "JFAnalyticsTracker.h"
 
 static NSString * const kMockHostPeerId = @"mock-host";
 static NSString * const kMockClientPeerId = @"mock-client";
@@ -21,6 +24,8 @@ static NSString * const kMockClientPeerId = @"mock-client";
 @property (nonatomic, strong, nullable) NSURLSessionWebSocketTask *socketTask;
 @property (nonatomic, strong) NSMutableArray<JFGamePeer *> *internalConnectedPeers;
 @property (nonatomic, copy, nullable) NSString *roomId;
+@property (nonatomic, assign) NSInteger latestSeq;
+@property (nonatomic, strong, nullable) NSTimer *pollTimer;
 
 @end
 
@@ -34,9 +39,8 @@ static NSString * const kMockClientPeerId = @"mock-client";
         _role = JFSessionRoleNone;
         _internalConnectedPeers = [NSMutableArray array];
 
-        NSString *deviceName = [UIDevice currentDevice].name ?: @"iPhone";
         _localPeer = [[JFGamePeer alloc] init];
-        _localPeer.displayName = deviceName;
+        _localPeer.displayName = [JFProfileStore shared].displayName;
         _localPeer.peerId = [[NSUUID UUID] UUIDString];
 
         NSURLSessionConfiguration *cfg = [NSURLSessionConfiguration defaultSessionConfiguration];
@@ -51,10 +55,19 @@ static NSString * const kMockClientPeerId = @"mock-client";
 #pragma mark - JFGameSession
 
 - (NSArray<JFGamePeer *> *)connectedPeers { return [self.internalConnectedPeers copy]; }
+- (NSString *)roomCode { return self.roomId; }
+
+- (void)refreshLocalIdentity {
+    NSString *name = [JFProfileStore shared].displayName;
+    self.localPeer.displayName = name.length > 0 ? name : @"继风玩家";
+}
 
 - (void)startAsHost {
+    [self refreshLocalIdentity];
     self.role = JFSessionRoleHost;
-    if ([JFRemoteEndpoint remoteEnabled] && [JFRemoteEndpoint webSocketURLString].length > 0) {
+    if ([JFRemoteEndpoint remoteEnabled] && [JFRemoteEndpoint apiBaseURLString].length > 0) {
+        [self createRemoteRoom];
+    } else if ([JFRemoteEndpoint remoteEnabled] && [JFRemoteEndpoint webSocketURLString].length > 0) {
         [self connectWebSocketAsHost:YES];
     } else {
         // Mock:立刻当作"已连接到一个虚拟客户端",方便业务先跑
@@ -63,19 +76,44 @@ static NSString * const kMockClientPeerId = @"mock-client";
 }
 
 - (void)startAsClient {
+    [self refreshLocalIdentity];
     self.role = JFSessionRoleClient;
-    if ([JFRemoteEndpoint remoteEnabled] && [JFRemoteEndpoint webSocketURLString].length > 0) {
+    if ([JFRemoteEndpoint remoteEnabled] && [JFRemoteEndpoint apiBaseURLString].length > 0) {
+        [self joinLatestRemoteRoom];
+    } else if ([JFRemoteEndpoint remoteEnabled] && [JFRemoteEndpoint webSocketURLString].length > 0) {
         [self connectWebSocketAsHost:NO];
     } else {
         [self mockConnectAsClient];
     }
 }
 
+- (void)startAsClientWithRoomCode:(NSString *)roomCode {
+    NSString *normalized = [[roomCode ?: @"" stringByTrimmingCharactersInSet:NSCharacterSet.whitespaceAndNewlineCharacterSet] uppercaseString];
+    if (normalized.length == 0 || ![JFRemoteEndpoint remoteEnabled] || [JFRemoteEndpoint apiBaseURLString].length == 0) {
+        [self startAsClient];
+        return;
+    }
+
+    [self refreshLocalIdentity];
+    self.role = JFSessionRoleClient;
+    [[JFBackendClient shared] ensureSignedInWithCompletion:^(BOOL success, NSError * _Nullable error) {
+        if (!success) {
+            [self emitError:error ?: [NSError errorWithDomain:@"JFRemoteGameSession" code:401 userInfo:@{NSLocalizedDescriptionKey: @"sign in failed"}]];
+            return;
+        }
+        [self joinRemoteRoom:normalized];
+    }];
+}
+
 - (void)stop {
+    [self.pollTimer invalidate];
+    self.pollTimer = nil;
     [self.socketTask cancel];
     self.socketTask = nil;
     [self.internalConnectedPeers removeAllObjects];
     self.role = JFSessionRoleNone;
+    self.roomId = nil;
+    self.latestSeq = 0;
 }
 
 - (BOOL)sendMessage:(JFGameMessage *)message toPeer:(nullable JFGamePeer *)peer {
@@ -83,7 +121,19 @@ static NSString * const kMockClientPeerId = @"mock-client";
     NSData *data = [message dataRepresentation];
     if (!data) return NO;
 
-    if (self.socketTask) {
+    if (self.roomId.length > 0) {
+        NSDictionary *body = @{
+            @"type": message.type ?: @"",
+            @"from": message.from ?: self.localPeer.peerId ?: @"",
+            @"to": message.to ?: peer.peerId ?: @"",
+            @"payload": message.payload ?: @{},
+        };
+        [self requestPath:[NSString stringWithFormat:@"/multiplayer/rooms/%@/messages", self.roomId]
+                   method:@"POST"
+                     body:body
+               completion:nil];
+        return YES;
+    } else if (self.socketTask) {
         NSURLSessionWebSocketMessage *m = [[NSURLSessionWebSocketMessage alloc] initWithData:data];
         [self.socketTask sendMessage:m completionHandler:^(NSError * _Nullable error) {
             if (error) NSLog(@"[JFRemoteGameSession] send error: %@", error);
@@ -101,6 +151,217 @@ static NSString * const kMockClientPeerId = @"mock-client";
         }
     });
     return YES;
+}
+
+#pragma mark - REST Rooms
+
+- (void)createRemoteRoom {
+    [[JFBackendClient shared] ensureSignedInWithCompletion:^(BOOL success, NSError * _Nullable error) {
+        if (!success) {
+            [self emitError:error ?: [NSError errorWithDomain:@"JFRemoteGameSession" code:401 userInfo:@{NSLocalizedDescriptionKey: @"sign in failed"}]];
+            return;
+        }
+        NSDictionary *body = @{
+            @"kind": [self backendKind],
+            @"displayName": self.localPeer.displayName ?: @"iPhone",
+            @"serviceType": self.serviceType ?: @"",
+        };
+        [self requestPath:@"/multiplayer/rooms" method:@"POST" body:body completion:^(id obj, NSError *requestError) {
+            if (![obj isKindOfClass:[NSDictionary class]]) {
+                [self emitError:requestError ?: [NSError errorWithDomain:@"JFRemoteGameSession" code:500 userInfo:@{NSLocalizedDescriptionKey: @"create room failed"}]];
+                return;
+            }
+            [self handleRoomSnapshot:(NSDictionary *)obj];
+            [[JFAnalyticsTracker shared] trackEvent:@"room_create"
+                                           gameKind:[self analyticsGameKind]
+                                         properties:@{ @"mode": self.serviceType ?: @"remote" }];
+            [self startPolling];
+        }];
+    }];
+}
+
+- (void)joinLatestRemoteRoom {
+    [[JFBackendClient shared] ensureSignedInWithCompletion:^(BOOL success, NSError * _Nullable error) {
+        if (!success) {
+            [self emitError:error ?: [NSError errorWithDomain:@"JFRemoteGameSession" code:401 userInfo:@{NSLocalizedDescriptionKey: @"sign in failed"}]];
+            return;
+        }
+        NSString *encodedType = [self.serviceType stringByAddingPercentEncodingWithAllowedCharacters:NSCharacterSet.URLQueryAllowedCharacterSet] ?: @"";
+        NSString *path = [NSString stringWithFormat:@"/multiplayer/rooms?kind=%@&serviceType=%@", [self backendKind], encodedType];
+        [self requestPath:path method:@"GET" body:nil completion:^(id obj, NSError *requestError) {
+            NSArray *rooms = [obj isKindOfClass:[NSArray class]] ? (NSArray *)obj : nil;
+            NSDictionary *first = rooms.firstObject;
+            NSString *room = [first[@"roomId"] isKindOfClass:[NSString class]] ? first[@"roomId"] : nil;
+            if (room.length == 0) {
+                [self emitError:requestError ?: [NSError errorWithDomain:@"JFRemoteGameSession" code:404 userInfo:@{NSLocalizedDescriptionKey: @"no remote room"}]];
+                return;
+            }
+            [self joinRemoteRoom:room];
+        }];
+    }];
+}
+
+- (void)joinRemoteRoom:(NSString *)room {
+    NSDictionary *body = @{
+        @"displayName": self.localPeer.displayName ?: @"iPhone",
+        @"serviceType": self.serviceType ?: @"",
+    };
+    NSString *path = [NSString stringWithFormat:@"/multiplayer/rooms/%@/join", room];
+    [self requestPath:path method:@"POST" body:body completion:^(id obj, NSError *requestError) {
+        if (![obj isKindOfClass:[NSDictionary class]]) {
+            [self emitError:requestError ?: [NSError errorWithDomain:@"JFRemoteGameSession" code:500 userInfo:@{NSLocalizedDescriptionKey: @"join room failed"}]];
+            return;
+        }
+        [self handleRoomSnapshot:(NSDictionary *)obj];
+        [[JFAnalyticsTracker shared] trackEvent:@"room_join"
+                                       gameKind:[self analyticsGameKind]
+                                     properties:@{ @"mode": self.serviceType ?: @"remote" }];
+        [self startPolling];
+    }];
+}
+
+- (void)startPolling {
+    [self.pollTimer invalidate];
+    self.pollTimer = [NSTimer scheduledTimerWithTimeInterval:1.5 target:self selector:@selector(pollRemoteRoom) userInfo:nil repeats:YES];
+    [self pollRemoteRoom];
+}
+
+- (void)pollRemoteRoom {
+    if (self.roomId.length == 0) return;
+    NSString *path = [NSString stringWithFormat:@"/multiplayer/rooms/%@?since=%ld", self.roomId, (long)self.latestSeq];
+    [self requestPath:path method:@"GET" body:nil completion:^(id obj, NSError *error) {
+        if ([obj isKindOfClass:[NSDictionary class]]) {
+            [self handleRoomSnapshot:(NSDictionary *)obj];
+        }
+    }];
+}
+
+- (void)handleRoomSnapshot:(NSDictionary *)snapshot {
+    NSString *room = [snapshot[@"roomId"] isKindOfClass:[NSString class]] ? snapshot[@"roomId"] : nil;
+    if (room.length > 0) self.roomId = room;
+    NSString *selfPeerId = [snapshot[@"selfPeerId"] isKindOfClass:[NSString class]] ? snapshot[@"selfPeerId"] : nil;
+    if (selfPeerId.length > 0) self.localPeer.peerId = selfPeerId;
+
+    NSArray *peers = [snapshot[@"peers"] isKindOfClass:[NSArray class]] ? snapshot[@"peers"] : @[];
+    [self syncPeers:peers];
+
+    NSArray *messages = [snapshot[@"messages"] isKindOfClass:[NSArray class]] ? snapshot[@"messages"] : @[];
+    for (NSDictionary *dict in messages) {
+        if (![dict isKindOfClass:[NSDictionary class]]) continue;
+        NSInteger seq = [dict[@"seq"] integerValue];
+        self.latestSeq = MAX(self.latestSeq, seq);
+        NSString *from = [dict[@"from"] isKindOfClass:[NSString class]] ? dict[@"from"] : nil;
+        NSString *to = [dict[@"to"] isKindOfClass:[NSString class]] ? dict[@"to"] : nil;
+        if ([from isEqualToString:self.localPeer.peerId]) continue;
+        if (to.length > 0 && ![to isEqualToString:self.localPeer.peerId]) continue;
+
+        JFGameMessage *message = [JFGameMessage messageWithType:dict[@"type"] payload:dict[@"payload"]];
+        message.from = from;
+        message.to = to;
+        message.timestamp = [dict[@"ts"] doubleValue];
+
+        JFGamePeer *peer = [self peerForId:from] ?: self.localPeer;
+        dispatch_async(dispatch_get_main_queue(), ^{
+            if ([self.delegate respondsToSelector:@selector(gameSession:didReceiveMessage:fromPeer:)]) {
+                [self.delegate gameSession:self didReceiveMessage:message fromPeer:peer];
+            }
+        });
+    }
+    self.latestSeq = MAX(self.latestSeq, [snapshot[@"latestSeq"] integerValue]);
+    dispatch_async(dispatch_get_main_queue(), ^{
+        if ([self.delegate respondsToSelector:@selector(gameSessionDidUpdateRoom:)]) {
+            [self.delegate gameSessionDidUpdateRoom:self];
+        }
+    });
+}
+
+- (void)syncPeers:(NSArray *)peerDicts {
+    NSMutableArray<JFGamePeer *> *next = [NSMutableArray array];
+    for (NSDictionary *dict in peerDicts) {
+        if (![dict isKindOfClass:[NSDictionary class]]) continue;
+        NSString *peerId = [dict[@"peerId"] isKindOfClass:[NSString class]] ? dict[@"peerId"] : nil;
+        if (peerId.length == 0 || [peerId isEqualToString:self.localPeer.peerId]) continue;
+        JFGamePeer *peer = [self peerForId:peerId] ?: [[JFGamePeer alloc] init];
+        peer.peerId = peerId;
+        peer.displayName = [dict[@"displayName"] isKindOfClass:[NSString class]] ? dict[@"displayName"] : peerId;
+        [next addObject:peer];
+        if (![self.internalConnectedPeers containsObject:peer]) {
+            [self emitState:JFSessionPeerStateConnected forPeer:peer];
+        }
+    }
+    self.internalConnectedPeers = next;
+}
+
+- (JFGamePeer *)peerForId:(NSString *)peerId {
+    if (peerId.length == 0) return nil;
+    for (JFGamePeer *peer in self.internalConnectedPeers) {
+        if ([peer.peerId isEqualToString:peerId]) return peer;
+    }
+    return nil;
+}
+
+- (NSString *)backendKind {
+    if ([self.serviceType isEqualToString:@"undercover"]) return @"UNDERCOVER";
+    if ([self.serviceType isEqualToString:@"kinggame"]) return @"KING";
+    if ([self.serviceType hasPrefix:@"card-"]) return @"CARD";
+    return [self.serviceType uppercaseString];
+}
+
+- (JFGameKind)analyticsGameKind {
+    if ([self.serviceType isEqualToString:@"undercover"]) return JFGameKindUndercover;
+    if ([self.serviceType isEqualToString:@"kinggame"]) return JFGameKindKing;
+    if ([self.serviceType hasPrefix:@"card-"]) return JFGameKindCard;
+    return JFGameKindCard;
+}
+
+- (void)requestPath:(NSString *)path
+             method:(NSString *)method
+               body:(NSDictionary *)body
+         completion:(void (^)(id obj, NSError *error))completion {
+    NSString *base = [JFRemoteEndpoint apiBaseURLString];
+    NSURL *url = [NSURL URLWithString:[base stringByAppendingString:path]];
+    if (!url) {
+        if (completion) completion(nil, [NSError errorWithDomain:@"JFRemoteGameSession" code:400 userInfo:@{NSLocalizedDescriptionKey: @"bad url"}]);
+        return;
+    }
+    NSMutableURLRequest *req = [NSMutableURLRequest requestWithURL:url];
+    req.HTTPMethod = method;
+    [req setValue:@"application/json" forHTTPHeaderField:@"Accept"];
+    NSString *token = [[NSUserDefaults standardUserDefaults] stringForKey:@"jf_backend_access_token"];
+    if (token.length > 0) [req setValue:[@"Bearer " stringByAppendingString:token] forHTTPHeaderField:@"Authorization"];
+    if (body) {
+        req.HTTPBody = [NSJSONSerialization dataWithJSONObject:body options:0 error:nil];
+        [req setValue:@"application/json; charset=utf-8" forHTTPHeaderField:@"Content-Type"];
+    }
+    NSURLSessionDataTask *task = [self.urlSession dataTaskWithRequest:req completionHandler:^(NSData *data, NSURLResponse *response, NSError *error) {
+        if (error) {
+            if (completion) completion(nil, error);
+            return;
+        }
+        id obj = nil;
+        if (data.length > 0) obj = [NSJSONSerialization JSONObjectWithData:data options:0 error:nil];
+        NSInteger status = [response isKindOfClass:NSHTTPURLResponse.class] ? ((NSHTTPURLResponse *)response).statusCode : 0;
+        if (status < 200 || status >= 300) {
+            NSString *message = [obj isKindOfClass:NSDictionary.class] && [obj[@"message"] isKindOfClass:NSString.class]
+                ? obj[@"message"]
+                : [NSHTTPURLResponse localizedStringForStatusCode:status];
+            NSError *statusError = [NSError errorWithDomain:@"JFRemoteGameSession"
+                                                       code:status
+                                                   userInfo:@{NSLocalizedDescriptionKey: message ?: @"request failed"}];
+            if (completion) completion(nil, statusError);
+            return;
+        }
+        if (completion) completion(obj, nil);
+    }];
+    [task resume];
+}
+
+- (void)emitError:(NSError *)error {
+    dispatch_async(dispatch_get_main_queue(), ^{
+        if ([self.delegate respondsToSelector:@selector(gameSession:didFailWithError:)]) {
+            [self.delegate gameSession:self didFailWithError:error];
+        }
+    });
 }
 
 #pragma mark - Mock

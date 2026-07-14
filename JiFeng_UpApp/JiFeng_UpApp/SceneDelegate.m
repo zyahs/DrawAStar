@@ -5,6 +5,7 @@
 
 #import "SceneDelegate.h"
 #import "HomeViewController.h"
+#import "JFAnalyticsTracker.h"
 
 @implementation SceneDelegate
 
@@ -26,10 +27,18 @@ willConnectToSession:(UISceneSession *)session
     [self.window makeKeyAndVisible];
 }
 
-- (void)sceneDidDisconnect:(UIScene *)scene {}
-- (void)sceneDidBecomeActive:(UIScene *)scene {}
-- (void)sceneWillResignActive:(UIScene *)scene {}
+- (void)sceneDidDisconnect:(UIScene *)scene {
+    [[JFAnalyticsTracker shared] flush];
+}
+- (void)sceneDidBecomeActive:(UIScene *)scene {
+    [[JFAnalyticsTracker shared] sceneDidBecomeActive];
+}
+- (void)sceneWillResignActive:(UIScene *)scene {
+    [[JFAnalyticsTracker shared] sceneWillResignActive];
+}
 - (void)sceneWillEnterForeground:(UIScene *)scene {}
-- (void)sceneDidEnterBackground:(UIScene *)scene {}
+- (void)sceneDidEnterBackground:(UIScene *)scene {
+    [[JFAnalyticsTracker shared] flush];
+}
 
 @end

@@ -6,6 +6,8 @@
 #import "JFProfileStore.h"
 #import "JFAchievementStore.h"
 #import "JFLeaderboardClient.h"
+#import "JFBackendClient.h"
+#import "JFAnalyticsTracker.h"
 
 NSNotificationName const JFProfileDidChangeNotification = @"JFProfileDidChangeNotification";
 
@@ -38,6 +40,10 @@ static NSString * const kK_CurStreak      = @"curStreak";
 static NSString * const kK_LongestStreak  = @"longestStreak";
 static NSString * const kK_LastActive     = @"lastActiveTs";
 static NSString * const kK_Games          = @"games";       // {kind: {count, best, lastPlayedTs}}
+static NSString * const kK_DisplayName    = @"displayName";
+static NSString * const kK_AvatarSymbol   = @"avatarSymbol";
+static NSString * const kK_Background     = @"backgroundStyle";
+static NSString * const kK_Signature      = @"signature";
 
 @interface JFProfileStore ()
 @property (nonatomic, strong) NSMutableDictionary *root;
@@ -79,6 +85,10 @@ static NSString * const kK_Games          = @"games";       // {kind: {count, be
         root[kK_Level]         = @1;
         root[kK_CurStreak]     = @0;
         root[kK_LongestStreak] = @0;
+        root[kK_DisplayName]   = @"继风玩家";
+        root[kK_AvatarSymbol]  = @"person.crop.circle.fill";
+        root[kK_Background]    = @"aurora";
+        root[kK_Signature]     = @"今晚也要赢一局";
         root[kK_Games]         = [NSMutableDictionary dictionary];
     }
     if (![root[kK_Games] isKindOfClass:[NSMutableDictionary class]]) {
@@ -107,6 +117,22 @@ static NSString * const kK_Games          = @"games";       // {kind: {count, be
 - (NSInteger)level            { NSInteger l = [self.root[kK_Level] integerValue]; return l < 1 ? 1 : l; }
 - (NSInteger)currentStreakDays { return [self.root[kK_CurStreak] integerValue]; }
 - (NSInteger)longestStreakDays { return [self.root[kK_LongestStreak] integerValue]; }
+- (NSString *)displayName {
+    NSString *name = self.root[kK_DisplayName];
+    return name.length > 0 ? name : @"继风玩家";
+}
+- (NSString *)avatarSymbolName {
+    NSString *name = self.root[kK_AvatarSymbol];
+    return name.length > 0 ? name : @"person.crop.circle.fill";
+}
+- (NSString *)backgroundStyle {
+    NSString *style = self.root[kK_Background];
+    return style.length > 0 ? style : @"aurora";
+}
+- (NSString *)signature {
+    NSString *text = self.root[kK_Signature];
+    return text.length > 0 ? text : @"今晚也要赢一局";
+}
 - (NSDate *)lastActiveDate {
     NSNumber *ts = self.root[kK_LastActive];
     if (!ts) return nil;
@@ -226,6 +252,45 @@ static NSString * const kK_Games          = @"games";       // {kind: {count, be
     return YES;
 }
 
+#pragma mark - 个人资料
+
+- (NSString *)trimmedText:(NSString *)text maxLength:(NSUInteger)maxLength fallback:(NSString *)fallback {
+    NSString *trimmed = [[text ?: @"" stringByTrimmingCharactersInSet:[NSCharacterSet whitespaceAndNewlineCharacterSet]] copy];
+    if (trimmed.length == 0) return fallback;
+    if (trimmed.length > maxLength) {
+        trimmed = [trimmed substringToIndex:maxLength];
+    }
+    return trimmed;
+}
+
+- (void)updateDisplayName:(NSString *)displayName {
+    self.root[kK_DisplayName] = [self trimmedText:displayName maxLength:16 fallback:@"继风玩家"];
+    [self save];
+    [self broadcast];
+    [[JFLeaderboardClient shared] setDisplayName:self.displayName];
+}
+
+- (void)updateAvatarSymbolName:(NSString *)avatarSymbolName {
+    self.root[kK_AvatarSymbol] = [self trimmedText:avatarSymbolName maxLength:48 fallback:@"person.crop.circle.fill"];
+    [self save];
+    [self broadcast];
+    [self pushLocalProfileWithCompletion:nil];
+}
+
+- (void)updateBackgroundStyle:(NSString *)backgroundStyle {
+    self.root[kK_Background] = [self trimmedText:backgroundStyle maxLength:24 fallback:@"aurora"];
+    [self save];
+    [self broadcast];
+    [self pushLocalProfileWithCompletion:nil];
+}
+
+- (void)updateSignature:(NSString *)signature {
+    self.root[kK_Signature] = [self trimmedText:signature maxLength:36 fallback:@"今晚也要赢一局"];
+    [self save];
+    [self broadcast];
+    [self pushLocalProfileWithCompletion:nil];
+}
+
 #pragma mark - 上报
 
 - (void)reportResult:(JFGameResult *)result {
@@ -257,10 +322,15 @@ static NSString * const kK_Games          = @"games";       // {kind: {count, be
     // 成就判定
     [[JFAchievementStore shared] evaluateOnResult:result profile:self];
 
-    // 排行榜上传(本地 mock,后端接入后只换实现)
+    [[JFAnalyticsTracker shared] finishGameWithResult:result];
+
+    // 单局成绩与排行榜共用一条上报，完整保留胜负、用时和玩法细节。
     [[JFLeaderboardClient shared] submitScore:result.score
                                       forGame:result.kind
                                    difficulty:result.difficulty
+                                      duration:result.duration
+                                           win:result.win
+                                         extra:result.extra
                                    completion:nil];
 
     [self broadcast];
@@ -269,13 +339,59 @@ static NSString * const kK_Games          = @"games";       // {kind: {count, be
 #pragma mark - 同步占位
 
 - (void)pullRemoteProfileWithCompletion:(void (^)(BOOL))completion {
-    // TODO: 后端接入后实现。当前直接回调成功。
-    if (completion) completion(YES);
+    [[JFBackendClient shared] fetchProfileWithCompletion:^(NSDictionary * _Nullable profile, NSError * _Nullable error) {
+        if (!profile || error) {
+            dispatch_async(dispatch_get_main_queue(), ^{
+                if (completion) completion(NO);
+            });
+            return;
+        }
+
+        dispatch_async(dispatch_get_main_queue(), ^{
+            [self mergeRemoteProfile:profile];
+            [self save];
+            [self broadcast];
+            if (completion) completion(YES);
+        });
+    }];
 }
 
 - (void)pushLocalProfileWithCompletion:(void (^)(BOOL))completion {
-    // TODO: 后端接入后实现。当前直接回调成功。
-    if (completion) completion(YES);
+    NSDictionary *payload = [self remoteProfilePayload];
+    [[JFBackendClient shared] updateProfile:payload completion:^(BOOL success, NSError * _Nullable error) {
+        dispatch_async(dispatch_get_main_queue(), ^{
+            if (completion) completion(success && !error);
+        });
+    }];
+}
+
+- (NSDictionary *)remoteProfilePayload {
+    return @{
+        @"displayName": self.displayName,
+        @"avatarSymbol": self.avatarSymbolName,
+        @"background": self.backgroundStyle,
+        @"signature": self.signature,
+    };
+}
+
+- (void)mergeRemoteProfile:(NSDictionary *)profile {
+    NSString *name = [profile[@"displayName"] isKindOfClass:[NSString class]] ? profile[@"displayName"] : nil;
+    NSString *avatar = [profile[@"avatarSymbol"] isKindOfClass:[NSString class]] ? profile[@"avatarSymbol"] : nil;
+    NSString *background = [profile[@"background"] isKindOfClass:[NSString class]] ? profile[@"background"] : nil;
+    NSString *signature = [profile[@"signature"] isKindOfClass:[NSString class]] ? profile[@"signature"] : nil;
+
+    if (name.length > 0) self.root[kK_DisplayName] = name;
+    if (avatar.length > 0) self.root[kK_AvatarSymbol] = avatar;
+    if (background.length > 0) self.root[kK_Background] = background;
+    if (signature.length > 0) self.root[kK_Signature] = signature;
+
+    NSInteger remoteGames = [profile[@"totalGames"] integerValue];
+    if (remoteGames > self.totalGamesPlayed) {
+        self.root[kK_TotalGames] = @(remoteGames);
+        self.root[kK_TotalScore] = @([profile[@"totalScore"] integerValue]);
+        self.root[kK_Coins] = @([profile[@"coins"] integerValue]);
+        self.root[kK_Level] = @([profile[@"level"] integerValue]);
+    }
 }
 
 - (void)resetAll {

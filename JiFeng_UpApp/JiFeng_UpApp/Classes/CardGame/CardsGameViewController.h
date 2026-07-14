@@ -9,7 +9,26 @@
 
 NS_ASSUME_NONNULL_BEGIN
 
+typedef NS_ENUM(NSInteger, JFCardPartyMode) {
+    JFCardPartyModeMiss = 0,
+    JFCardPartyModeBigSister,
+    JFCardPartyModeYoungMaster,
+    JFCardPartyModeKingsOrder,
+    JFCardPartyModeTruthDare,
+    JFCardPartyModeChemistry,
+    JFCardPartyModeReaction,
+    JFCardPartyModeLuckyDraw,
+};
+
 @interface CardsGameViewController : rootVcViewController
+
+- (instancetype)initWithPartyMode:(JFCardPartyMode)mode;
+
++ (NSString *)titleForPartyMode:(JFCardPartyMode)mode;
++ (NSString *)guideForPartyMode:(JFCardPartyMode)mode;
++ (NSDictionary<NSString *, NSString *> *)ruleForRank:(NSString *)rank
+                                                  suit:(NSString *)suit
+                                             partyMode:(JFCardPartyMode)mode;
 
 @end
 

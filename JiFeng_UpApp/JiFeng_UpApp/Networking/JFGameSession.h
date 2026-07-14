@@ -68,6 +68,9 @@ typedef NS_ENUM(NSInteger, JFSessionRole) {
 /// 会话级错误(广告/浏览启动失败等)
 - (void)gameSession:(id<JFGameSession>)session didFailWithError:(NSError *)error;
 
+/// 线上房间创建或刷新后回调，可用于展示房间码。
+- (void)gameSessionDidUpdateRoom:(id<JFGameSession>)session;
+
 @end
 
 #pragma mark - Session
@@ -99,6 +102,14 @@ typedef NS_ENUM(NSInteger, JFSessionRole) {
 
 /// 发送消息。peer = nil 时广播给所有连接的对端
 - (BOOL)sendMessage:(JFGameMessage *)message toPeer:(nullable JFGamePeer *)peer;
+
+@optional
+
+/// 线上房间码。本地附近联机返回 nil。
+@property (nonatomic, copy, readonly, nullable) NSString *roomCode;
+
+/// 使用指定房间码加入；不实现时仍可使用 startAsClient 自动加入最新房间。
+- (void)startAsClientWithRoomCode:(NSString *)roomCode;
 
 @end
 

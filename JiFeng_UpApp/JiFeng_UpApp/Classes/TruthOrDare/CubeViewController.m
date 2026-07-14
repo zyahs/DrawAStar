@@ -9,25 +9,20 @@
 #import <QuartzCore/QuartzCore.h>
 #import "JFProfileStore.h"
 #import "JFDailyChallengeStore.h"
+#import "JFTheme.h"
 
 @interface CubeViewController ()
 @property (nonatomic, strong) NSArray<UIView *> *cubes;
 @property (nonatomic, strong) NSArray<UILabel *> *resultLabels;
 @property (nonatomic, strong) UILabel *resultLabel1;
 @property (nonatomic, strong) CAGradientLayer *resultGradientLayer;
-@property (nonatomic, strong) UIImageView *bgImageView;
 @end
 
 @implementation CubeViewController
 
 - (void)viewDidLoad {
     [super viewDidLoad];
-    self.view.backgroundColor = [UIColor blackColor];
-    self.bgImageView = [[UIImageView alloc] initWithImage:[UIImage imageNamed:@"b5"]];
-    self.bgImageView.frame = self.view.bounds;
-    self.bgImageView.autoresizingMask = UIViewAutoresizingFlexibleWidth | UIViewAutoresizingFlexibleHeight;
-    self.bgImageView.contentMode = UIViewContentModeScaleAspectFill;
-    [self.view addSubview:self.bgImageView];
+    self.view.backgroundColor = [JFTheme backgroundPrimary];
     
     [self setupCubes];
 
@@ -68,7 +63,7 @@
     CGFloat rollButtonY = y - rollButtonHeight - 20;
     rollButton.frame = CGRectMake(rollButtonX, rollButtonY, rollButtonWidth, rollButtonHeight);
     rollButton.autoresizingMask = UIViewAutoresizingFlexibleTopMargin | UIViewAutoresizingFlexibleLeftMargin | UIViewAutoresizingFlexibleRightMargin;
-    rollButton.backgroundColor = [UIColor systemPurpleColor];
+    rollButton.backgroundColor = [JFTheme brandPrimary];
     [rollButton setTitleColor:[UIColor whiteColor] forState:UIControlStateNormal];
     rollButton.titleLabel.font = [UIFont boldSystemFontOfSize:18];
     rollButton.layer.cornerRadius = 22;

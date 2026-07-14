@@ -50,6 +50,10 @@ extern NSNotificationName const JFProfileDidChangeNotification;
 @property (nonatomic, readonly) NSInteger currentStreakDays;     // 连续天数
 @property (nonatomic, readonly) NSInteger longestStreakDays;     // 历史最长连续
 @property (nonatomic, readonly) NSDate * _Nullable lastActiveDate;
+@property (nonatomic, readonly) NSString *displayName;            // 昵称
+@property (nonatomic, readonly) NSString *avatarSymbolName;        // 本地头像符号,后端接入后可替换为头像 URL
+@property (nonatomic, readonly) NSString *backgroundStyle;         // 个人背景风格
+@property (nonatomic, readonly) NSString *signature;               // 个性签名
 
 /// 进度:当前等级到下一级的 [0,1]
 - (CGFloat)progressToNextLevel;
@@ -77,6 +81,13 @@ extern NSNotificationName const JFProfileDidChangeNotification;
 
 /// 扣除金币;若余额不足返回 NO 且不扣款。成功后会发广播。
 - (BOOL)spendCoins:(NSInteger)amount;
+
+#pragma mark - 个人资料
+
+- (void)updateDisplayName:(NSString *)displayName;
+- (void)updateAvatarSymbolName:(NSString *)avatarSymbolName;
+- (void)updateBackgroundStyle:(NSString *)backgroundStyle;
+- (void)updateSignature:(NSString *)signature;
 
 #pragma mark - 同步占位(后端接入再实现)
 

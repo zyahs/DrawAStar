@@ -1,0 +1,174 @@
+{
+  "retrievedAt": "2026-07-11",
+  "license": "CC0-1.0",
+  "licenseUrl": "https://creativecommons.org/publicdomain/zero/1.0/",
+  "tracks": [
+    {
+      "title": "Ascend",
+      "creator": "Tricks & Traps",
+      "license": "CC0-1.0",
+      "sourcePage": "https://opengameart.org/content/free-rhythm-game-music-pack-1",
+      "sourceFile": "https://opengameart.org/sites/default/files/1_ascend.wav",
+      "sourceFileName": "P1_01_Ascend.wav",
+      "sourceSha256": "99b7a35e32d760cb3b7d5b1b66801be25a0650b35ad5ff43654b73d086b8a012",
+      "bundledFileName": "CC0_01_Ascend.m4a",
+      "bundledSha256": "bb403018a4050fca54180f87460fa9c788f4582f5afc21fa3d0399399dd3cf65"
+    },
+    {
+      "title": "Bow For Me",
+      "creator": "Tricks & Traps",
+      "license": "CC0-1.0",
+      "sourcePage": "https://opengameart.org/content/free-rhythm-game-music-pack-1",
+      "sourceFile": "https://opengameart.org/sites/default/files/3_bow_for_me.wav",
+      "sourceFileName": "P1_03_BowForMe.wav",
+      "sourceSha256": "fd67080f79aa23f00318ed4506bb98b77851421a4101b9f80c416d927fdb103b",
+      "bundledFileName": "CC0_02_BowForMe.m4a",
+      "bundledSha256": "17fd1add45824963098c5a3175b7035db0f75038baa36fe78acc2cefca9b9278"
+    },
+    {
+      "title": "Flying Temple",
+      "creator": "Tricks & Traps",
+      "license": "CC0-1.0",
+      "sourcePage": "https://opengameart.org/content/free-rhythm-game-music-pack-1",
+      "sourceFile": "https://opengameart.org/sites/default/files/5_flying_temple.wav",
+      "sourceFileName": "P1_05_FlyingTemple.wav",
+      "sourceSha256": "186937fc33649f4406e49ddb633d6cda5f253de9ef5996ffb8dbb6850d8506c6",
+      "bundledFileName": "CC0_03_FlyingTemple.m4a",
+      "bundledSha256": "ac14dccde71f869437666e67ac050268793fb43404b9d5b4b0022c6baeda5a91"
+    },
+    {
+      "title": "Glory Days",
+      "creator": "Tricks & Traps",
+      "license": "CC0-1.0",
+      "sourcePage": "https://opengameart.org/content/free-rhythm-game-music-pack-1",
+      "sourceFile": "https://opengameart.org/sites/default/files/6_glory_days.wav",
+      "sourceFileName": "P1_06_GloryDays.wav",
+      "sourceSha256": "665f2266a5bef60cb07f9df1272231997b88d224e835828b1dd53b7d6039cea0",
+      "bundledFileName": "CC0_04_GloryDays.m4a",
+      "bundledSha256": "bf323a3ffde1c0f228a635358c5c301f7e5ba06b22d516a8f1bc75df84e94885"
+    },
+    {
+      "title": "Lost Utopia",
+      "creator": "Tricks & Traps",
+      "license": "CC0-1.0",
+      "sourcePage": "https://opengameart.org/content/free-rhythm-game-music-pack-1",
+      "sourceFile": "https://opengameart.org/sites/default/files/7_lost_utopia.wav",
+      "sourceFileName": "P1_07_LostUtopia.wav",
+      "sourceSha256": "013c84557e8ed146a9dc7b2f7b06a9f333a377e99831194bce3f2c643f697ece",
+      "bundledFileName": "CC0_05_LostUtopia.m4a",
+      "bundledSha256": "9791924a5e48b6554f0454d82f36956cd76cd44623b92004fd276a36ff4035f7"
+    },
+    {
+      "title": "Psychic",
+      "creator": "Tricks & Traps",
+      "license": "CC0-1.0",
+      "sourcePage": "https://opengameart.org/content/free-rhythm-game-music-pack-1",
+      "sourceFile": "https://opengameart.org/sites/default/files/10_psychic.wav",
+      "sourceFileName": "P1_10_Psychic.wav",
+      "sourceSha256": "65d4c44511bb4841a0a56d36140912f73dd948063c3dfbf50c61aa77aa3959a7",
+      "bundledFileName": "CC0_06_Psychic.m4a",
+      "bundledSha256": "3357765e8d42d688743aa7796e8300b302185e6ae94f864f69d344de4299621c"
+    },
+    {
+      "title": "Stomper",
+      "creator": "Tricks & Traps",
+      "license": "CC0-1.0",
+      "sourcePage": "https://opengameart.org/content/free-rhythm-game-music-pack-2",
+      "sourceFile": "https://opengameart.org/sites/default/files/1_stomper.wav",
+      "sourceFileName": "P2_01_Stomper.wav",
+      "sourceSha256": "60994665d76e6f6cd265c192d480b90900576d863a66b9ae46410be49256a763",
+      "bundledFileName": "CC0_07_Stomper.m4a",
+      "bundledSha256": "469248108f967a883aa7a8bc9032830646a9c2baa5d05d0fd55266d8161a2437"
+    },
+    {
+      "title": "Drama",
+      "creator": "Tricks & Traps",
+      "license": "CC0-1.0",
+      "sourcePage": "https://opengameart.org/content/free-rhythm-game-music-pack-2",
+      "sourceFile": "https://opengameart.org/sites/default/files/2_drama.wav",
+      "sourceFileName": "P2_02_Drama.wav",
+      "sourceSha256": "f48e8a9222556e5d028e3bf80dca649b2315b198e5ad93ae5cce269118aa013f",
+      "bundledFileName": "CC0_08_Drama.m4a",
+      "bundledSha256": "03a080f4900fc5a79057322860747f7601996ebe59f720c99d15ea50810181d8"
+    },
+    {
+      "title": "Mental Corruption",
+      "creator": "Tricks & Traps",
+      "license": "CC0-1.0",
+      "sourcePage": "https://opengameart.org/content/free-rhythm-game-music-pack-2",
+      "sourceFile": "https://opengameart.org/sites/default/files/3_mental_corruption.wav",
+      "sourceFileName": "P2_03_MentalCorruption.wav",
+      "sourceSha256": "70dc0e3f36c1dfd14cd7fc68f04dd9f9fbeabbef7ee09d09ad76b703a3cae479",
+      "bundledFileName": "CC0_09_MentalCorruption.m4a",
+      "bundledSha256": "ed5cc306ccfbec76c3f29903b6dfd7cada46fdeaf9ecef8629b10ad5e61ca916"
+    },
+    {
+      "title": "Extended",
+      "creator": "Tricks & Traps",
+      "license": "CC0-1.0",
+      "sourcePage": "https://opengameart.org/content/free-rhythm-game-music-pack-2",
+      "sourceFile": "https://opengameart.org/sites/default/files/5_extended.wav",
+      "sourceFileName": "P2_05_Extended.wav",
+      "sourceSha256": "e71d83f5dba0187618354847fb86ae0f497d1016d1c7ac566a96b5325b75c5e1",
+      "bundledFileName": "CC0_10_Extended.m4a",
+      "bundledSha256": "7b7bea044860eda095306f81752b315bac2512b3d3b49570adea06759ee54526"
+    },
+    {
+      "title": "T.O.E.",
+      "creator": "Tricks & Traps",
+      "license": "CC0-1.0",
+      "sourcePage": "https://opengameart.org/content/free-rhythm-game-music-pack-2",
+      "sourceFile": "https://opengameart.org/sites/default/files/7_t.o.e.wav",
+      "sourceFileName": "P2_07_TOE.wav",
+      "sourceSha256": "8c4033f4a17de2a19ccdd25e0c2bd95e885912592f2324c474c7384c83cb9b83",
+      "bundledFileName": "CC0_11_TOE.m4a",
+      "bundledSha256": "6abcb3112fa2766c0f7ae52ef9d84719b0fc313b61cd224ecc96a392f597b600"
+    },
+    {
+      "title": "Ripped Apart",
+      "creator": "Tricks & Traps",
+      "license": "CC0-1.0",
+      "sourcePage": "https://opengameart.org/content/free-rhythm-game-music-pack-2",
+      "sourceFile": "https://opengameart.org/sites/default/files/8_ripped_apart.wav",
+      "sourceFileName": "P2_08_RippedApart.wav",
+      "sourceSha256": "cb99224897c22ff6a5b33f6c847ba95ae18c835fa19c076e3e65448cafd14dc7",
+      "bundledFileName": "CC0_12_RippedApart.m4a",
+      "bundledSha256": "d930b0e39f09a72edb425cbce23ddef0ab4c8eb4de1c13a2b3139456c3ff54d6"
+    },
+    {
+      "title": "Zen Devils",
+      "creator": "Tricks & Traps",
+      "license": "CC0-1.0",
+      "sourcePage": "https://opengameart.org/content/free-rhythm-game-music-pack-2",
+      "sourceFile": "https://opengameart.org/sites/default/files/9_zen_devils.wav",
+      "sourceFileName": "P2_09_ZenDevils.wav",
+      "sourceSha256": "aa5d35eddb291e011b84851a3d16d0c4f825cad33d28191ebca376b0d8cb6a95",
+      "bundledFileName": "CC0_13_ZenDevils.m4a",
+      "bundledSha256": "19f673bdb73870d9b8c1f13c2ff08bdae645a965cd9409fe8d3fb59468788681"
+    },
+    {
+      "title": "What's Cooking?",
+      "creator": "Tricks & Traps",
+      "license": "CC0-1.0",
+      "sourcePage": "https://opengameart.org/content/free-rhythm-game-music-pack-2",
+      "sourceFile": "https://opengameart.org/sites/default/files/10_whats_cooking.wav",
+      "sourceFileName": "P2_10_WhatsCooking.wav",
+      "sourceSha256": "34caa3b962a45cd68488de981c58dd588f469ebd43570e82aa8a90a1cae65566",
+      "bundledFileName": "CC0_14_WhatsCooking.m4a",
+      "bundledSha256": "e5261b3d3c12a45e18699c42cc8929959e134c086e395302833a5d8047d5fa03"
+    }
+  ],
+  "derivatives": [
+    {
+      "title": "新手训练",
+      "creator": "JiFeng / Tricks & Traps",
+      "license": "CC0-1.0",
+      "sourceTitle": "Extended",
+      "sourcePage": "https://opengameart.org/content/free-rhythm-game-music-pack-2",
+      "sourceBundledFileName": "CC0_10_Extended.m4a",
+      "operation": "First 67.2 seconds excerpted for a repeatable tutorial chart",
+      "bundledFileName": "Rhythm_Tutorial.m4a",
+      "bundledSha256": "9512cef7aebfc523a1da73ed406dcb9ddc178b0d1f573ba6a4715bd9d9f8e9d0"
+    }
+  ]
+}

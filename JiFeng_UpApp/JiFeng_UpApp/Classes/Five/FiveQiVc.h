@@ -6,7 +6,7 @@
 //  Copyright © 2016年 itcast. All rights reserved.
 //
 
-#import "ViewController.h"
+#import "rootVcViewController.h"
 
 @interface FiveQiVc : rootVcViewController
 

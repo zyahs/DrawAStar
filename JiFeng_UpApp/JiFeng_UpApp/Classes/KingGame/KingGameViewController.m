@@ -9,6 +9,7 @@
 #import "KingGameViewController.h"
 #import "JFTheme.h"
 #import "JFGameSession.h"
+#import "JFPlayerSetup.h"
 
 static NSString * const kKingGameServiceType = @"kinggame";
 
@@ -24,7 +25,6 @@ static NSString * const kKingGameServiceType = @"kinggame";
 @property (nonatomic, assign) NSInteger kingIndex;
 
 // UI
-@property (nonatomic, strong) UIImageView *bgImageView;
 @property (nonatomic, strong) UIView      *overlayView;
 @property (nonatomic, strong) UILabel     *titleLabel;
 @property (nonatomic, strong) UILabel     *subtitleLabel;
@@ -49,7 +49,7 @@ static NSString * const kKingGameServiceType = @"kinggame";
     [self buildContent];
 
     // 创建会话(本地)
-    self.session = [JFGameSessionFactory localSessionForServiceType:kKingGameServiceType];
+    self.session = [JFGameSessionFactory sessionForServiceType:kKingGameServiceType mode:JFSessionModeRemote];
     self.session.delegate = self;
 }
 
@@ -57,19 +57,17 @@ static NSString * const kKingGameServiceType = @"kinggame";
     [self.session stop];
 }
 
+- (void)viewDidAppear:(BOOL)animated {
+    [super viewDidAppear:animated];
+    [JFPlayerSetup ensureFromViewController:self completion:nil];
+}
+
 #pragma mark - UI 搭建
 
 - (void)buildBackground {
-    self.bgImageView = [[UIImageView alloc] initWithImage:[UIImage imageNamed:@"b6"]];
-    self.bgImageView.frame = self.view.bounds;
-    self.bgImageView.autoresizingMask = UIViewAutoresizingFlexibleWidth | UIViewAutoresizingFlexibleHeight;
-    self.bgImageView.contentMode = UIViewContentModeScaleAspectFill;
-    [self.view addSubview:self.bgImageView];
-
-    // 暗色蒙层,提升文字可读性
     self.overlayView = [[UIView alloc] initWithFrame:self.view.bounds];
     self.overlayView.autoresizingMask = UIViewAutoresizingFlexibleWidth | UIViewAutoresizingFlexibleHeight;
-    self.overlayView.backgroundColor = [[UIColor blackColor] colorWithAlphaComponent:0.45];
+    self.overlayView.backgroundColor = [[UIColor blackColor] colorWithAlphaComponent:0.24];
     [self.view addSubview:self.overlayView];
 }
 
@@ -199,23 +197,45 @@ static NSString * const kKingGameServiceType = @"kinggame";
 #pragma mark - 操作
 
 - (void)createGame {
+    if (![JFPlayerSetup isComplete]) {
+        __weak typeof(self) weakSelf = self;
+        [JFPlayerSetup ensureFromViewController:self completion:^(BOOL complete) {
+            if (complete) [weakSelf beginCreateGame];
+        }];
+        return;
+    }
+    [self beginCreateGame];
+}
+
+- (void)beginCreateGame {
     [JFTheme hapticImpactMedium];
     self.isHost = YES;
     [self.session startAsHost];
     self.createButton.hidden = YES;
     self.joinButton.hidden = YES;
     self.startButton.hidden = NO;
-    self.statusLabel.text = @"等待玩家加入...";
+    self.statusLabel.text = [NSString stringWithFormat:@"%@ 已创建房间，等待玩家加入...", JFPlayerSetup.currentDisplayName];
 }
 
 - (void)joinGame {
+    if (![JFPlayerSetup isComplete]) {
+        __weak typeof(self) weakSelf = self;
+        [JFPlayerSetup ensureFromViewController:self completion:^(BOOL complete) {
+            if (complete) [weakSelf beginJoinGame];
+        }];
+        return;
+    }
+    [self beginJoinGame];
+}
+
+- (void)beginJoinGame {
     [JFTheme hapticImpactMedium];
     self.isHost = NO;
     [self.session startAsClient];
     self.createButton.hidden = YES;
     self.joinButton.hidden = YES;
     self.startButton.hidden = YES;
-    self.statusLabel.text = @"正在搜索房间...";
+    self.statusLabel.text = [NSString stringWithFormat:@"%@ 正在搜索房间...", JFPlayerSetup.currentDisplayName];
 }
 
 - (void)startGame {
@@ -245,14 +265,15 @@ static NSString * const kKingGameServiceType = @"kinggame";
     NSArray<JFGamePeer *> *peers = self.session.connectedPeers;
     for (NSInteger i = 0; i < (NSInteger)peers.count; i++) {
         JFGameMessage *m = [JFGameMessage messageWithType:JFMessageTypeKingDeal
-                                                  payload:@{ @"card": selected[i] }];
+                                                  payload:@{ @"card": selected[i], @"displayName": peers[i].displayName ?: @"玩家" }];
         [self.session sendMessage:m toPeer:peers[i]];
     }
 
     self.receivedIdentity = selected[peers.count];
     [self showIdentity:self.receivedIdentity];
     self.startButton.hidden = YES;
-    self.statusLabel.text = [NSString stringWithFormat:@"K 的位置:第 %ld 号", (long)(self.kingIndex + 1)];
+    self.statusLabel.text = [NSString stringWithFormat:@"%@，发牌完成 · K 在第 %ld 个位置",
+                             JFPlayerSetup.currentDisplayName, (long)(self.kingIndex + 1)];
     [JFTheme hapticNotification:UINotificationFeedbackTypeSuccess];
 }
 
@@ -292,15 +313,19 @@ static NSString * const kKingGameServiceType = @"kinggame";
      didChangeState:(JFSessionPeerState)state {
     if (state == JFSessionPeerStateConnected) {
         if (self.isHost) {
-            self.statusLabel.text = [NSString stringWithFormat:@"已加入 %lu 名玩家",
-                                     (unsigned long)session.connectedPeers.count];
+            NSArray *names = [session.connectedPeers valueForKey:@"displayName"];
+            self.statusLabel.text = [NSString stringWithFormat:@"已加入 %lu 名玩家：%@",
+                                     (unsigned long)session.connectedPeers.count,
+                                     [names componentsJoinedByString:@"、"]];
         } else {
-            self.statusLabel.text = @"已连接到房主,等待发牌...";
+            self.statusLabel.text = [NSString stringWithFormat:@"%@ 已连接到房主，等待发牌...", JFPlayerSetup.currentDisplayName];
         }
     } else if (state == JFSessionPeerStateNotConnected) {
         if (self.isHost) {
-            self.statusLabel.text = [NSString stringWithFormat:@"已加入 %lu 名玩家",
-                                     (unsigned long)session.connectedPeers.count];
+            NSArray *names = [session.connectedPeers valueForKey:@"displayName"];
+            self.statusLabel.text = [NSString stringWithFormat:@"当前 %lu 名玩家：%@",
+                                     (unsigned long)session.connectedPeers.count,
+                                     [names componentsJoinedByString:@"、"]];
         }
     }
 }
@@ -313,6 +338,8 @@ static NSString * const kKingGameServiceType = @"kinggame";
         if (card.length > 0) {
             self.receivedIdentity = card;
             [self showIdentity:card];
+            NSString *name = [message.payload[@"displayName"] isKindOfClass:[NSString class]] ? message.payload[@"displayName"] : JFPlayerSetup.currentDisplayName;
+            self.statusLabel.text = [NSString stringWithFormat:@"%@，你已收到自己的牌", name];
         }
     }
 }

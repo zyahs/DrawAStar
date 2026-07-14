@@ -8,6 +8,7 @@
 @interface JFGameTileCell ()
 @property (nonatomic, strong) CAGradientLayer *gradientLayer;
 @property (nonatomic, strong) UIImageView     *iconView;
+@property (nonatomic, strong) UIImageView     *watermarkView;
 @property (nonatomic, strong) UILabel         *titleLabel;
 @property (nonatomic, strong) UILabel         *subtitleLabel;
 @property (nonatomic, strong) UIView          *badgeView;     // 联机标识
@@ -48,6 +49,19 @@
     [self.contentView.layer setValue:gloss forKey:@"glossLayer"];
 
     // 主图标
+    self.watermarkView = [[UIImageView alloc] init];
+    self.watermarkView.translatesAutoresizingMaskIntoConstraints = NO;
+    self.watermarkView.tintColor = [[UIColor whiteColor] colorWithAlphaComponent:0.22];
+    self.watermarkView.contentMode = UIViewContentModeScaleAspectFit;
+    self.watermarkView.preferredSymbolConfiguration =
+        [UIImageSymbolConfiguration configurationWithPointSize:86 weight:UIImageSymbolWeightBlack];
+    [self.contentView addSubview:self.watermarkView];
+
+    UIView *veil = [[UIView alloc] init];
+    veil.translatesAutoresizingMaskIntoConstraints = NO;
+    veil.backgroundColor = [UIColor colorWithWhite:0 alpha:0.10];
+    [self.contentView addSubview:veil];
+
     self.iconView = [[UIImageView alloc] init];
     self.iconView.tintColor = [UIColor whiteColor];
     self.iconView.contentMode = UIViewContentModeScaleAspectFit;
@@ -110,6 +124,16 @@
     [JFTheme applyCardShadow:self];
 
     [NSLayoutConstraint activateConstraints:@[
+        [self.watermarkView.trailingAnchor constraintEqualToAnchor:self.contentView.trailingAnchor constant:24],
+        [self.watermarkView.topAnchor constraintEqualToAnchor:self.contentView.topAnchor constant:18],
+        [self.watermarkView.widthAnchor constraintEqualToConstant:112],
+        [self.watermarkView.heightAnchor constraintEqualToConstant:112],
+
+        [veil.topAnchor constraintEqualToAnchor:self.contentView.topAnchor],
+        [veil.leadingAnchor constraintEqualToAnchor:self.contentView.leadingAnchor],
+        [veil.trailingAnchor constraintEqualToAnchor:self.contentView.trailingAnchor],
+        [veil.bottomAnchor constraintEqualToAnchor:self.contentView.bottomAnchor],
+
         [self.iconView.topAnchor constraintEqualToAnchor:self.contentView.topAnchor constant:JFSpacing16],
         [self.iconView.leadingAnchor constraintEqualToAnchor:self.contentView.leadingAnchor constant:JFSpacing16],
         [self.iconView.widthAnchor constraintEqualToConstant:42],
@@ -167,11 +191,16 @@
     self.titleLabel.text = entry.title;
     self.subtitleLabel.text = entry.subtitle;
     self.iconView.image = [UIImage systemImageNamed:entry.symbolName];
+    NSString *themeSymbol = [JFTheme themeSymbolName];
+    self.watermarkView.image = [UIImage systemImageNamed:themeSymbol.length > 0 ? themeSymbol : entry.symbolName];
     self.badgeView.hidden = !entry.supportsMultipeer;
 
     NSArray<UIColor *> *colors = [JFTheme gradientColorsForIndex:index];
-    self.gradientLayer.colors = @[(__bridge id)colors.firstObject.CGColor,
-                                  (__bridge id)colors.lastObject.CGColor];
+    UIColor *themeTint = [[JFTheme brandPrimary] colorWithAlphaComponent:0.45];
+    self.gradientLayer.colors = @[(__bridge id)[colors.firstObject colorWithAlphaComponent:0.96].CGColor,
+                                  (__bridge id)themeTint.CGColor,
+                                  (__bridge id)[colors.lastObject colorWithAlphaComponent:0.96].CGColor];
+    self.gradientLayer.locations = @[@0.0, @0.55, @1.0];
 }
 
 #pragma mark - 按压反馈

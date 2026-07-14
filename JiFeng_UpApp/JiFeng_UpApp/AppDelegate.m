@@ -7,6 +7,8 @@
 
 #import "AppDelegate.h"
 #import "JFNotificationScheduler.h"
+#import "JFBackendClient.h"
+#import "JFLeaderboardClient.h"
 
 @interface AppDelegate ()
 
@@ -18,6 +20,9 @@
 - (BOOL)application:(UIApplication *)application didFinishLaunchingWithOptions:(NSDictionary *)launchOptions {
     // 申请通知权限并安排周报(每周日 20:00 推送本周战绩)
     [[JFNotificationScheduler shared] setupOnLaunch];
+    [[JFBackendClient shared] configureDefault];
+    [JFLeaderboardClient setSharedClient:[JFBackendClient shared]];
+    [[JFBackendClient shared] ensureSignedInWithCompletion:nil];
     return YES;
 }
 

@@ -48,15 +48,9 @@ static NSString *const kBestKey = @"jf_reaction_best";
 }
 
 - (void)buildBackground {
-    self.bgImageView = [[UIImageView alloc] initWithImage:[UIImage imageNamed:@"3333"]];
-    self.bgImageView.frame = self.view.bounds;
-    self.bgImageView.autoresizingMask = UIViewAutoresizingFlexibleWidth | UIViewAutoresizingFlexibleHeight;
-    self.bgImageView.contentMode = UIViewContentModeScaleAspectFill;
-    [self.view addSubview:self.bgImageView];
-
     UIView *overlay = [[UIView alloc] initWithFrame:self.view.bounds];
     overlay.autoresizingMask = UIViewAutoresizingFlexibleWidth | UIViewAutoresizingFlexibleHeight;
-    overlay.backgroundColor = [[UIColor blackColor] colorWithAlphaComponent:0.55];
+    overlay.backgroundColor = [[UIColor blackColor] colorWithAlphaComponent:0.22];
     [self.view addSubview:overlay];
 }
 

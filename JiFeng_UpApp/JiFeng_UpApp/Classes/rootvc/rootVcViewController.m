@@ -7,9 +7,11 @@
 
 #import "rootVcViewController.h"
 #import "JFTheme.h"
+#import "JFSkinStore.h"
 
 @interface rootVcViewController () <UIGestureRecognizerDelegate>
 @property (nonatomic, strong, nullable) UIButton *jfBackButton;
+@property (nonatomic, strong, nullable, readwrite) UIView *jfThemeBackgroundView;
 @end
 
 @implementation rootVcViewController
@@ -17,6 +19,15 @@
 - (void)viewDidLoad {
     [super viewDidLoad];
     [self.navigationController setNavigationBarHidden:YES animated:NO];
+    [self jf_installThemeBackgroundIfNeeded];
+    [[NSNotificationCenter defaultCenter] addObserver:self
+                                             selector:@selector(jf_onSkinDidChange)
+                                                 name:JFSkinDidChangeNotification
+                                               object:nil];
+}
+
+- (void)dealloc {
+    [[NSNotificationCenter defaultCenter] removeObserver:self];
 }
 
 #pragma mark - 默认仅支持竖屏(子类可覆盖,例如五子棋强制横屏)
@@ -33,14 +44,43 @@
 
 - (void)viewWillAppear:(BOOL)animated {
     [super viewWillAppear:animated];
+    [self jf_installThemeBackgroundIfNeeded];
     [self jf_installBackIfNeeded];
+}
+
+#pragma mark - 主题背景
+
+- (void)jf_installThemeBackgroundIfNeeded {
+    if (![self jf_prefersThemedBackground]) {
+        [self.jfThemeBackgroundView removeFromSuperview];
+        self.jfThemeBackgroundView = nil;
+        return;
+    }
+    if (self.jfThemeBackgroundView.superview == self.view) {
+        [self.view sendSubviewToBack:self.jfThemeBackgroundView];
+        return;
+    }
+    self.view.backgroundColor = [JFTheme backgroundPrimary];
+    self.jfThemeBackgroundView = [JFTheme installThemedBackgroundInView:self.view];
+    [self.view sendSubviewToBack:self.jfThemeBackgroundView];
+}
+
+- (void)jf_onSkinDidChange {
+    [self.jfThemeBackgroundView removeFromSuperview];
+    self.jfThemeBackgroundView = nil;
+    [self jf_installThemeBackgroundIfNeeded];
+    [self jf_installBackIfNeeded];
+}
+
+- (BOOL)jf_prefersThemedBackground {
+    return YES;
 }
 
 #pragma mark - 返回按钮
 
 - (void)jf_installBackIfNeeded {
     if (!self.navigationController) { return; }
-    if (self.navigationController.viewControllers.firstObject == self) {
+    if (self.jfSuppressBackButton || self.navigationController.viewControllers.firstObject == self) {
         // 根控制器不显示返回按钮
         [self.jfBackButton removeFromSuperview];
         self.jfBackButton = nil;

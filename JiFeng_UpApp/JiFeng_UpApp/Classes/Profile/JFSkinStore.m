@@ -5,6 +5,7 @@
 
 #import "JFSkinStore.h"
 #import "JFProfileStore.h"
+#import "JFAnalyticsTracker.h"
 
 NSNotificationName const JFSkinDidChangeNotification = @"JFSkinDidChangeNotification";
 
@@ -21,6 +22,10 @@ static JFSkin *Sk(NSString *sid, NSString *name, NSString *desc,
                   CGFloat r1, CGFloat g1, CGFloat b1,
                   CGFloat r2, CGFloat g2, CGFloat b2,
                   CGFloat r3, CGFloat g3, CGFloat b3,
+                  CGFloat rt, CGFloat gt, CGFloat bt,
+                  CGFloat rb, CGFloat gb, CGFloat bb,
+                  NSString *pattern,
+                  NSString *symbol,
                   NSInteger price) {
     JFSkin *s = [JFSkin new];
     s.skinId = sid;
@@ -29,6 +34,10 @@ static JFSkin *Sk(NSString *sid, NSString *name, NSString *desc,
     s.brandPrimary   = [UIColor colorWithRed:r1 green:g1 blue:b1 alpha:1];
     s.brandSecondary = [UIColor colorWithRed:r2 green:g2 blue:b2 alpha:1];
     s.accent         = [UIColor colorWithRed:r3 green:g3 blue:b3 alpha:1];
+    s.backgroundTop  = [UIColor colorWithRed:rt green:gt blue:bt alpha:1];
+    s.backgroundBottom = [UIColor colorWithRed:rb green:gb blue:bb alpha:1];
+    s.patternStyle = pattern;
+    s.symbolName = symbol;
     s.price = price;
     return s;
 }
@@ -51,40 +60,78 @@ static JFSkin *Sk(NSString *sid, NSString *name, NSString *desc,
 
 - (instancetype)init {
     if (self = [super init]) {
-        // 8 套皮肤 —— 第一套免费,其余按价格阶梯
+        // 主题不只是颜色:每套带背景、图案、符号和卡片氛围。
         _allSkins = @[
-            Sk(@"default", @"经典紫蓝", @"默认主题,沉稳百搭",
+            Sk(@"default", @"星夜游乐场", @"默认主题,轻霓虹与星尘",
                0.46, 0.42, 0.95,
                0.96, 0.45, 0.78,
-               0.20, 0.85, 0.78, 0),
-            Sk(@"sunset", @"晚霞橙", @"温暖落日,氛围拉满",
+               0.20, 0.85, 0.78,
+               0.06, 0.06, 0.12,
+               0.12, 0.06, 0.22,
+               @"stars", @"sparkles", 0),
+            Sk(@"monster", @"精灵冒险", @"草地、能量球和伙伴感",
+               0.18, 0.68, 0.36,
+               0.99, 0.78, 0.24,
+               0.20, 0.55, 1.00,
+               0.06, 0.18, 0.12,
+               0.02, 0.34, 0.22,
+               @"monsters", @"bolt.circle.fill", 360),
+            Sk(@"kitty", @"Kitty 糖果屋", @"蝴蝶结、奶油粉和软糖",
+               1.00, 0.46, 0.66,
+               1.00, 0.82, 0.90,
+               0.98, 0.22, 0.42,
+               0.18, 0.07, 0.14,
+               0.48, 0.15, 0.28,
+               @"bows", @"heart.circle.fill", 360),
+            Sk(@"sunset", @"落日电玩城", @"暖橙霓虹,复古街机",
                0.99, 0.45, 0.36,
                0.99, 0.72, 0.30,
-               0.99, 0.38, 0.62, 200),
-            Sk(@"ocean", @"深海蓝", @"清凉宁静,沉浸感十足",
+               0.99, 0.38, 0.62,
+               0.18, 0.08, 0.16,
+               0.52, 0.16, 0.10,
+               @"sunset", @"sun.max.fill", 260),
+            Sk(@"ocean", @"深海水族馆", @"蓝绿流光,像夜潜海面",
                0.20, 0.55, 0.92,
                0.25, 0.78, 0.92,
-               0.30, 0.88, 0.62, 300),
-            Sk(@"forest", @"翠林绿", @"生机盎然,治愈系",
+               0.30, 0.88, 0.62,
+               0.02, 0.10, 0.20,
+               0.03, 0.28, 0.36,
+               @"bubbles", @"drop.fill", 320),
+            Sk(@"forest", @"森林露营", @"树影、萤火与自然绿",
                0.20, 0.70, 0.50,
                0.45, 0.85, 0.40,
-               0.95, 0.85, 0.35, 400),
-            Sk(@"sakura", @"樱花粉", @"少女心爆棚",
+               0.95, 0.85, 0.35,
+               0.04, 0.12, 0.08,
+               0.08, 0.28, 0.14,
+               @"leaves", @"leaf.fill", 420),
+            Sk(@"sakura", @"樱花祭", @"粉白纸灯,轻甜但不腻",
                0.96, 0.55, 0.78,
                0.99, 0.78, 0.85,
-               0.62, 0.45, 0.95, 500),
-            Sk(@"midnight", @"暗夜霓虹", @"赛博朋克风",
+               0.62, 0.45, 0.95,
+               0.16, 0.08, 0.14,
+               0.38, 0.18, 0.30,
+               @"petals", @"camera.macro", 520),
+            Sk(@"midnight", @"赛博夜跑", @"黑紫底、青粉光轨",
                0.32, 0.18, 0.55,
                0.95, 0.20, 0.62,
-               0.20, 0.95, 0.75, 800),
-            Sk(@"gold", @"皇室金", @"奢华尊贵",
+               0.20, 0.95, 0.75,
+               0.02, 0.02, 0.07,
+               0.16, 0.05, 0.22,
+               @"neon", @"waveform.path.ecg", 780),
+            Sk(@"gold", @"皇室剧场", @"金色幕布和奖章感",
                0.85, 0.65, 0.20,
                0.95, 0.85, 0.40,
-               0.65, 0.25, 0.20, 1200),
-            Sk(@"mono", @"极简灰", @"性冷淡风,纯粹专注",
+               0.65, 0.25, 0.20,
+               0.12, 0.08, 0.04,
+               0.34, 0.22, 0.08,
+               @"medals", @"crown.fill", 980),
+            Sk(@"custom", @"自定义工坊", @"用当前资料背景做轻定制",
                0.45, 0.45, 0.50,
                0.65, 0.65, 0.70,
-               0.85, 0.85, 0.92, 600),
+               0.85, 0.85, 0.92,
+               0.07, 0.08, 0.10,
+               0.20, 0.22, 0.28,
+               @"custom", @"slider.horizontal.3", 0),
         ];
         [self load];
     }
@@ -154,6 +201,7 @@ static JFSkin *Sk(NSString *sid, NSString *name, NSString *desc,
     self.currentSkinId = skinId;
     [self save];
     [self broadcast];
+    [[JFAnalyticsTracker shared] trackEvent:@"skin_apply" properties:@{ @"skinId": skinId }];
     return YES;
 }
 

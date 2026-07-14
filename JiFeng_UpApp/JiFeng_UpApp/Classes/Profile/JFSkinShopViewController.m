@@ -11,9 +11,9 @@
 #pragma mark - Cell
 
 @interface JFSkinCell : UICollectionViewCell
-@property (nonatomic, strong) UIView    *swatch1;
-@property (nonatomic, strong) UIView    *swatch2;
-@property (nonatomic, strong) UIView    *swatch3;
+@property (nonatomic, strong) UIView    *previewView;
+@property (nonatomic, strong) CAGradientLayer *previewGradient;
+@property (nonatomic, strong) UIImageView *motifView;
 @property (nonatomic, strong) UILabel   *nameLabel;
 @property (nonatomic, strong) UILabel   *descLabel;
 @property (nonatomic, strong) UILabel   *priceLabel;
@@ -29,16 +29,27 @@
         self.contentView.layer.cornerCurve  = kCACornerCurveContinuous;
         self.contentView.layer.borderWidth  = 1.0;
         self.contentView.layer.borderColor  = [JFTheme cardBorder].CGColor;
-        self.contentView.backgroundColor    = [JFTheme backgroundSecondary];
+        self.contentView.backgroundColor    = [UIColor colorWithWhite:1 alpha:0.07];
         self.contentView.clipsToBounds      = YES;
 
-        _swatch1 = [UIView new]; _swatch1.translatesAutoresizingMaskIntoConstraints = NO;
-        _swatch2 = [UIView new]; _swatch2.translatesAutoresizingMaskIntoConstraints = NO;
-        _swatch3 = [UIView new]; _swatch3.translatesAutoresizingMaskIntoConstraints = NO;
-        for (UIView *v in @[_swatch1, _swatch2, _swatch3]) {
-            v.layer.cornerRadius = 12;
-            [self.contentView addSubview:v];
-        }
+        _previewView = [UIView new];
+        _previewView.translatesAutoresizingMaskIntoConstraints = NO;
+        _previewView.layer.cornerRadius = 18;
+        _previewView.layer.cornerCurve = kCACornerCurveContinuous;
+        _previewView.clipsToBounds = YES;
+        [self.contentView addSubview:_previewView];
+
+        _previewGradient = [CAGradientLayer layer];
+        _previewGradient.startPoint = CGPointMake(0.08, 0.0);
+        _previewGradient.endPoint = CGPointMake(0.95, 1.0);
+        [_previewView.layer addSublayer:_previewGradient];
+
+        _motifView = [[UIImageView alloc] init];
+        _motifView.translatesAutoresizingMaskIntoConstraints = NO;
+        _motifView.tintColor = [[UIColor whiteColor] colorWithAlphaComponent:0.86];
+        _motifView.contentMode = UIViewContentModeScaleAspectFit;
+        _motifView.preferredSymbolConfiguration = [UIImageSymbolConfiguration configurationWithPointSize:42 weight:UIImageSymbolWeightBlack];
+        [_previewView addSubview:_motifView];
 
         _nameLabel = [UILabel new];
         _nameLabel.translatesAutoresizingMaskIntoConstraints = NO;
@@ -72,22 +83,17 @@
 
         UILayoutGuide *g = self.contentView.layoutMarginsGuide;
         [NSLayoutConstraint activateConstraints:@[
-            [_swatch1.topAnchor      constraintEqualToAnchor:g.topAnchor constant:JFSpacing8],
-            [_swatch1.leadingAnchor  constraintEqualToAnchor:g.leadingAnchor],
-            [_swatch1.widthAnchor    constraintEqualToConstant:24],
-            [_swatch1.heightAnchor   constraintEqualToConstant:24],
+            [_previewView.topAnchor      constraintEqualToAnchor:g.topAnchor constant:JFSpacing4],
+            [_previewView.leadingAnchor  constraintEqualToAnchor:g.leadingAnchor],
+            [_previewView.trailingAnchor constraintEqualToAnchor:g.trailingAnchor],
+            [_previewView.heightAnchor   constraintEqualToConstant:82],
 
-            [_swatch2.topAnchor      constraintEqualToAnchor:_swatch1.topAnchor],
-            [_swatch2.leadingAnchor  constraintEqualToAnchor:_swatch1.trailingAnchor constant:JFSpacing8],
-            [_swatch2.widthAnchor    constraintEqualToConstant:24],
-            [_swatch2.heightAnchor   constraintEqualToConstant:24],
+            [_motifView.centerXAnchor constraintEqualToAnchor:_previewView.centerXAnchor],
+            [_motifView.centerYAnchor constraintEqualToAnchor:_previewView.centerYAnchor],
+            [_motifView.widthAnchor constraintEqualToConstant:62],
+            [_motifView.heightAnchor constraintEqualToConstant:62],
 
-            [_swatch3.topAnchor      constraintEqualToAnchor:_swatch1.topAnchor],
-            [_swatch3.leadingAnchor  constraintEqualToAnchor:_swatch2.trailingAnchor constant:JFSpacing8],
-            [_swatch3.widthAnchor    constraintEqualToConstant:24],
-            [_swatch3.heightAnchor   constraintEqualToConstant:24],
-
-            [_nameLabel.topAnchor      constraintEqualToAnchor:_swatch1.bottomAnchor constant:JFSpacing12],
+            [_nameLabel.topAnchor      constraintEqualToAnchor:_previewView.bottomAnchor constant:JFSpacing12],
             [_nameLabel.leadingAnchor  constraintEqualToAnchor:g.leadingAnchor],
             [_nameLabel.trailingAnchor constraintLessThanOrEqualToAnchor:_priceLabel.leadingAnchor constant:-JFSpacing8],
 
@@ -107,10 +113,17 @@
     return self;
 }
 
+- (void)layoutSubviews {
+    [super layoutSubviews];
+    self.previewGradient.frame = self.previewView.bounds;
+}
+
 - (void)bindSkin:(JFSkin *)skin {
-    self.swatch1.backgroundColor = skin.brandPrimary;
-    self.swatch2.backgroundColor = skin.brandSecondary;
-    self.swatch3.backgroundColor = skin.accent;
+    self.previewGradient.colors = @[(__bridge id)skin.backgroundTop.CGColor,
+                                    (__bridge id)skin.brandPrimary.CGColor,
+                                    (__bridge id)skin.backgroundBottom.CGColor];
+    self.previewGradient.locations = @[@0.0, @0.55, @1.0];
+    self.motifView.image = [UIImage systemImageNamed:skin.symbolName ?: @"sparkles"];
     self.nameLabel.text = skin.displayName;
     self.descLabel.text = skin.desc;
 
@@ -160,7 +173,13 @@
 - (void)viewDidLoad {
     [super viewDidLoad];
     self.view.backgroundColor = [JFTheme backgroundPrimary];
-    self.title = @"皮肤商店";
+
+    UILabel *title = [UILabel new];
+    title.translatesAutoresizingMaskIntoConstraints = NO;
+    title.text = @"主题工坊";
+    title.font = [JFTheme fontTitle];
+    title.textColor = [JFTheme textPrimary];
+    [self.view addSubview:title];
 
     UILabel *coins = [UILabel new];
     coins.translatesAutoresizingMaskIntoConstraints = NO;
@@ -188,10 +207,14 @@
 
     UILayoutGuide *safe = self.view.safeAreaLayoutGuide;
     [NSLayoutConstraint activateConstraints:@[
-        [coins.topAnchor      constraintEqualToAnchor:safe.topAnchor constant:JFSpacing8],
+        [title.leadingAnchor constraintEqualToAnchor:safe.leadingAnchor constant:72],
+        [title.topAnchor constraintEqualToAnchor:safe.topAnchor constant:JFSpacing16],
+        [title.trailingAnchor constraintLessThanOrEqualToAnchor:coins.leadingAnchor constant:-JFSpacing12],
+
+        [coins.centerYAnchor  constraintEqualToAnchor:title.centerYAnchor],
         [coins.trailingAnchor constraintEqualToAnchor:safe.trailingAnchor constant:-JFSpacing16],
 
-        [cv.topAnchor      constraintEqualToAnchor:coins.bottomAnchor constant:JFSpacing4],
+        [cv.topAnchor      constraintEqualToAnchor:title.bottomAnchor constant:JFSpacing20],
         [cv.leadingAnchor  constraintEqualToAnchor:safe.leadingAnchor],
         [cv.trailingAnchor constraintEqualToAnchor:safe.trailingAnchor],
         [cv.bottomAnchor   constraintEqualToAnchor:safe.bottomAnchor],
@@ -199,6 +222,11 @@
 
     [[NSNotificationCenter defaultCenter] addObserver:self selector:@selector(onChanged) name:JFSkinDidChangeNotification object:nil];
     [[NSNotificationCenter defaultCenter] addObserver:self selector:@selector(onChanged) name:JFProfileDidChangeNotification object:nil];
+}
+
+- (void)viewWillAppear:(BOOL)animated {
+    [super viewWillAppear:animated];
+    [self.navigationController setNavigationBarHidden:YES animated:animated];
 }
 
 - (void)dealloc {

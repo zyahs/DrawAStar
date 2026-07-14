@@ -30,14 +30,45 @@
                                 difficulty:(JFRhythmDifficulty)d {
     if (full.count == 0) return @[];
 
+    BOOL authoredChart = NO;
+    for (JFRhythmBeat *beat in full) {
+        if (beat.minimumDifficulty >= 0) {
+            authoredChart = YES;
+            break;
+        }
+    }
+
+    if (authoredChart) {
+        NSMutableArray<JFRhythmBeat *> *authored = [NSMutableArray array];
+        for (JFRhythmBeat *beat in full) {
+            NSInteger minimum = MAX(0, beat.minimumDifficulty);
+            if (minimum > d) continue;
+            JFRhythmBeat *copy = [JFRhythmBeat beatAt:beat.time
+                                                lane:MAX(0, MIN(3, beat.lane))
+                                            strength:beat.strength
+                                                type:beat.type
+                                            duration:beat.duration
+                                             endLane:MAX(0, MIN(3, beat.endLane))];
+            copy.minimumDifficulty = beat.minimumDifficulty;
+            [authored addObject:copy];
+        }
+        return [authored sortedArrayUsingComparator:^NSComparisonResult(JFRhythmBeat *a, JFRhythmBeat *b) {
+            if (a.time < b.time) return NSOrderedAscending;
+            if (a.time > b.time) return NSOrderedDescending;
+            if (a.lane < b.lane) return NSOrderedAscending;
+            if (a.lane > b.lane) return NSOrderedDescending;
+            return NSOrderedSame;
+        }];
+    }
+
     NSTimeInterval minGap;
     double minStrength;
     NSInteger maxRun;
     switch (d) {
-        case JFRhythmDifficultyEasy:   minGap = 0.36; minStrength = 0.40; maxRun = 2; break;
-        case JFRhythmDifficultyMedium: minGap = 0.22; minStrength = 0.28; maxRun = 3; break;
-        case JFRhythmDifficultyHard:   minGap = 0.15; minStrength = 0.15; maxRun = 4; break;
-        default:                        minGap = 0.22; minStrength = 0.28; maxRun = 3; break;
+        case JFRhythmDifficultyEasy:   minGap = 0.44; minStrength = 0.44; maxRun = 2; break;
+        case JFRhythmDifficultyMedium: minGap = 0.30; minStrength = 0.32; maxRun = 2; break;
+        case JFRhythmDifficultyHard:   minGap = 0.22; minStrength = 0.20; maxRun = 3; break;
+        default:                        minGap = 0.30; minStrength = 0.32; maxRun = 2; break;
     }
 
     // 1) 时间排序
@@ -54,8 +85,9 @@
     NSInteger runCount = 0;
     NSInteger laneRotator = 0;
     for (JFRhythmBeat *b in sorted) {
-        if (b.strength < minStrength) continue;
-        if (b.time - lastTime < minGap) continue;
+        BOOL actionNote = (b.type != JFRhythmBeatTypeTap);
+        if (b.strength < minStrength && !actionNote) continue;
+        if (!actionNote && b.time - lastTime < minGap) continue;
         NSInteger lane = b.lane;
         if (lane < 0) lane = 0;
         if (lane > 3) lane = 3;
@@ -73,6 +105,10 @@
         }
 
         JFRhythmBeat *nb = [JFRhythmBeat beatAt:b.time lane:lane strength:b.strength];
+        nb.type = b.type;
+        nb.duration = b.duration;
+        nb.endLane = b.endLane;
+        nb.minimumDifficulty = b.minimumDifficulty;
         [out addObject:nb];
         lastTime = b.time;
         lastLane = lane;
@@ -91,7 +127,8 @@
                 NSInteger rot = 0;
                 NSTimeInterval tightGap = minGap * 1.1;
                 for (JFRhythmBeat *b in out) {
-                    if (b.time - lt < tightGap) continue;
+                    BOOL actionNote = (b.type != JFRhythmBeatTypeTap);
+                    if (!actionNote && b.time - lt < tightGap) continue;
                     NSInteger lane = b.lane;
                     if (lane == ll && rc >= maxRun) {
                         rot = (rot + 1) % 4;
@@ -103,7 +140,12 @@
                     } else {
                         rc = 1;
                     }
-                    [fb addObject:[JFRhythmBeat beatAt:b.time lane:lane strength:b.strength]];
+                    JFRhythmBeat *nb = [JFRhythmBeat beatAt:b.time lane:lane strength:b.strength];
+                    nb.type = b.type;
+                    nb.duration = b.duration;
+                    nb.endLane = b.endLane;
+                    nb.minimumDifficulty = b.minimumDifficulty;
+                    [fb addObject:nb];
                     lt = b.time;
                     ll = lane;
                 }
@@ -122,16 +164,26 @@
 + (BOOL)supportsSecureCoding { return YES; }
 
 + (instancetype)beatAt:(NSTimeInterval)t lane:(NSInteger)lane strength:(double)s {
+    return [self beatAt:t lane:lane strength:s type:JFRhythmBeatTypeTap duration:0 endLane:lane];
+}
+
++ (instancetype)beatAt:(NSTimeInterval)t lane:(NSInteger)lane strength:(double)s type:(JFRhythmBeatType)type duration:(NSTimeInterval)duration endLane:(NSInteger)endLane {
     JFRhythmBeat *b = [[self alloc] init];
     b.time = t;
     b.lane = lane;
     b.strength = s;
+    b.type = type;
+    b.duration = MAX(0, duration);
+    b.endLane = endLane;
     return b;
 }
 
 - (instancetype)init {
     if ((self = [super init])) {
         _strength = 0.5;
+        _type = JFRhythmBeatTypeTap;
+        _endLane = 0;
+        _minimumDifficulty = -1;
     }
     return self;
 }
@@ -139,15 +191,25 @@
 - (void)encodeWithCoder:(NSCoder *)c {
     [c encodeDouble:_time     forKey:@"t"];
     [c encodeInteger:_lane    forKey:@"l"];
+    [c encodeInteger:_endLane forKey:@"el"];
+    [c encodeDouble:_duration forKey:@"du"];
     [c encodeDouble:_strength forKey:@"s"];
+    [c encodeInteger:_type    forKey:@"ty"];
+    [c encodeInteger:_minimumDifficulty forKey:@"md"];
 }
 
 - (instancetype)initWithCoder:(NSCoder *)c {
     if ((self = [super init])) {
         _time = [c decodeDoubleForKey:@"t"];
         _lane = [c decodeIntegerForKey:@"l"];
+        _endLane = [c containsValueForKey:@"el"] ? [c decodeIntegerForKey:@"el"] : _lane;
+        _duration = [c containsValueForKey:@"du"] ? [c decodeDoubleForKey:@"du"] : 0;
         _strength = [c decodeDoubleForKey:@"s"];
+        _type = [c containsValueForKey:@"ty"] ? [c decodeIntegerForKey:@"ty"] : JFRhythmBeatTypeTap;
+        _minimumDifficulty = [c containsValueForKey:@"md"] ? [c decodeIntegerForKey:@"md"] : -1;
         if (_strength <= 0) _strength = 0.5;
+        if (_endLane < 0 || _endLane > 3) _endLane = _lane;
+        if (_type < JFRhythmBeatTypeTap || _type > JFRhythmBeatTypeSlide) _type = JFRhythmBeatTypeTap;
     }
     return self;
 }
@@ -199,6 +261,8 @@
     [c encodeObject:_chart forKey:@"c"];
     [c encodeObject:_fullChart forKey:@"fc"];
     [c encodeObject:_importedAt forKey:@"at"];
+    [c encodeBool:_tutorial forKey:@"tu"];
+    [c encodeObject:_tutorialSteps forKey:@"ts"];
 }
 
 - (instancetype)initWithCoder:(NSCoder *)c {
@@ -215,6 +279,10 @@
         _chart = [c decodeObjectOfClasses:cls forKey:@"c"];
         _fullChart = [c decodeObjectOfClasses:cls forKey:@"fc"];
         _importedAt = [c decodeObjectOfClass:NSDate.class forKey:@"at"];
+        _tutorial = [c containsValueForKey:@"tu"] ? [c decodeBoolForKey:@"tu"] : NO;
+        NSSet *stepClasses = [NSSet setWithObjects:NSArray.class, NSDictionary.class, NSString.class, NSNumber.class, nil];
+        _tutorialSteps = [c containsValueForKey:@"ts"] ? [c decodeObjectOfClasses:stepClasses forKey:@"ts"] : @[];
+        if (!_tutorialSteps) _tutorialSteps = @[];
     }
     return self;
 }

@@ -21,6 +21,10 @@ extern NSNotificationName const JFSkinDidChangeNotification;
 @property (nonatomic, strong) UIColor  *brandPrimary;
 @property (nonatomic, strong) UIColor  *brandSecondary;
 @property (nonatomic, strong) UIColor  *accent;
+@property (nonatomic, strong) UIColor  *backgroundTop;
+@property (nonatomic, strong) UIColor  *backgroundBottom;
+@property (nonatomic, copy)   NSString *patternStyle;   // stars / bows / monsters / clouds / dots ...
+@property (nonatomic, copy)   NSString *symbolName;     // 主题符号
 @property (nonatomic, assign) NSInteger price;         // 0 = 免费
 @end
 

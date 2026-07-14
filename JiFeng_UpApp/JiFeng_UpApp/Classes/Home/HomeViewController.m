@@ -11,7 +11,13 @@
 #import "JFDailyChallengeStore.h"
 #import "JFAchievementsViewController.h"
 #import "JFSkinShopViewController.h"
+#import "JFProfileViewController.h"
+#import "JFLeaderboardViewController.h"
 #import "JFSkinStore.h"
+#import "JFBackendClient.h"
+#import "JFAnalyticsTracker.h"
+#import "JFChatViewController.h"
+#import "rootVcViewController.h"
 
 // 跳转目的地
 #import "StarDrawingViewController.h"
@@ -20,7 +26,7 @@
 #import "FiveQiVc.h"
 #import "UndercoverViewController.h"
 #import "KingGameViewController.h"
-#import "CardsGameViewController.h"
+#import "JFCardCollectionViewController.h"
 #import "GestureBombViewController.h"
 #import "JFPuzzleViewController.h"
 #import "JFSnakeViewController.h"
@@ -29,11 +35,12 @@
 #import "JFMemoryViewController.h"
 #import "JFReactionViewController.h"
 #import "JFRhythmViewController.h"
+#import "JFSokobanViewController.h"
+#import "JFPacmanViewController.h"
 
 @interface HomeViewController () <UICollectionViewDataSource, UICollectionViewDelegate, UICollectionViewDelegateFlowLayout>
 
-@property (nonatomic, strong) UIImageView         *bgImageView;
-@property (nonatomic, strong) CAGradientLayer     *bgOverlay;
+@property (nonatomic, strong) UIView              *themedBackgroundView;
 
 @property (nonatomic, strong) UIScrollView        *scrollView;
 @property (nonatomic, strong) UIView              *contentView;
@@ -58,6 +65,16 @@
 @property (nonatomic, strong) UILabel             *dailyDescLabel;
 @property (nonatomic, strong) UILabel             *dailyStatusLabel;
 
+// quick actions
+@property (nonatomic, strong) UIView              *tabPageContainer;
+@property (nonatomic, strong) UIView              *footerScrimView;
+@property (nonatomic, strong) CAGradientLayer     *footerScrimGradient;
+@property (nonatomic, strong) UIView              *quickActionsPanel;
+@property (nonatomic, strong) NSArray<UIButton *> *footerTabButtons;
+@property (nonatomic, strong) NSMutableDictionary<NSNumber *, UIViewController *> *footerTabControllers;
+@property (nonatomic, strong, nullable) UIViewController *activeFooterTabController;
+@property (nonatomic, assign) NSInteger selectedFooterTabIndex;
+
 // games grid
 @property (nonatomic, strong) UICollectionView    *collectionView;
 @property (nonatomic, strong) NSLayoutConstraint  *collectionHeight;
@@ -72,12 +89,15 @@
 
     self.view.backgroundColor = [JFTheme backgroundPrimary];
     self.entries = [JFGameEntry allEntries];
+    self.footerTabControllers = [NSMutableDictionary dictionary];
+    self.selectedFooterTabIndex = 0;
 
     [self setupBackground];
     [self setupScroll];
     [self setupHeader];
     [self setupProfileBar];
     [self setupDailyBanner];
+    [self setupQuickActions];
     [self setupCollectionView];
     [self setupConstraints];
 
@@ -102,7 +122,12 @@
 }
 
 - (void)onSkinChanged {
-    // 皮肤切换:刷新进度条 / banner / 卡片色
+    [self.themedBackgroundView removeFromSuperview];
+    self.themedBackgroundView = [JFTheme installThemedBackgroundInView:self.view];
+    [self.view sendSubviewToBack:self.themedBackgroundView];
+
+    self.view.backgroundColor = [JFTheme backgroundPrimary];
+    self.profileBar.layer.borderColor = [JFTheme cardBorder].CGColor;
     self.progressFill.backgroundColor = [JFTheme accent];
     self.dailyBanner.layer.borderColor = [[JFTheme accent] colorWithAlphaComponent:0.6].CGColor;
     self.dailyBanner.backgroundColor   = [[JFTheme accent] colorWithAlphaComponent:0.10];
@@ -116,9 +141,15 @@
 
 - (void)viewWillAppear:(BOOL)animated {
     [super viewWillAppear:animated];
+    [[JFAnalyticsTracker shared] endCurrentGameSessionWithReason:@"back_to_home"];
     [self.navigationController setNavigationBarHidden:YES animated:animated];
     [[JFProfileStore shared] markAppActive];
     [[JFAchievementStore shared] evaluateProfileOnly:[JFProfileStore shared]];
+    [[JFBackendClient shared] ensureSignedInWithCompletion:^(BOOL success, NSError * _Nullable error) {
+        if (!success) return;
+        [[JFProfileStore shared] pullRemoteProfileWithCompletion:nil];
+        [[JFProfileStore shared] pushLocalProfileWithCompletion:nil];
+    }];
     [self refreshDynamic];
 }
 
@@ -128,52 +159,16 @@
 #pragma mark - 背景
 
 - (void)setupBackground {
-    UIImage *bg = [UIImage imageNamed:@"3333"];
-    self.bgImageView = [[UIImageView alloc] initWithImage:bg];
-    self.bgImageView.contentMode = UIViewContentModeScaleAspectFill;
-    self.bgImageView.translatesAutoresizingMaskIntoConstraints = NO;
-    [self.view addSubview:self.bgImageView];
-
-    UIView *overlay = [[UIView alloc] init];
-    overlay.translatesAutoresizingMaskIntoConstraints = NO;
-    [self.view addSubview:overlay];
-
-    self.bgOverlay = [CAGradientLayer layer];
-    self.bgOverlay.colors = @[
-        (__bridge id)[UIColor colorWithWhite:0.0 alpha:0.20].CGColor,
-        (__bridge id)[UIColor colorWithRed:0.06 green:0.06 blue:0.10 alpha:0.85].CGColor,
-        (__bridge id)[UIColor colorWithRed:0.06 green:0.06 blue:0.10 alpha:0.98].CGColor,
-    ];
-    self.bgOverlay.startPoint = CGPointMake(0.5, 0);
-    self.bgOverlay.endPoint   = CGPointMake(0.5, 1);
-    [overlay.layer addSublayer:self.bgOverlay];
-
-    [NSLayoutConstraint activateConstraints:@[
-        [self.bgImageView.topAnchor      constraintEqualToAnchor:self.view.topAnchor],
-        [self.bgImageView.leadingAnchor  constraintEqualToAnchor:self.view.leadingAnchor],
-        [self.bgImageView.trailingAnchor constraintEqualToAnchor:self.view.trailingAnchor],
-        [self.bgImageView.bottomAnchor   constraintEqualToAnchor:self.view.bottomAnchor],
-
-        [overlay.topAnchor      constraintEqualToAnchor:self.view.topAnchor],
-        [overlay.leadingAnchor  constraintEqualToAnchor:self.view.leadingAnchor],
-        [overlay.trailingAnchor constraintEqualToAnchor:self.view.trailingAnchor],
-        [overlay.bottomAnchor   constraintEqualToAnchor:self.view.bottomAnchor],
-    ]];
-
-    [self.view setNeedsLayout];
-    [self.view layoutIfNeeded];
-    self.bgOverlay.frame = overlay.bounds;
-    overlay.tag = 8801;
+    self.themedBackgroundView = [JFTheme installThemedBackgroundInView:self.view];
 }
 
 - (void)viewDidLayoutSubviews {
     [super viewDidLayoutSubviews];
-    UIView *overlay = [self.view viewWithTag:8801];
-    if (overlay) self.bgOverlay.frame = overlay.bounds;
 
     [self.collectionView.collectionViewLayout invalidateLayout];
     [self.collectionView layoutIfNeeded];
     self.collectionHeight.constant = self.collectionView.collectionViewLayout.collectionViewContentSize.height;
+    self.footerScrimGradient.frame = self.footerScrimView.bounds;
 
     // 进度条同步
     self.progressFillWidth.constant = MAX(0, self.progressBg.bounds.size.width * [[JFProfileStore shared] progressToNextLevel]);
@@ -186,6 +181,8 @@
     self.scrollView.translatesAutoresizingMaskIntoConstraints = NO;
     self.scrollView.showsVerticalScrollIndicator = NO;
     self.scrollView.alwaysBounceVertical = YES;
+    self.scrollView.contentInset = UIEdgeInsetsMake(0, 0, 96, 0);
+    self.scrollView.scrollIndicatorInsets = self.scrollView.contentInset;
     [self.view addSubview:self.scrollView];
 
     self.contentView = [[UIView alloc] init];
@@ -216,11 +213,7 @@
 - (void)setupProfileBar {
     self.profileBar = [[UIView alloc] init];
     self.profileBar.translatesAutoresizingMaskIntoConstraints = NO;
-    self.profileBar.backgroundColor = [UIColor colorWithWhite:1 alpha:0.06];
-    self.profileBar.layer.cornerRadius = JFRadiusMedium;
-    self.profileBar.layer.cornerCurve  = kCACornerCurveContinuous;
-    self.profileBar.layer.borderWidth  = 0.5;
-    self.profileBar.layer.borderColor  = [JFTheme cardBorder].CGColor;
+    [JFTheme decorateGlassPanel:self.profileBar];
     [self.contentView addSubview:self.profileBar];
 
     UITapGestureRecognizer *tap = [[UITapGestureRecognizer alloc] initWithTarget:self action:@selector(onProfileBarTapped)];
@@ -291,20 +284,7 @@
 
 - (void)onProfileBarTapped {
     [JFTheme hapticImpactLight];
-    UIAlertController *sheet = [UIAlertController alertControllerWithTitle:nil message:nil preferredStyle:UIAlertControllerStyleActionSheet];
-    [sheet addAction:[UIAlertAction actionWithTitle:@"成就墙" style:UIAlertActionStyleDefault handler:^(UIAlertAction * _Nonnull action) {
-        JFAchievementsViewController *vc = [[JFAchievementsViewController alloc] init];
-        [self.navigationController pushViewController:vc animated:YES];
-    }]];
-    [sheet addAction:[UIAlertAction actionWithTitle:@"皮肤商店" style:UIAlertActionStyleDefault handler:^(UIAlertAction * _Nonnull action) {
-        JFSkinShopViewController *vc = [[JFSkinShopViewController alloc] init];
-        [self.navigationController pushViewController:vc animated:YES];
-    }]];
-    [sheet addAction:[UIAlertAction actionWithTitle:@"取消" style:UIAlertActionStyleCancel handler:nil]];
-    // iPad 兼容
-    sheet.popoverPresentationController.sourceView = self.profileBar;
-    sheet.popoverPresentationController.sourceRect = self.profileBar.bounds;
-    [self presentViewController:sheet animated:YES completion:nil];
+    [self selectFooterTabAtIndex:5];
 }
 
 #pragma mark - Daily banner
@@ -312,9 +292,7 @@
 - (void)setupDailyBanner {
     self.dailyBanner = [[UIView alloc] init];
     self.dailyBanner.translatesAutoresizingMaskIntoConstraints = NO;
-    self.dailyBanner.layer.cornerRadius = JFRadiusMedium;
-    self.dailyBanner.layer.cornerCurve  = kCACornerCurveContinuous;
-    self.dailyBanner.layer.borderWidth  = 0.5;
+    [JFTheme decorateGlassPanel:self.dailyBanner];
     self.dailyBanner.layer.borderColor  = [[JFTheme accent] colorWithAlphaComponent:0.6].CGColor;
     self.dailyBanner.backgroundColor    = [[JFTheme accent] colorWithAlphaComponent:0.10];
     [self.contentView addSubview:self.dailyBanner];
@@ -371,8 +349,231 @@
 - (void)onDailyTapped {
     [JFTheme hapticImpactMedium];
     JFDailyChallenge *c = [[JFDailyChallengeStore shared] todayChallenge];
+    [[JFAnalyticsTracker shared] trackGameCardClick:c.kind source:@"daily_challenge"];
     UIViewController *vc = [self destinationForKind:c.kind];
-    if (vc) [self.navigationController pushViewController:vc animated:YES];
+    if (vc) {
+        [[JFAnalyticsTracker shared] beginGameSession:c.kind source:@"daily_challenge"];
+        [self.navigationController pushViewController:vc animated:YES];
+    }
+}
+
+#pragma mark - Quick Actions
+
+- (void)setupQuickActions {
+    self.tabPageContainer = [[UIView alloc] init];
+    self.tabPageContainer.translatesAutoresizingMaskIntoConstraints = NO;
+    self.tabPageContainer.hidden = YES;
+    [self.view addSubview:self.tabPageContainer];
+
+    self.footerScrimView = [[UIView alloc] init];
+    self.footerScrimView.translatesAutoresizingMaskIntoConstraints = NO;
+    self.footerScrimView.userInteractionEnabled = NO;
+    [self.view addSubview:self.footerScrimView];
+
+    self.footerScrimGradient = [CAGradientLayer layer];
+    self.footerScrimGradient.colors = @[
+        (__bridge id)[UIColor colorWithWhite:0 alpha:0.0].CGColor,
+        (__bridge id)[UIColor colorWithWhite:0 alpha:0.66].CGColor,
+        (__bridge id)[UIColor colorWithWhite:0 alpha:0.92].CGColor,
+    ];
+    self.footerScrimGradient.locations = @[@0.0, @0.42, @1.0];
+    self.footerScrimGradient.startPoint = CGPointMake(0.5, 0.0);
+    self.footerScrimGradient.endPoint = CGPointMake(0.5, 1.0);
+    [self.footerScrimView.layer addSublayer:self.footerScrimGradient];
+
+    self.quickActionsPanel = [[UIView alloc] init];
+    self.quickActionsPanel.translatesAutoresizingMaskIntoConstraints = NO;
+    [JFTheme decorateGlassPanel:self.quickActionsPanel];
+    self.quickActionsPanel.backgroundColor = [[UIColor blackColor] colorWithAlphaComponent:0.58];
+    self.quickActionsPanel.layer.borderColor = [[UIColor whiteColor] colorWithAlphaComponent:0.20].CGColor;
+    self.quickActionsPanel.layer.cornerRadius = 22;
+    self.quickActionsPanel.layer.shadowColor = [UIColor blackColor].CGColor;
+    self.quickActionsPanel.layer.shadowOpacity = 0.42;
+    self.quickActionsPanel.layer.shadowRadius = 18;
+    self.quickActionsPanel.layer.shadowOffset = CGSizeMake(0, 8);
+    [self.view addSubview:self.quickActionsPanel];
+
+    NSArray<UIButton *> *buttons = @[
+        [self quickActionButtonWithTitle:@"游戏" image:@"gamecontroller.fill" action:@selector(onQuickGames)],
+        [self quickActionButtonWithTitle:@"排行榜" image:@"chart.bar.xaxis" action:@selector(onQuickLeaderboard)],
+        [self quickActionButtonWithTitle:@"大厅聊天" image:@"bubble.left.and.bubble.right.fill" action:@selector(onQuickChat)],
+        [self quickActionButtonWithTitle:@"成就墙" image:@"medal.fill" action:@selector(onQuickAchievements)],
+        [self quickActionButtonWithTitle:@"皮肤商店" image:@"sparkles" action:@selector(onQuickSkins)],
+        [self quickActionButtonWithTitle:@"个人主页" image:@"person.crop.circle.fill" action:@selector(onQuickProfile)],
+    ];
+    self.footerTabButtons = buttons;
+    for (NSInteger i = 0; i < buttons.count; i++) {
+        buttons[i].tag = i;
+    }
+
+    UIStackView *tabs = [[UIStackView alloc] initWithArrangedSubviews:buttons];
+    tabs.translatesAutoresizingMaskIntoConstraints = NO;
+    tabs.axis = UILayoutConstraintAxisHorizontal;
+    tabs.distribution = UIStackViewDistributionFillEqually;
+    tabs.alignment = UIStackViewAlignmentFill;
+    tabs.spacing = 4;
+    [self.quickActionsPanel addSubview:tabs];
+
+    [NSLayoutConstraint activateConstraints:@[
+        [tabs.topAnchor constraintEqualToAnchor:self.quickActionsPanel.topAnchor constant:JFSpacing8],
+        [tabs.leadingAnchor constraintEqualToAnchor:self.quickActionsPanel.leadingAnchor constant:JFSpacing8],
+        [tabs.trailingAnchor constraintEqualToAnchor:self.quickActionsPanel.trailingAnchor constant:-JFSpacing8],
+        [tabs.bottomAnchor constraintEqualToAnchor:self.quickActionsPanel.bottomAnchor constant:-JFSpacing8],
+    ]];
+    [self updateFooterTabSelection];
+}
+
+- (UIButton *)quickActionButtonWithTitle:(NSString *)title image:(NSString *)image action:(SEL)action {
+    UIButton *button = [UIButton buttonWithType:UIButtonTypeSystem];
+    button.translatesAutoresizingMaskIntoConstraints = NO;
+    button.tintColor = [JFTheme textPrimary];
+    button.backgroundColor = [UIColor clearColor];
+    button.layer.cornerRadius = 14;
+    button.layer.cornerCurve = kCACornerCurveContinuous;
+    button.titleLabel.font = [UIFont systemFontOfSize:10 weight:UIFontWeightSemibold];
+    button.titleLabel.adjustsFontSizeToFitWidth = YES;
+    button.titleLabel.minimumScaleFactor = 0.72;
+    button.titleLabel.numberOfLines = 1;
+    if (@available(iOS 15.0, *)) {
+        UIButtonConfiguration *config = [UIButtonConfiguration plainButtonConfiguration];
+        config.title = title;
+        config.image = [UIImage systemImageNamed:image];
+        config.imagePlacement = NSDirectionalRectEdgeTop;
+        config.imagePadding = 2;
+        config.contentInsets = NSDirectionalEdgeInsetsMake(5, 1, 5, 1);
+        config.baseForegroundColor = [JFTheme textPrimary];
+        config.titleTextAttributesTransformer = ^NSDictionary<NSAttributedStringKey,id> *(NSDictionary<NSAttributedStringKey,id> *incoming) {
+            NSMutableDictionary<NSAttributedStringKey,id> *outgoing = [incoming mutableCopy];
+            outgoing[NSFontAttributeName] = [UIFont systemFontOfSize:10 weight:UIFontWeightSemibold];
+            return outgoing;
+        };
+        button.configuration = config;
+    } else {
+        [button setTitle:title forState:UIControlStateNormal];
+        [button setImage:[UIImage systemImageNamed:image] forState:UIControlStateNormal];
+    }
+    [button setTitleColor:[JFTheme textPrimary] forState:UIControlStateNormal];
+    [button addTarget:self action:action forControlEvents:UIControlEventTouchUpInside];
+    return button;
+}
+
+- (void)onQuickGames {
+    [JFTheme hapticSelection];
+    [self selectFooterTabAtIndex:0];
+}
+
+- (void)onQuickLeaderboard {
+    [JFTheme hapticSelection];
+    [self selectFooterTabAtIndex:1];
+}
+
+- (void)onQuickChat {
+    [JFTheme hapticSelection];
+    [self selectFooterTabAtIndex:2];
+}
+
+- (void)onQuickAchievements {
+    [JFTheme hapticSelection];
+    [self selectFooterTabAtIndex:3];
+}
+
+- (void)onQuickSkins {
+    [JFTheme hapticSelection];
+    [self selectFooterTabAtIndex:4];
+}
+
+- (void)onQuickProfile {
+    [JFTheme hapticSelection];
+    [self selectFooterTabAtIndex:5];
+}
+
+- (void)selectFooterTabAtIndex:(NSInteger)index {
+    if (index < 0 || index >= self.footerTabButtons.count) return;
+    if (self.selectedFooterTabIndex == index && ((index == 0 && self.scrollView.hidden == NO) || self.activeFooterTabController)) return;
+
+    self.selectedFooterTabIndex = index;
+    [self updateFooterTabSelection];
+
+    if (index == 0) {
+        [self.activeFooterTabController beginAppearanceTransition:NO animated:YES];
+        [self.activeFooterTabController willMoveToParentViewController:nil];
+        [self.activeFooterTabController.view removeFromSuperview];
+        [self.activeFooterTabController removeFromParentViewController];
+        [self.activeFooterTabController endAppearanceTransition];
+        self.activeFooterTabController = nil;
+        self.tabPageContainer.hidden = YES;
+        self.scrollView.hidden = NO;
+        return;
+    }
+
+    UIViewController *vc = [self footerTabControllerAtIndex:index];
+    if (!vc || vc == self.activeFooterTabController) return;
+
+    if (self.activeFooterTabController) {
+        [self.activeFooterTabController beginAppearanceTransition:NO animated:YES];
+        [self.activeFooterTabController willMoveToParentViewController:nil];
+        [self.activeFooterTabController.view removeFromSuperview];
+        [self.activeFooterTabController removeFromParentViewController];
+        [self.activeFooterTabController endAppearanceTransition];
+    }
+
+    self.scrollView.hidden = YES;
+    self.tabPageContainer.hidden = NO;
+    self.activeFooterTabController = vc;
+
+    [vc beginAppearanceTransition:YES animated:YES];
+    [self addChildViewController:vc];
+    vc.view.translatesAutoresizingMaskIntoConstraints = NO;
+    vc.view.alpha = 0;
+    [self.tabPageContainer addSubview:vc.view];
+    [NSLayoutConstraint activateConstraints:@[
+        [vc.view.topAnchor constraintEqualToAnchor:self.tabPageContainer.topAnchor],
+        [vc.view.leadingAnchor constraintEqualToAnchor:self.tabPageContainer.leadingAnchor],
+        [vc.view.trailingAnchor constraintEqualToAnchor:self.tabPageContainer.trailingAnchor],
+        [vc.view.bottomAnchor constraintEqualToAnchor:self.tabPageContainer.bottomAnchor],
+    ]];
+    [vc didMoveToParentViewController:self];
+    [UIView animateWithDuration:0.18 animations:^{
+        vc.view.alpha = 1;
+    } completion:^(__unused BOOL finished) {
+        [vc endAppearanceTransition];
+    }];
+}
+
+- (UIViewController *)footerTabControllerAtIndex:(NSInteger)index {
+    NSNumber *key = @(index);
+    UIViewController *vc = self.footerTabControllers[key];
+    if (vc) return vc;
+
+    switch (index) {
+        case 1: vc = [[JFLeaderboardViewController alloc] init]; break;
+        case 2: vc = [[JFChatViewController alloc] init]; break;
+        case 3: vc = [[JFAchievementsViewController alloc] init]; break;
+        case 4: vc = [[JFSkinShopViewController alloc] init]; break;
+        case 5: vc = [[JFProfileViewController alloc] init]; break;
+        default: break;
+    }
+
+    if ([vc isKindOfClass:[rootVcViewController class]]) {
+        ((rootVcViewController *)vc).jfSuppressBackButton = YES;
+    }
+    if (vc) self.footerTabControllers[key] = vc;
+    return vc;
+}
+
+- (void)updateFooterTabSelection {
+    for (UIButton *button in self.footerTabButtons) {
+        BOOL selected = button.tag == self.selectedFooterTabIndex;
+        button.backgroundColor = selected ? [[JFTheme accent] colorWithAlphaComponent:0.22] : UIColor.clearColor;
+        button.layer.borderWidth = selected ? 0.8 : 0;
+        button.layer.borderColor = selected ? [[JFTheme accent] colorWithAlphaComponent:0.55].CGColor : [UIColor clearColor].CGColor;
+        button.tintColor = selected ? [JFTheme accent] : [JFTheme textPrimary];
+        if (@available(iOS 15.0, *)) {
+            UIButtonConfiguration *config = button.configuration;
+            config.baseForegroundColor = selected ? [JFTheme accent] : [JFTheme textPrimary];
+            button.configuration = config;
+        }
+    }
 }
 
 #pragma mark - CollectionView
@@ -429,6 +630,21 @@
         [self.dailyBanner.leadingAnchor  constraintEqualToAnchor:self.contentView.leadingAnchor constant:JFSpacing20],
         [self.dailyBanner.trailingAnchor constraintEqualToAnchor:self.contentView.trailingAnchor constant:-JFSpacing20],
         [self.dailyBanner.heightAnchor   constraintEqualToConstant:64],
+
+        [self.tabPageContainer.topAnchor constraintEqualToAnchor:safe.topAnchor],
+        [self.tabPageContainer.leadingAnchor constraintEqualToAnchor:self.view.leadingAnchor],
+        [self.tabPageContainer.trailingAnchor constraintEqualToAnchor:self.view.trailingAnchor],
+        [self.tabPageContainer.bottomAnchor constraintEqualToAnchor:self.quickActionsPanel.topAnchor constant:-JFSpacing8],
+
+        [self.footerScrimView.leadingAnchor constraintEqualToAnchor:self.view.leadingAnchor],
+        [self.footerScrimView.trailingAnchor constraintEqualToAnchor:self.view.trailingAnchor],
+        [self.footerScrimView.bottomAnchor constraintEqualToAnchor:self.view.bottomAnchor],
+        [self.footerScrimView.heightAnchor constraintEqualToConstant:140],
+
+        [self.quickActionsPanel.leadingAnchor constraintEqualToAnchor:safe.leadingAnchor constant:JFSpacing12],
+        [self.quickActionsPanel.trailingAnchor constraintEqualToAnchor:safe.trailingAnchor constant:-JFSpacing12],
+        [self.quickActionsPanel.bottomAnchor constraintEqualToAnchor:safe.bottomAnchor constant:-JFSpacing8],
+        [self.quickActionsPanel.heightAnchor constraintEqualToConstant:68],
 
         [self.collectionView.topAnchor      constraintEqualToAnchor:self.dailyBanner.bottomAnchor constant:JFSpacing12],
         [self.collectionView.leadingAnchor  constraintEqualToAnchor:self.contentView.leadingAnchor],
@@ -545,7 +761,7 @@
 #pragma mark - Entrance
 
 - (void)animateEntrance {
-    NSArray *views = @[self.titleLabel, self.subtitleLabel, self.profileBar, self.dailyBanner];
+    NSArray *views = @[self.titleLabel, self.subtitleLabel, self.profileBar, self.dailyBanner, self.footerScrimView, self.quickActionsPanel];
     for (NSInteger i = 0; i < views.count; i++) {
         UIView *v = views[i];
         v.alpha = 0;
@@ -597,8 +813,10 @@
 - (void)collectionView:(UICollectionView *)collectionView didSelectItemAtIndexPath:(NSIndexPath *)indexPath {
     [JFTheme hapticImpactMedium];
     JFGameEntry *entry = self.entries[indexPath.item];
+    [[JFAnalyticsTracker shared] trackGameCardClick:entry.kind source:@"home_grid"];
     UIViewController *vc = [self destinationForKind:entry.kind];
     if (vc) {
+        [[JFAnalyticsTracker shared] beginGameSession:entry.kind source:@"home_grid"];
         [self.navigationController pushViewController:vc animated:YES];
     }
 }
@@ -616,7 +834,7 @@
         case JFGameKindFiveInRow:   return [[FiveQiVc alloc] init];
         case JFGameKindUndercover:  return [[UndercoverViewController alloc] init];
         case JFGameKindKing:        return [[KingGameViewController alloc] init];
-        case JFGameKindCard:        return [[CardsGameViewController alloc] init];
+        case JFGameKindCard:        return [[JFCardCollectionViewController alloc] init];
         case JFGameKindGesture:     return [[GestureBombViewController alloc] init];
         case JFGameKindPuzzle:      return [[JFPuzzleViewController alloc] init];
         case JFGameKindSnake:       return [[JFSnakeViewController alloc] init];
@@ -625,6 +843,8 @@
         case JFGameKindMemory:      return [[JFMemoryViewController alloc] init];
         case JFGameKindReaction:    return [[JFReactionViewController alloc] init];
         case JFGameKindRhythm:      return [[JFRhythmViewController alloc] init];
+        case JFGameKindSokoban:     return [[JFSokobanViewController alloc] init];
+        case JFGameKindPacman:      return [[JFPacmanViewController alloc] init];
     }
     return nil;
 }

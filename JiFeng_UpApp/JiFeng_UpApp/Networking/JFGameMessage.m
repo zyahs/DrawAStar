@@ -15,6 +15,11 @@ NSString * const JFMessageTypeVoteResult  = @"vote_result";
 
 NSString * const JFMessageTypeKingDeal    = @"king_deal";
 
+NSString * const JFMessageTypeCardRound   = @"card_round";
+NSString * const JFMessageTypeCardDeal    = @"card_deal";
+NSString * const JFMessageTypeCardReveal  = @"card_reveal";
+NSString * const JFMessageTypeCardResult  = @"card_result";
+
 @implementation JFGameMessage
 
 + (instancetype)messageWithType:(NSString *)type payload:(NSDictionary *)payload {

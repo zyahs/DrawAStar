@@ -32,6 +32,12 @@ extern NSString * const JFMessageTypeVoteResult;  // 房主公布结果
 /// 国王
 extern NSString * const JFMessageTypeKingDeal;    // 房主分发牌
 
+/// 通用联机牌桌
+extern NSString * const JFMessageTypeCardRound;   // 房主广播新回合
+extern NSString * const JFMessageTypeCardDeal;    // 房主定向发手牌
+extern NSString * const JFMessageTypeCardReveal;  // 玩家公开亮牌
+extern NSString * const JFMessageTypeCardResult;  // 房主广播结算
+
 #pragma mark - JFGameMessage
 
 @interface JFGameMessage : NSObject

@@ -19,6 +19,29 @@ const CGFloat JFRadiusMedium = 16;
 const CGFloat JFRadiusLarge  = 24;
 const CGFloat JFRadiusPill   = 999;
 
+@interface JFThemeBackgroundView : UIView
+@property (nonatomic, strong) CAGradientLayer *gradientLayer;
+@end
+
+@implementation JFThemeBackgroundView
+
+- (instancetype)init {
+    if (self = [super init]) {
+        _gradientLayer = [CAGradientLayer layer];
+        _gradientLayer.startPoint = CGPointMake(0.08, 0.0);
+        _gradientLayer.endPoint = CGPointMake(0.92, 1.0);
+        [self.layer addSublayer:_gradientLayer];
+    }
+    return self;
+}
+
+- (void)layoutSubviews {
+    [super layoutSubviews];
+    self.gradientLayer.frame = self.bounds;
+}
+
+@end
+
 @implementation JFTheme
 
 #pragma mark - 颜色
@@ -37,10 +60,13 @@ const CGFloat JFRadiusPill   = 999;
 }
 
 + (UIColor *)backgroundPrimary {
-    return [UIColor colorWithRed:0.06 green:0.06 blue:0.10 alpha:1.0];
+    JFSkin *s = [[JFSkinStore shared] currentSkin];
+    return s.backgroundTop ?: [UIColor colorWithRed:0.06 green:0.06 blue:0.10 alpha:1.0];
 }
 + (UIColor *)backgroundSecondary {
-    return [UIColor colorWithRed:0.10 green:0.10 blue:0.16 alpha:1.0];
+    JFSkin *s = [[JFSkinStore shared] currentSkin];
+    UIColor *bottom = s.backgroundBottom ?: [UIColor colorWithRed:0.10 green:0.10 blue:0.16 alpha:1.0];
+    return [bottom colorWithAlphaComponent:0.84];
 }
 + (UIColor *)backgroundElevated {
     return [UIColor colorWithRed:0.14 green:0.14 blue:0.20 alpha:1.0];
@@ -57,6 +83,21 @@ const CGFloat JFRadiusPill   = 999;
 + (UIColor *)success { return [UIColor colorWithRed:0.30 green:0.85 blue:0.55 alpha:1.0]; }
 + (UIColor *)danger  { return [UIColor colorWithRed:0.98 green:0.36 blue:0.42 alpha:1.0]; }
 + (UIColor *)warning { return [UIColor colorWithRed:0.99 green:0.78 blue:0.30 alpha:1.0]; }
+
++ (NSArray<UIColor *> *)appBackgroundColors {
+    JFSkin *s = [[JFSkinStore shared] currentSkin];
+    UIColor *top = s.backgroundTop ?: [UIColor colorWithRed:0.06 green:0.06 blue:0.10 alpha:1.0];
+    UIColor *bottom = s.backgroundBottom ?: [UIColor colorWithRed:0.12 green:0.06 blue:0.22 alpha:1.0];
+    return @[top, [self brandPrimary], bottom];
+}
+
++ (NSString *)themePatternStyle {
+    return [[JFSkinStore shared] currentSkin].patternStyle ?: @"stars";
+}
+
++ (NSString *)themeSymbolName {
+    return [[JFSkinStore shared] currentSkin].symbolName ?: @"sparkles";
+}
 
 #pragma mark - 字体
 
@@ -85,6 +126,85 @@ const CGFloat JFRadiusPill   = 999;
     layer.masksToBounds  = NO;
 }
 
++ (void)decorateGlassPanel:(UIView *)view {
+    view.backgroundColor = [UIColor colorWithWhite:1 alpha:0.075];
+    view.layer.cornerRadius = JFRadiusLarge;
+    view.layer.cornerCurve = kCACornerCurveContinuous;
+    view.layer.borderWidth = 1.0;
+    view.layer.borderColor = [[UIColor whiteColor] colorWithAlphaComponent:0.14].CGColor;
+    view.layer.shadowColor = [UIColor blackColor].CGColor;
+    view.layer.shadowOpacity = 0.28;
+    view.layer.shadowRadius = 18;
+    view.layer.shadowOffset = CGSizeMake(0, 10);
+}
+
++ (UIView *)installThemedBackgroundInView:(UIView *)view {
+    JFThemeBackgroundView *container = [[JFThemeBackgroundView alloc] init];
+    container.translatesAutoresizingMaskIntoConstraints = NO;
+    container.userInteractionEnabled = NO;
+    [view insertSubview:container atIndex:0];
+
+    NSArray<UIColor *> *colors = [self appBackgroundColors];
+    container.gradientLayer.colors = @[(__bridge id)colors[0].CGColor,
+                                       (__bridge id)colors[1].CGColor,
+                                       (__bridge id)colors[2].CGColor];
+
+    UIView *pattern = [self patternViewWithStyle:[self themePatternStyle] symbol:[self themeSymbolName]];
+    pattern.translatesAutoresizingMaskIntoConstraints = NO;
+    pattern.alpha = 0.18;
+    [container addSubview:pattern];
+
+    [NSLayoutConstraint activateConstraints:@[
+        [container.topAnchor constraintEqualToAnchor:view.topAnchor],
+        [container.leadingAnchor constraintEqualToAnchor:view.leadingAnchor],
+        [container.trailingAnchor constraintEqualToAnchor:view.trailingAnchor],
+        [container.bottomAnchor constraintEqualToAnchor:view.bottomAnchor],
+
+        [pattern.topAnchor constraintEqualToAnchor:container.topAnchor],
+        [pattern.leadingAnchor constraintEqualToAnchor:container.leadingAnchor],
+        [pattern.trailingAnchor constraintEqualToAnchor:container.trailingAnchor],
+        [pattern.bottomAnchor constraintEqualToAnchor:container.bottomAnchor],
+    ]];
+
+    return container;
+}
+
++ (UIView *)patternViewWithStyle:(NSString *)style symbol:(NSString *)symbol {
+    UIView *view = [[UIView alloc] init];
+    NSArray<NSString *> *symbols = [self symbolsForPattern:style fallback:symbol];
+    NSInteger columns = 5;
+    NSInteger rows = 9;
+    for (NSInteger row = 0; row < rows; row++) {
+        for (NSInteger col = 0; col < columns; col++) {
+            NSString *name = symbols[(row + col) % symbols.count];
+            UIImageView *iv = [[UIImageView alloc] initWithImage:[UIImage systemImageNamed:name]];
+            iv.translatesAutoresizingMaskIntoConstraints = NO;
+            iv.tintColor = [UIColor whiteColor];
+            iv.alpha = 0.24 + ((row + col) % 3) * 0.08;
+            iv.preferredSymbolConfiguration = [UIImageSymbolConfiguration configurationWithPointSize:18 + ((row + col) % 3) * 5 weight:UIImageSymbolWeightBold];
+            [view addSubview:iv];
+            [NSLayoutConstraint activateConstraints:@[
+                [iv.centerXAnchor constraintEqualToAnchor:view.leadingAnchor constant:42 + col * 76 + (row % 2) * 28],
+                [iv.centerYAnchor constraintEqualToAnchor:view.topAnchor constant:56 + row * 92],
+            ]];
+        }
+    }
+    return view;
+}
+
++ (NSArray<NSString *> *)symbolsForPattern:(NSString *)style fallback:(NSString *)fallback {
+    if ([style isEqualToString:@"bows"]) return @[@"gift.fill", @"heart.fill", @"sparkle"];
+    if ([style isEqualToString:@"monsters"]) return @[@"bolt.fill", @"circle.hexagongrid.fill", @"leaf.fill"];
+    if ([style isEqualToString:@"bubbles"]) return @[@"drop.fill", @"circle.fill", @"sparkles"];
+    if ([style isEqualToString:@"leaves"]) return @[@"leaf.fill", @"tree.fill", @"sparkle"];
+    if ([style isEqualToString:@"petals"]) return @[@"camera.macro", @"heart.fill", @"circle.fill"];
+    if ([style isEqualToString:@"neon"]) return @[@"waveform.path.ecg", @"bolt.fill", @"sparkles"];
+    if ([style isEqualToString:@"medals"]) return @[@"crown.fill", @"medal.fill", @"star.fill"];
+    if ([style isEqualToString:@"sunset"]) return @[@"sun.max.fill", @"sparkles", @"circle.fill"];
+    if ([style isEqualToString:@"custom"]) return @[@"slider.horizontal.3", @"paintpalette.fill", @"sparkles"];
+    return @[fallback ?: @"sparkles", @"star.fill", @"circle.fill"];
+}
+
 + (UIVisualEffectView *)glassBlurView {
     UIBlurEffect *blur = [UIBlurEffect effectWithStyle:UIBlurEffectStyleSystemThinMaterialDark];
     return [[UIVisualEffectView alloc] initWithEffect:blur];
@@ -94,7 +214,7 @@ const CGFloat JFRadiusPill   = 999;
     UIButton *btn = [UIButton buttonWithType:UIButtonTypeSystem];
     btn.translatesAutoresizingMaskIntoConstraints = NO;
 
-    // 玻璃胶囊
+    // 统一返回按钮:主题色描边 + 玻璃底
     UIBlurEffect *blur = [UIBlurEffect effectWithStyle:UIBlurEffectStyleSystemThinMaterialDark];
     UIVisualEffectView *bg = [[UIVisualEffectView alloc] initWithEffect:blur];
     bg.translatesAutoresizingMaskIntoConstraints = NO;
@@ -112,8 +232,12 @@ const CGFloat JFRadiusPill   = 999;
 
     btn.layer.cornerRadius = JFRadiusPill;
     btn.layer.cornerCurve = kCACornerCurveContinuous;
-    btn.layer.borderWidth = 0.5;
-    btn.layer.borderColor = [self cardBorder].CGColor;
+    btn.layer.borderWidth = 1.0;
+    btn.layer.borderColor = [[self accent] colorWithAlphaComponent:0.55].CGColor;
+    btn.layer.shadowColor = [self accent].CGColor;
+    btn.layer.shadowOpacity = 0.22;
+    btn.layer.shadowRadius = 10;
+    btn.layer.shadowOffset = CGSizeZero;
     btn.tintColor = [self textPrimary];
 
     UIImageSymbolConfiguration *cfg = [UIImageSymbolConfiguration configurationWithPointSize:16 weight:UIImageSymbolWeightSemibold];

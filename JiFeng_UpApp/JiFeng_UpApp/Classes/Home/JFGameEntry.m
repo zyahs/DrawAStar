@@ -53,8 +53,8 @@
                      symbol:@"crown.fill"
                   multipeer:YES],
         [self entryWithKind:JFGameKindCard
-                      title:@"小姐牌"
-                   subtitle:@"卡牌玩法"
+                      title:@"纸牌游乐场"
+                   subtitle:@"12 种派对与经典玩法"
                      symbol:@"rectangle.stack.fill"
                   multipeer:NO],
         [self entryWithKind:JFGameKindGesture
@@ -96,6 +96,16 @@
                       title:@"节奏点点"
                    subtitle:@"踩点 · 上头"
                      symbol:@"music.note"
+                  multipeer:NO],
+        [self entryWithKind:JFGameKindSokoban
+                      title:@"推箱子"
+                   subtitle:@"10 关 · 撤销与最佳步数"
+                     symbol:@"shippingbox.fill"
+                  multipeer:NO],
+        [self entryWithKind:JFGameKindPacman
+                      title:@"吃豆人"
+                   subtitle:@"迷宫追逐 · 能量反击"
+                     symbol:@"circle.lefthalf.filled"
                   multipeer:NO],
     ];
 }

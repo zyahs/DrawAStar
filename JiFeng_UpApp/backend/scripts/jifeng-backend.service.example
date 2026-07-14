@@ -1,0 +1,15 @@
+[Unit]
+Description=JiFeng Backend API
+After=network.target mariadb.service
+
+[Service]
+Type=simple
+User=admin
+WorkingDirectory=/home/admin/jifeng-backend
+EnvironmentFile=/home/admin/jifeng-backend/.env
+ExecStart=/usr/bin/node /home/admin/jifeng-backend/dist/main.js
+Restart=always
+RestartSec=5
+
+[Install]
+WantedBy=multi-user.target

@@ -7,6 +7,7 @@
 #import <UIKit/UIKit.h>
 #import <QuartzCore/QuartzCore.h>
 #import "TruthOrDareViewController.h"
+#import "JFTheme.h"
 
 @interface EntangleMergeViewController : rootVcViewController
 /// 可选：给外部一个回调，点中放大的“胜出球”后跳转
@@ -31,6 +32,13 @@
     UILabel *_labelPro;
     // 中心闪光
     UIView *_centerFlash;
+    NSMutableArray<UIView *> *_scrollLayers;
+    UIView *_resultStage;
+    CAShapeLayer *_truthHalfLayer;
+    CAShapeLayer *_dareHalfLayer;
+    UILabel *_truthStageLabel;
+    UILabel *_dareStageLabel;
+    UIView *_centerRing;
 
     // 控制
     UIButton *_startBtn;
@@ -349,12 +357,7 @@ static NSArray *dares = @[
 
 - (void)viewDidLoad {
     [super viewDidLoad];
-    self.view.backgroundColor = UIColor.blackColor;
-    self.bgImageView = [[UIImageView alloc] initWithImage:[UIImage imageNamed:@"b2"]];
-    self.bgImageView.frame = self.view.bounds;
-    self.bgImageView.autoresizingMask = UIViewAutoresizingFlexibleWidth | UIViewAutoresizingFlexibleHeight;
-    self.bgImageView.contentMode = UIViewContentModeScaleAspectFill;
-    [self.view addSubview:self.bgImageView];
+    self.view.backgroundColor = [JFTheme backgroundPrimary];
     [self setupBackground];
     [self decideWinnerEarly];    // 一进来就先决定层级，避免“突兀”
     [self setupBallsAndLabels];
@@ -385,9 +388,9 @@ static NSArray *dares = @[
 }
 
 - (NSArray *)bgColorsAtPhase:(CGFloat)phase {
-    UIColor *c1 = [UIColor colorWithHue:fmod(phase+0.00,1.0) saturation:0.60 brightness:0.96 alpha:1];
-    UIColor *c2 = [UIColor colorWithHue:fmod(phase+0.33,1.0) saturation:0.55 brightness:0.92 alpha:1];
-    UIColor *c3 = [UIColor colorWithHue:fmod(phase+0.66,1.0) saturation:0.58 brightness:0.88 alpha:1];
+    UIColor *c1 = [[JFTheme brandPrimary] colorWithAlphaComponent:0.92];
+    UIColor *c2 = [[JFTheme brandSecondary] colorWithAlphaComponent:0.82];
+    UIColor *c3 = [[JFTheme accent] colorWithAlphaComponent:0.72];
     return @[(__bridge id)c1.CGColor, (__bridge id)c2.CGColor, (__bridge id)c3.CGColor];
 }
 
@@ -459,6 +462,30 @@ static NSArray *dares = @[
     lab.layer.shadowRadius = 6.0;
 
     return lab;
+}
+
+- (UILabel *)makeStageLabelWithText:(NSString *)text subtitle:(NSString *)subtitle color:(UIColor *)color {
+    UILabel *label = [[UILabel alloc] init];
+    label.numberOfLines = 0;
+    label.textAlignment = NSTextAlignmentCenter;
+    label.textColor = UIColor.whiteColor;
+    label.attributedText = ({
+        NSMutableAttributedString *s = [[NSMutableAttributedString alloc] initWithString:[NSString stringWithFormat:@"%@\n%@", text, subtitle]];
+        [s addAttributes:@{
+            NSFontAttributeName: [UIFont systemFontOfSize:30 weight:UIFontWeightBlack],
+            NSForegroundColorAttributeName: UIColor.whiteColor,
+        } range:NSMakeRange(0, text.length)];
+        [s addAttributes:@{
+            NSFontAttributeName: [UIFont systemFontOfSize:13 weight:UIFontWeightSemibold],
+            NSForegroundColorAttributeName: [UIColor colorWithWhite:1 alpha:0.72],
+        } range:NSMakeRange(text.length + 1, subtitle.length)];
+        s;
+    });
+    label.layer.shadowColor = color.CGColor;
+    label.layer.shadowOpacity = 0.95;
+    label.layer.shadowRadius = 14;
+    label.layer.shadowOffset = CGSizeZero;
+    return label;
 }
 - (void)startAdvancedSpinIfNeeded {
     if (!_ballPro) return;
@@ -538,7 +565,12 @@ static NSArray *dares = @[
     _centerFlash.layer.cornerRadius = 10;
     _centerFlash.backgroundColor = [UIColor whiteColor];
     _centerFlash.alpha = 0;
-//    [self.view addSubview:_centerFlash];
+    _centerFlash.userInteractionEnabled = NO;
+    _centerFlash.layer.shadowColor = UIColor.whiteColor.CGColor;
+    _centerFlash.layer.shadowOpacity = 0.9;
+    _centerFlash.layer.shadowRadius = 24;
+    _centerFlash.layer.shadowOffset = CGSizeZero;
+    [self.view addSubview:_centerFlash];
 }
 - (void)onAdvancedTapped {
     // push 或弹窗
@@ -622,6 +654,396 @@ static NSArray *dares = @[
     return p;
 }
 
+#pragma mark - Layered Scroll
+
+- (UIView *)scrollLayerWithIndex:(NSInteger)index
+                           title:(NSString *)title
+                           color:(UIColor *)color
+                           width:(CGFloat)width
+                          height:(CGFloat)height {
+    UIView *strip = [[UIView alloc] initWithFrame:CGRectMake(0, 0, width, height)];
+    strip.userInteractionEnabled = NO;
+    strip.alpha = 0;
+    strip.layer.cornerRadius = height * 0.5;
+    strip.layer.cornerCurve = kCACornerCurveContinuous;
+    strip.clipsToBounds = NO;
+    strip.backgroundColor = [[UIColor blackColor] colorWithAlphaComponent:0.18];
+    strip.layer.borderWidth = 0.6;
+    strip.layer.borderColor = [color colorWithAlphaComponent:0.45].CGColor;
+    strip.layer.shadowColor = color.CGColor;
+    strip.layer.shadowOpacity = 0.45;
+    strip.layer.shadowRadius = 18;
+    strip.layer.shadowOffset = CGSizeZero;
+
+    UIVisualEffectView *blur = [[UIVisualEffectView alloc] initWithEffect:[UIBlurEffect effectWithStyle:UIBlurEffectStyleSystemUltraThinMaterialDark]];
+    blur.frame = strip.bounds;
+    blur.autoresizingMask = UIViewAutoresizingFlexibleWidth | UIViewAutoresizingFlexibleHeight;
+    blur.layer.cornerRadius = strip.layer.cornerRadius;
+    blur.clipsToBounds = YES;
+    [strip addSubview:blur];
+
+    CGFloat x = 18;
+    while (x < width - 20) {
+        UILabel *pill = [[UILabel alloc] initWithFrame:CGRectMake(x, 8, 118, height - 16)];
+        pill.text = title;
+        pill.textAlignment = NSTextAlignmentCenter;
+        pill.font = [UIFont systemFontOfSize:16 weight:UIFontWeightHeavy];
+        pill.textColor = UIColor.whiteColor;
+        pill.backgroundColor = [color colorWithAlphaComponent:0.24];
+        pill.layer.cornerRadius = (height - 16) * 0.5;
+        pill.layer.cornerCurve = kCACornerCurveContinuous;
+        pill.clipsToBounds = YES;
+        pill.layer.borderWidth = 0.5;
+        pill.layer.borderColor = [UIColor colorWithWhite:1 alpha:0.25].CGColor;
+        [strip addSubview:pill];
+        x += 140;
+    }
+
+    return strip;
+}
+
+- (void)showLayeredScrollForDuration:(CFTimeInterval)duration {
+    [_scrollLayers makeObjectsPerformSelector:@selector(removeFromSuperview)];
+    _scrollLayers = [NSMutableArray array];
+
+    CGFloat W = self.view.bounds.size.width;
+    CGFloat H = self.view.bounds.size.height;
+    NSArray<NSDictionary *> *configs = @[
+        @{@"title": @"真心话", @"color": [UIColor colorWithRed:1.0 green:0.38 blue:0.70 alpha:1], @"y": @(0.23), @"dir": @(1),  @"scale": @(0.88), @"rot": @(-0.08)},
+        @{@"title": @"大冒险", @"color": [UIColor colorWithRed:0.34 green:0.64 blue:1.0 alpha:1], @"y": @(0.38), @"dir": @(-1), @"scale": @(1.02), @"rot": @(0.04)},
+        @{@"title": @"真心话", @"color": [UIColor colorWithRed:1.0 green:0.78 blue:0.28 alpha:1], @"y": @(0.55), @"dir": @(1),  @"scale": @(1.16), @"rot": @(-0.03)},
+        @{@"title": @"大冒险", @"color": [UIColor colorWithRed:0.56 green:0.96 blue:1.0 alpha:1], @"y": @(0.70), @"dir": @(-1), @"scale": @(0.94), @"rot": @(0.07)},
+    ];
+
+    for (NSInteger i = 0; i < configs.count; i++) {
+        NSDictionary *cfg = configs[i];
+        CGFloat stripH = 54 + i * 3;
+        CGFloat stripW = W * 2.25;
+        UIColor *color = cfg[@"color"];
+        UIView *strip = [self scrollLayerWithIndex:i title:cfg[@"title"] color:color width:stripW height:stripH];
+
+        CGFloat y = H * [cfg[@"y"] doubleValue];
+        NSInteger dir = [cfg[@"dir"] integerValue];
+        CGFloat startX = dir > 0 ? -stripW * 0.62 : W - stripW * 0.38;
+        CGFloat endX = dir > 0 ? W - stripW * 0.38 : -stripW * 0.62;
+        strip.frame = CGRectMake(startX, y, stripW, stripH);
+
+        CGFloat scale = [cfg[@"scale"] doubleValue];
+        CGFloat rot = [cfg[@"rot"] doubleValue];
+        CGAffineTransform base = CGAffineTransformScale(CGAffineTransformMakeRotation(rot), scale, scale);
+        strip.transform = CGAffineTransformTranslate(base, -dir * 60, 0);
+        strip.layer.zPosition = 2 + i;
+
+        [self.view insertSubview:strip belowSubview:_ballTruth];
+        [_scrollLayers addObject:strip];
+
+        NSTimeInterval delay = 0.05 * i;
+        [UIView animateKeyframesWithDuration:duration + 0.22
+                                       delay:delay
+                                     options:UIViewKeyframeAnimationOptionCalculationModeCubic
+                                  animations:^{
+            [UIView addKeyframeWithRelativeStartTime:0.00 relativeDuration:0.10 animations:^{
+                strip.alpha = 0.95 - i * 0.12;
+                strip.transform = base;
+            }];
+            [UIView addKeyframeWithRelativeStartTime:0.08 relativeDuration:0.72 animations:^{
+                CGRect f = strip.frame;
+                f.origin.x = endX;
+                strip.frame = f;
+            }];
+            [UIView addKeyframeWithRelativeStartTime:0.70 relativeDuration:0.18 animations:^{
+                strip.alpha = 0.28;
+                strip.transform = CGAffineTransformTranslate(base, dir * 90, 0);
+            }];
+            [UIView addKeyframeWithRelativeStartTime:0.86 relativeDuration:0.14 animations:^{
+                strip.alpha = 0;
+                strip.transform = CGAffineTransformTranslate(base, dir * 160, 0);
+            }];
+        } completion:^(BOOL finished) {
+            [strip removeFromSuperview];
+        }];
+    }
+}
+
+- (void)animateBackgroundPushForDuration:(CFTimeInterval)duration {
+    self.bgImageView.transform = CGAffineTransformIdentity;
+    [UIView animateKeyframesWithDuration:duration + 0.45
+                                   delay:0
+                                 options:UIViewKeyframeAnimationOptionCalculationModeCubic
+                              animations:^{
+        [UIView addKeyframeWithRelativeStartTime:0 relativeDuration:0.55 animations:^{
+            self.bgImageView.transform = CGAffineTransformConcat(CGAffineTransformMakeScale(1.08, 1.08),
+                                                                CGAffineTransformMakeTranslation(-18, 10));
+        }];
+        [UIView addKeyframeWithRelativeStartTime:0.55 relativeDuration:0.45 animations:^{
+            self.bgImageView.transform = CGAffineTransformConcat(CGAffineTransformMakeScale(1.04, 1.04),
+                                                                CGAffineTransformMakeTranslation(16, -8));
+        }];
+    } completion:^(BOOL finished) {
+        [UIView animateWithDuration:0.35 animations:^{
+            self.bgImageView.transform = CGAffineTransformIdentity;
+        }];
+    }];
+}
+
+- (CAAnimationGroup *)mixAnimationWithPath:(UIBezierPath *)path
+                                  duration:(CFTimeInterval)duration
+                                 spinTurns:(CGFloat)turns
+                                 frontPass:(BOOL)frontPass {
+    CAKeyframeAnimation *move = [CAKeyframeAnimation animationWithKeyPath:@"position"];
+    move.path = path.CGPath;
+    move.calculationMode = kCAAnimationPaced;
+    move.timingFunctions = @[
+        [CAMediaTimingFunction functionWithControlPoints:0.20 :0.80 :0.20 :1.0],
+        [CAMediaTimingFunction functionWithControlPoints:0.15 :0.00 :0.20 :1.0],
+    ];
+
+    CAKeyframeAnimation *scale = [CAKeyframeAnimation animationWithKeyPath:@"transform.scale"];
+    if (frontPass) {
+        scale.values = @[@1.0, @1.16, @0.92, @1.08, @0.78];
+    } else {
+        scale.values = @[@0.92, @0.78, @1.06, @0.88, @0.70];
+    }
+    scale.keyTimes = @[@0, @0.22, @0.48, @0.72, @1];
+    scale.timingFunction = [CAMediaTimingFunction functionWithName:kCAMediaTimingFunctionEaseInEaseOut];
+
+    CABasicAnimation *rot = [CABasicAnimation animationWithKeyPath:@"transform.rotation.z"];
+    rot.toValue = @(turns * 2.0 * M_PI);
+    rot.timingFunction = [CAMediaTimingFunction functionWithName:kCAMediaTimingFunctionEaseInEaseOut];
+
+    CAAnimationGroup *group = [CAAnimationGroup animation];
+    group.animations = @[move, scale, rot];
+    group.duration = duration;
+    group.fillMode = kCAFillModeForwards;
+    group.removedOnCompletion = NO;
+    return group;
+}
+
+#pragma mark - Result Stage
+
+- (UIBezierPath *)truthHalfPathInBounds:(CGRect)bounds {
+    CGFloat W = CGRectGetWidth(bounds);
+    CGFloat H = CGRectGetHeight(bounds);
+    CGFloat leftY = H * 0.34;
+    CGFloat midY = H * 0.50;
+    CGFloat rightY = H * 0.66;
+    CGFloat wave = MIN(H * 0.18, 122.0);
+
+    UIBezierPath *path = [UIBezierPath bezierPath];
+    [path moveToPoint:CGPointMake(0, 0)];
+    [path addLineToPoint:CGPointMake(W, 0)];
+    [path addLineToPoint:CGPointMake(W, rightY)];
+    [path addCurveToPoint:CGPointMake(W * 0.50, midY)
+            controlPoint1:CGPointMake(W * 0.83, rightY + wave * 0.34)
+            controlPoint2:CGPointMake(W * 0.67, midY - wave)];
+    [path addCurveToPoint:CGPointMake(0, leftY)
+            controlPoint1:CGPointMake(W * 0.33, midY + wave)
+            controlPoint2:CGPointMake(W * 0.17, leftY - wave * 0.34)];
+    [path closePath];
+    return path;
+}
+
+- (UIBezierPath *)dareHalfPathInBounds:(CGRect)bounds {
+    CGFloat W = CGRectGetWidth(bounds);
+    CGFloat H = CGRectGetHeight(bounds);
+    CGFloat leftY = H * 0.34;
+    CGFloat midY = H * 0.50;
+    CGFloat rightY = H * 0.66;
+    CGFloat wave = MIN(H * 0.18, 122.0);
+
+    UIBezierPath *path = [UIBezierPath bezierPath];
+    [path moveToPoint:CGPointMake(0, leftY)];
+    [path addCurveToPoint:CGPointMake(W * 0.50, midY)
+            controlPoint1:CGPointMake(W * 0.17, leftY - wave * 0.34)
+            controlPoint2:CGPointMake(W * 0.33, midY + wave)];
+    [path addCurveToPoint:CGPointMake(W, rightY)
+            controlPoint1:CGPointMake(W * 0.67, midY - wave)
+            controlPoint2:CGPointMake(W * 0.83, rightY + wave * 0.34)];
+    [path addLineToPoint:CGPointMake(W, H)];
+    [path addLineToPoint:CGPointMake(0, H)];
+    [path closePath];
+    return path;
+}
+
+- (UIBezierPath *)path:(UIBezierPath *)path translatedX:(CGFloat)x y:(CGFloat)y {
+    UIBezierPath *copy = [path copy];
+    [copy applyTransform:CGAffineTransformMakeTranslation(x, y)];
+    return copy;
+}
+
+- (CAShapeLayer *)shapeLayerWithPath:(UIBezierPath *)path color:(UIColor *)color {
+    CAShapeLayer *layer = [CAShapeLayer layer];
+    layer.path = path.CGPath;
+    layer.fillColor = color.CGColor;
+    layer.shadowColor = color.CGColor;
+    layer.shadowOpacity = 0.38;
+    layer.shadowRadius = 22;
+    layer.shadowOffset = CGSizeZero;
+    return layer;
+}
+
+- (void)configureResultStageGeometry {
+    if (!_resultStage) return;
+
+    CGRect bounds = self.view.bounds;
+    _resultStage.frame = bounds;
+    _truthHalfLayer.frame = bounds;
+    _dareHalfLayer.frame = bounds;
+    _truthHalfLayer.path = [self truthHalfPathInBounds:bounds].CGPath;
+    _dareHalfLayer.path = [self dareHalfPathInBounds:bounds].CGPath;
+
+    CGFloat W = CGRectGetWidth(bounds);
+    CGFloat H = CGRectGetHeight(bounds);
+    CGFloat labelW = MIN(W - 64.0, 320.0);
+    _truthStageLabel.frame = CGRectMake(28.0, H * 0.20, labelW, 72);
+    _dareStageLabel.frame = CGRectMake(W - labelW - 28.0, H * 0.70, labelW, 72);
+    _centerRing.center = CGPointMake(W * 0.5, H * 0.5);
+}
+
+- (void)beginTaiChiResultStageWinnerIsTruth:(BOOL)truth {
+    if (_resultStage) return;
+    [_resultStage removeFromSuperview];
+
+    _resultStage = [[UIView alloc] initWithFrame:self.view.bounds];
+    _resultStage.userInteractionEnabled = NO;
+    _resultStage.alpha = 0;
+    _resultStage.backgroundColor = [UIColor colorWithRed:0.03 green:0.02 blue:0.06 alpha:1];
+    _resultStage.layer.zPosition = 36;
+
+    UIColor *truthColor = [UIColor colorWithRed:1.0 green:0.30 blue:0.62 alpha:1];
+    UIColor *dareColor = [UIColor colorWithRed:0.18 green:0.52 blue:1.0 alpha:1];
+    _truthHalfLayer = [self shapeLayerWithPath:[self truthHalfPathInBounds:_resultStage.bounds]
+                                         color:[truthColor colorWithAlphaComponent:0.92]];
+    _dareHalfLayer = [self shapeLayerWithPath:[self dareHalfPathInBounds:_resultStage.bounds]
+                                        color:[dareColor colorWithAlphaComponent:0.92]];
+    [_resultStage.layer addSublayer:_truthHalfLayer];
+    [_resultStage.layer addSublayer:_dareHalfLayer];
+
+    CAGradientLayer *veil = [CAGradientLayer layer];
+    veil.frame = _resultStage.bounds;
+    veil.colors = @[
+        (__bridge id)[UIColor colorWithWhite:1 alpha:0.10].CGColor,
+        (__bridge id)[UIColor colorWithWhite:0 alpha:0.06].CGColor,
+        (__bridge id)[UIColor colorWithWhite:1 alpha:0.08].CGColor,
+    ];
+    veil.startPoint = CGPointMake(0.1, 0);
+    veil.endPoint = CGPointMake(0.9, 1);
+    [_resultStage.layer addSublayer:veil];
+
+    _centerRing = [[UIView alloc] initWithFrame:CGRectMake(0, 0, 156, 156)];
+    _centerRing.center = CGPointMake(CGRectGetMidX(self.view.bounds), CGRectGetMidY(self.view.bounds));
+    _centerRing.layer.cornerRadius = 78;
+    _centerRing.layer.borderWidth = 1.2;
+    _centerRing.layer.borderColor = [UIColor colorWithWhite:1 alpha:0.50].CGColor;
+    _centerRing.layer.shadowColor = UIColor.whiteColor.CGColor;
+    _centerRing.layer.shadowOpacity = 0.45;
+    _centerRing.layer.shadowRadius = 24;
+    _centerRing.layer.shadowOffset = CGSizeZero;
+    _centerRing.backgroundColor = [[UIColor blackColor] colorWithAlphaComponent:0.18];
+    _centerRing.alpha = 0;
+    _centerRing.transform = CGAffineTransformMakeScale(0.72, 0.72);
+    [_resultStage addSubview:_centerRing];
+
+    _truthStageLabel = [self makeStageLabelWithText:@"真心话" subtitle:@"说出真实答案" color:truthColor];
+    _dareStageLabel = [self makeStageLabelWithText:@"大冒险" subtitle:@"接受随机挑战" color:dareColor];
+    [_resultStage addSubview:_truthStageLabel];
+    [_resultStage addSubview:_dareStageLabel];
+    [self configureResultStageGeometry];
+
+    [self.view insertSubview:_resultStage belowSubview:_ballTruth];
+    [self.view bringSubviewToFront:_ballTruth];
+    [self.view bringSubviewToFront:_ballDare];
+    [self.view bringSubviewToFront:_centerFlash];
+    _ballPro.alpha = 0;
+
+    CGFloat truthAlpha = truth ? 1.0 : 0.52;
+    CGFloat dareAlpha = truth ? 0.52 : 1.0;
+    _truthStageLabel.alpha = 0;
+    _dareStageLabel.alpha = 0;
+    CGFloat truthLayerOpacity = truth ? 1.0 : 0.72;
+    CGFloat dareLayerOpacity = truth ? 0.72 : 1.0;
+    [CATransaction begin];
+    [CATransaction setDisableActions:YES];
+    _truthHalfLayer.opacity = truthLayerOpacity;
+    _dareHalfLayer.opacity = dareLayerOpacity;
+    [CATransaction commit];
+
+    UIBezierPath *truthFinalPath = [self truthHalfPathInBounds:_resultStage.bounds];
+    UIBezierPath *dareFinalPath = [self dareHalfPathInBounds:_resultStage.bounds];
+    UIBezierPath *truthStartPath = [self path:truthFinalPath
+                                  translatedX:-CGRectGetWidth(_resultStage.bounds) * 0.34
+                                            y:-CGRectGetHeight(_resultStage.bounds) * 0.28];
+    UIBezierPath *dareStartPath = [self path:dareFinalPath
+                                 translatedX:CGRectGetWidth(_resultStage.bounds) * 0.34
+                                           y:CGRectGetHeight(_resultStage.bounds) * 0.28];
+
+    [UIView animateKeyframesWithDuration:1.34
+                                   delay:0
+                                 options:UIViewKeyframeAnimationOptionCalculationModeCubic
+                              animations:^{
+        [UIView addKeyframeWithRelativeStartTime:0 relativeDuration:0.38 animations:^{
+            self->_resultStage.alpha = 1;
+            self.bgImageView.alpha = 0;
+        }];
+        [UIView addKeyframeWithRelativeStartTime:0.18 relativeDuration:0.54 animations:^{
+            self->_truthStageLabel.alpha = truthAlpha;
+            self->_dareStageLabel.alpha = dareAlpha;
+        }];
+        [UIView addKeyframeWithRelativeStartTime:0.30 relativeDuration:0.44 animations:^{
+            self->_centerRing.alpha = 1;
+            self->_centerRing.transform = CGAffineTransformIdentity;
+        }];
+    } completion:nil];
+
+    CABasicAnimation *truthPath = [CABasicAnimation animationWithKeyPath:@"path"];
+    truthPath.fromValue = (__bridge id)truthStartPath.CGPath;
+    truthPath.toValue = (__bridge id)truthFinalPath.CGPath;
+    CABasicAnimation *truthReveal = [CABasicAnimation animationWithKeyPath:@"opacity"];
+    truthReveal.fromValue = @0;
+    truthReveal.toValue = @(truthLayerOpacity);
+    CAAnimationGroup *truthGroup = [CAAnimationGroup animation];
+    truthGroup.animations = @[truthPath, truthReveal];
+    truthGroup.duration = 1.12;
+    truthGroup.timingFunction = [CAMediaTimingFunction functionWithControlPoints:0.16 :0.90 :0.22 :1.0];
+    [_truthHalfLayer addAnimation:truthGroup forKey:@"cling.reveal"];
+
+    CABasicAnimation *darePath = [CABasicAnimation animationWithKeyPath:@"path"];
+    darePath.fromValue = (__bridge id)dareStartPath.CGPath;
+    darePath.toValue = (__bridge id)dareFinalPath.CGPath;
+    CABasicAnimation *dareReveal = [CABasicAnimation animationWithKeyPath:@"opacity"];
+    dareReveal.fromValue = @0;
+    dareReveal.toValue = @(dareLayerOpacity);
+    CAAnimationGroup *dareGroup = [CAAnimationGroup animation];
+    dareGroup.animations = @[darePath, dareReveal];
+    dareGroup.duration = 1.12;
+    dareGroup.timingFunction = [CAMediaTimingFunction functionWithControlPoints:0.16 :0.90 :0.22 :1.0];
+    [_dareHalfLayer addAnimation:dareGroup forKey:@"cling.reveal"];
+}
+
+- (void)completeTaiChiResultWithWinnerBall:(UIView *)winnerBall loserBall:(UIView *)loserBall {
+    CGPoint C = self.view.center;
+    loserBall.hidden = YES;
+    winnerBall.hidden = NO;
+    winnerBall.center = C;
+    winnerBall.layer.zPosition = 60;
+    winnerBall.alpha = 1;
+    winnerBall.transform = CGAffineTransformMakeScale(0.82, 0.82);
+
+    [UIView animateWithDuration:0.74
+                          delay:0
+         usingSpringWithDamping:0.78
+          initialSpringVelocity:0.45
+                        options:UIViewAnimationOptionCurveEaseOut
+                     animations:^{
+        winnerBall.transform = CGAffineTransformMakeScale(1.58, 1.58);
+        self->_centerRing.transform = CGAffineTransformMakeScale(1.04, 1.04);
+    } completion:^(BOOL finished) {
+        [UIView animateWithDuration:0.18 animations:^{
+            self->_centerRing.transform = CGAffineTransformIdentity;
+        }];
+    }];
+}
+
 #pragma mark - Start
 
 - (void)onStart {
@@ -631,57 +1053,75 @@ static NSArray *dares = @[
 
     // 背景加速
     [self startBackgroundLoopFast:YES];
+    [_ballTruth.layer removeAllAnimations];
+    [_ballDare.layer removeAllAnimations];
+    _ballTruth.hidden = NO;
+    _ballDare.hidden = NO;
+    _ballTruth.transform = CGAffineTransformIdentity;
+    _ballDare.transform = CGAffineTransformIdentity;
+    self.bgImageView.alpha = 1;
+    _ballPro.alpha = 1;
+    [_resultStage removeFromSuperview];
+    _resultStage = nil;
 
     CGPoint C = self.view.center;
     CGFloat R0 = MIN(self.view.bounds.size.width, self.view.bounds.size.height)*0.28;
-    CGFloat R1 = 0;
-    CGFloat rotCount = 3.5;
+    CGFloat R1 = 10;
+    CGFloat rotCount = 4.35;
 
-    UIBezierPath *pathTruth = [self spiralPathAround:C startRadius:R0 endRadius:R1 rotations:rotCount phaseBias:0 steps:420];
-    UIBezierPath *pathDare  = [self spiralPathAround:C startRadius:R0 endRadius:R1 rotations:rotCount phaseBias:M_PI steps:420];
+    UIBezierPath *pathTruth = [self spiralPathAround:C startRadius:R0 endRadius:R1 rotations:rotCount phaseBias:0.18 steps:520];
+    UIBezierPath *pathDare  = [self spiralPathAround:C startRadius:R0 endRadius:R1 rotations:rotCount phaseBias:M_PI + 0.18 steps:520];
 
-    CFTimeInterval moveDur = 2.6;
-    CAKeyframeAnimation *moveT = [CAKeyframeAnimation animationWithKeyPath:@"position"];
-    moveT.path = pathTruth.CGPath; moveT.duration = moveDur;
-    moveT.timingFunction = [CAMediaTimingFunction functionWithName:kCAMediaTimingFunctionEaseInEaseOut];
-    moveT.fillMode = kCAFillModeForwards; moveT.removedOnCompletion = NO;
-
-    CAKeyframeAnimation *moveD = [CAKeyframeAnimation animationWithKeyPath:@"position"];
-    moveD.path = pathDare.CGPath; moveD.duration = moveDur;
-    moveD.timingFunction = [CAMediaTimingFunction functionWithName:kCAMediaTimingFunctionEaseInEaseOut];
-    moveD.fillMode = kCAFillModeForwards; moveD.removedOnCompletion = NO;
-
-    // 自转 + 呼吸
-    CABasicAnimation *rotT = [CABasicAnimation animationWithKeyPath:@"transform.rotation.z"];
-    rotT.toValue = @(2*M_PI); rotT.duration = 1.2; rotT.repeatCount = HUGE_VALF;
-    CABasicAnimation *rotD = [CABasicAnimation animationWithKeyPath:@"transform.rotation.z"];
-    rotD.toValue = @(-2*M_PI); rotD.duration = 1.2; rotD.repeatCount = HUGE_VALF;
+    CFTimeInterval moveDur = 3.0;
+    [self showLayeredScrollForDuration:moveDur];
+    [self animateBackgroundPushForDuration:moveDur];
 
     CABasicAnimation *breath = [CABasicAnimation animationWithKeyPath:@"opacity"];
-    breath.fromValue=@0.9; breath.toValue=@1.0; breath.duration=0.8; breath.autoreverses=YES; breath.repeatCount=HUGE_VALF;
+    breath.fromValue=@0.78; breath.toValue=@1.0; breath.duration=0.52; breath.autoreverses=YES; breath.repeatCount=HUGE_VALF;
 
-    [_ballTruth.layer addAnimation:rotT forKey:@"rot"];
-    [_ballDare.layer addAnimation:rotD forKey:@"rot"];
+    BOOL truthFront = _winnerIsTruth;
+    _ballTruth.layer.zPosition = truthFront ? 32 : 24;
+    _ballDare.layer.zPosition = truthFront ? 24 : 32;
     [_ballTruth.layer addAnimation:breath forKey:@"breath"];
     [_ballDare.layer addAnimation:breath forKey:@"breath"];
 
-    [_ballTruth.layer addAnimation:moveT forKey:@"move"];
-    [_ballDare.layer addAnimation:moveD forKey:@"move"];
+    [_ballTruth.layer addAnimation:[self mixAnimationWithPath:pathTruth
+                                                     duration:moveDur
+                                                    spinTurns:truthFront ? 5.4 : -4.8
+                                                    frontPass:truthFront]
+                            forKey:@"layered.mix"];
+    [_ballDare.layer addAnimation:[self mixAnimationWithPath:pathDare
+                                                    duration:moveDur
+                                                   spinTurns:truthFront ? -4.8 : 5.4
+                                                   frontPass:!truthFront]
+                           forKey:@"layered.mix"];
+
+    // 旋转收束前就开始攀附结果场,让后半段连在一起。
+    dispatch_after(dispatch_time(DISPATCH_TIME_NOW, (int64_t)((moveDur - 1.05) * NSEC_PER_SEC)), dispatch_get_main_queue(), ^{
+        if (!self->_isAnimating) return;
+        [self beginTaiChiResultStageWinnerIsTruth:self->_winnerIsTruth];
+    });
 
     // 合并时刻
     dispatch_after(dispatch_time(DISPATCH_TIME_NOW, (int64_t)(moveDur * NSEC_PER_SEC)), dispatch_get_main_queue(), ^{
         // 落位中心
         self->_ballTruth.center = C;
         self->_ballDare.center  = C;
+        [self->_ballTruth.layer removeAnimationForKey:@"layered.mix"];
+        [self->_ballDare.layer removeAnimationForKey:@"layered.mix"];
+        [self->_ballTruth.layer removeAnimationForKey:@"breath"];
+        [self->_ballDare.layer removeAnimationForKey:@"breath"];
+        self->_ballTruth.transform = CGAffineTransformMakeScale(0.82, 0.82);
+        self->_ballDare.transform = CGAffineTransformMakeScale(0.82, 0.82);
 
         [self flashMergeAtCenter:C completion:^{
             // 显示胜出球，隐藏另一个
             if (self->_winnerIsTruth) {
-                self->_ballDare.hidden = YES;
-                [self showWinnerBall:self->_ballTruth isTruth:YES];
+                if (!self->_resultStage) [self beginTaiChiResultStageWinnerIsTruth:YES];
+                [self completeTaiChiResultWithWinnerBall:self->_ballTruth loserBall:self->_ballDare];
             } else {
-                self->_ballTruth.hidden = YES;
-                [self showWinnerBall:self->_ballDare isTruth:NO];
+                if (!self->_resultStage) [self beginTaiChiResultStageWinnerIsTruth:NO];
+                [self completeTaiChiResultWithWinnerBall:self->_ballDare loserBall:self->_ballTruth];
             }
             // 背景恢复慢速
             [self startBackgroundLoopFast:NO];
@@ -695,12 +1135,13 @@ static NSArray *dares = @[
     _centerFlash.transform = CGAffineTransformIdentity;
     _centerFlash.alpha = 0.0;
 
-    [UIView animateWithDuration:0.12 animations:^{
+    [UIView animateWithDuration:0.16 delay:0 options:UIViewAnimationOptionCurveEaseOut animations:^{
         self->_centerFlash.alpha = 1.0;
-        self->_centerFlash.transform = CGAffineTransformMakeScale(10, 10);
+        self->_centerFlash.transform = CGAffineTransformMakeScale(13, 13);
     } completion:^(BOOL finished) {
-        [UIView animateWithDuration:0.28 animations:^{
+        [UIView animateWithDuration:0.38 delay:0 options:UIViewAnimationOptionCurveEaseInOut animations:^{
             self->_centerFlash.alpha = 0.0;
+            self->_centerFlash.transform = CGAffineTransformMakeScale(18, 18);
         } completion:^(BOOL finished) {
             if (finish) finish();
         }];
@@ -710,8 +1151,10 @@ static NSArray *dares = @[
 #pragma mark - Winner
 
 - (void)showWinnerBall:(UIView *)ball isTruth:(BOOL)truth {
-    [UIView animateWithDuration:0.7 delay:0 usingSpringWithDamping:0.65 initialSpringVelocity:0.6 options:0 animations:^{
-        ball.transform = CGAffineTransformMakeScale(1.5, 1.5);
+    ball.layer.zPosition = 50;
+    ball.alpha = 1;
+    [UIView animateWithDuration:0.82 delay:0 usingSpringWithDamping:0.74 initialSpringVelocity:0.55 options:UIViewAnimationOptionCurveEaseOut animations:^{
+        ball.transform = CGAffineTransformMakeScale(1.58, 1.58);
     } completion:nil];
 }
 
@@ -753,6 +1196,7 @@ static NSArray *dares = @[
         _ballPro.center = CGPointMake(self.view.bounds.size.width - inset - Dp*0.5,
                                       self.view.bounds.size.height - inset - Dp*0.5);
     }
+    [self configureResultStageGeometry];
 }
 
 @end

@@ -22,8 +22,12 @@ NS_ASSUME_NONNULL_BEGIN
 
 @interface JFRemoteGameSession : NSObject <JFGameSession>
 
+@property (nonatomic, copy, readonly, nullable) NSString *roomCode;
+
 - (instancetype)initWithServiceType:(NSString *)serviceType NS_DESIGNATED_INITIALIZER;
 - (instancetype)init NS_UNAVAILABLE;
+
+- (void)startAsClientWithRoomCode:(NSString *)roomCode;
 
 @end
 

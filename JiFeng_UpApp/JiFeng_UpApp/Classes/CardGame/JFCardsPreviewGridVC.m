@@ -8,6 +8,7 @@
 #import "JFCardsPreviewGridVC.h"
 #import "JFCardThumbCell.h"
 #import "CardsGameViewController.h" // 为拿到 JFCard 类型
+#import "JFTheme.h"
 
 @interface JFCardsPreviewGridVC () <UICollectionViewDataSource, UICollectionViewDelegate>
 @property (nonatomic, strong) UICollectionView *collectionView;
@@ -18,7 +19,8 @@
 - (void)viewDidLoad {
     [super viewDidLoad];
     self.title = @"已出过的牌";
-    self.view.backgroundColor = [UIColor systemBackgroundColor];
+    self.view.backgroundColor = [JFTheme backgroundPrimary];
+    [JFTheme installThemedBackgroundInView:self.view];
 
     self.navigationItem.rightBarButtonItem =
         [[UIBarButtonItem alloc] initWithBarButtonSystemItem:UIBarButtonSystemItemClose

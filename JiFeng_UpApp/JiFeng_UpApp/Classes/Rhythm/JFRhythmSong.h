@@ -21,6 +21,12 @@ typedef NS_ENUM(NSInteger, JFRhythmDifficulty) {
     JFRhythmDifficultyHard,
 };
 
+typedef NS_ENUM(NSInteger, JFRhythmBeatType) {
+    JFRhythmBeatTypeTap = 0,
+    JFRhythmBeatTypeHold,
+    JFRhythmBeatTypeSlide,
+};
+
 @class JFRhythmBeat;
 
 /// 把全量谱面按难度抽稀
@@ -38,8 +44,14 @@ typedef NS_ENUM(NSInteger, JFRhythmDifficulty) {
 @interface JFRhythmBeat : NSObject <NSSecureCoding>
 @property (nonatomic, assign) NSTimeInterval time;     // 该音符到达判定线的"歌曲时间"(秒)
 @property (nonatomic, assign) NSInteger lane;          // 0..3
+@property (nonatomic, assign) NSInteger endLane;       // slide 终点 lane
+@property (nonatomic, assign) NSTimeInterval duration; // hold/slide 时长
 @property (nonatomic, assign) double strength;         // 该 onset 的能量(0..1),用于动效
+@property (nonatomic, assign) JFRhythmBeatType type;
+/// -1 表示自动分析音符;0/1/2 表示手工谱从简单/中等/困难开始出现。
+@property (nonatomic, assign) NSInteger minimumDifficulty;
 + (instancetype)beatAt:(NSTimeInterval)t lane:(NSInteger)lane strength:(double)s;
++ (instancetype)beatAt:(NSTimeInterval)t lane:(NSInteger)lane strength:(double)s type:(JFRhythmBeatType)type duration:(NSTimeInterval)duration endLane:(NSInteger)endLane;
 @end
 
 @interface JFRhythmSong : NSObject <NSSecureCoding>
@@ -55,6 +67,9 @@ typedef NS_ENUM(NSInteger, JFRhythmDifficulty) {
 @property (nonatomic, strong) NSArray<JFRhythmBeat *> *chart;        // 当前难度下的谱面
 @property (nonatomic, strong, nullable) NSArray<JFRhythmBeat *> *fullChart;  // 完整 onset 列表;用于按难度重抽
 @property (nonatomic, strong, nullable) NSDate *importedAt;
+@property (nonatomic, assign, getter=isTutorial) BOOL tutorial;
+/// 教学关的时间轴提示。元素包含 from/to/title/detail/icon，由内置谱面清单提供。
+@property (nonatomic, strong) NSArray<NSDictionary *> *tutorialSteps;
 
 /// 仅当 kind == UserImport 时返回真实文件路径
 - (nullable NSURL *)audioURLInDocuments;

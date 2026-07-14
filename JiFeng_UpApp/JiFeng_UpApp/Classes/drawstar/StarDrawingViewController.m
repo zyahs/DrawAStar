@@ -95,6 +95,10 @@
 
 @implementation StarDrawingViewController
 
+- (BOOL)jf_prefersThemedBackground {
+    return NO;
+}
+
 /**
  *  清除
  *
@@ -667,6 +671,7 @@
       if (old) [old removeFromSuperview];
 
       [self.view insertSubview:bgImageView atIndex:0];
+      [self.view sendSubviewToBack:bgImageView];
 
       [self dismissViewControllerAnimated:YES completion:nil];
     
@@ -866,6 +871,7 @@
 }
 - (void)viewDidLoad {
     [super viewDidLoad];
+    self.view.backgroundColor = [UIColor blackColor];
 //    self.water.selected = YES;
     self.yin.selected = YES;
     self.starBtn.hidden =NO;
@@ -883,4 +889,3 @@
 
 
 @end
-

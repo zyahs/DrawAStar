@@ -1,0 +1,477 @@
+{
+  "schema": "jifeng-rhythm-chart-v1",
+  "revision": "rhythm-v10-repeatable-tutorial-20260714",
+  "id": "rhythm_tutorial",
+  "order": -100,
+  "audio": "Rhythm_Tutorial.m4a",
+  "title": "新手训练",
+  "artist": "JiFeng Training / Tricks & Traps",
+  "bpm": 120.0,
+  "offset": 1.993,
+  "duration": 67.22177,
+  "tutorial": true,
+  "tutorialSteps": [
+    {
+      "from": 0.0,
+      "to": 5.3,
+      "title": "先看判定线",
+      "detail": "音符落到下方发光线时，再按对应轨道",
+      "icon": "sparkles"
+    },
+    {
+      "from": 5.3,
+      "to": 15.3,
+      "title": "点按",
+      "detail": "跟随单颗音符，轻点下方被指示的轨道",
+      "icon": "hand.tap.fill"
+    },
+    {
+      "from": 15.3,
+      "to": 25.3,
+      "title": "连续换轨",
+      "detail": "视线看判定线，左右手跟着颜色移动",
+      "icon": "arrow.left.and.right"
+    },
+    {
+      "from": 25.3,
+      "to": 38.3,
+      "title": "长按",
+      "detail": "按住长条头部，直到尾端经过判定线再松手",
+      "icon": "hand.point.up.left.fill"
+    },
+    {
+      "from": 38.3,
+      "to": 49.8,
+      "title": "滑动",
+      "detail": "按住箭头起点，沿方向滑到目标轨道",
+      "icon": "arrow.right.circle.fill"
+    },
+    {
+      "from": 49.8,
+      "to": 59.5,
+      "title": "双押",
+      "detail": "两颗音符同时到线时，用两根手指一起按",
+      "icon": "rectangle.split.2x1.fill"
+    },
+    {
+      "from": 59.5,
+      "to": 67.22177,
+      "title": "综合练习",
+      "detail": "把点按、长按、滑动和双押连起来",
+      "icon": "flag.checkered"
+    }
+  ],
+  "license": {
+    "spdx": "CC0-1.0",
+    "creator": "Tricks & Traps",
+    "sourcePage": "https://opengameart.org/content/free-rhythm-game-music-pack-2",
+    "sourceFile": "https://opengameart.org/sites/default/files/5_extended.wav",
+    "derivedFromBundledFile": "CC0_10_Extended.m4a"
+  },
+  "notes": [
+    {
+      "t": 5.993,
+      "lane": 0,
+      "level": 0,
+      "strength": 0.78,
+      "type": "tap"
+    },
+    {
+      "t": 6.993,
+      "lane": 1,
+      "level": 0,
+      "strength": 0.78,
+      "type": "tap"
+    },
+    {
+      "t": 7.993,
+      "lane": 2,
+      "level": 0,
+      "strength": 0.78,
+      "type": "tap"
+    },
+    {
+      "t": 8.993,
+      "lane": 3,
+      "level": 0,
+      "strength": 0.78,
+      "type": "tap"
+    },
+    {
+      "t": 9.993,
+      "lane": 3,
+      "level": 0,
+      "strength": 0.86,
+      "type": "tap"
+    },
+    {
+      "t": 10.993,
+      "lane": 2,
+      "level": 0,
+      "strength": 0.86,
+      "type": "tap"
+    },
+    {
+      "t": 11.993,
+      "lane": 1,
+      "level": 0,
+      "strength": 0.86,
+      "type": "tap"
+    },
+    {
+      "t": 12.993,
+      "lane": 0,
+      "level": 0,
+      "strength": 0.86,
+      "type": "tap"
+    },
+    {
+      "t": 13.993,
+      "lane": 1,
+      "level": 0,
+      "strength": 0.86,
+      "type": "tap"
+    },
+    {
+      "t": 14.993,
+      "lane": 2,
+      "level": 0,
+      "strength": 0.86,
+      "type": "tap"
+    },
+    {
+      "t": 15.993,
+      "lane": 0,
+      "level": 0,
+      "strength": 0.78,
+      "type": "tap"
+    },
+    {
+      "t": 16.493,
+      "lane": 3,
+      "level": 0,
+      "strength": 0.825,
+      "type": "tap"
+    },
+    {
+      "t": 16.993,
+      "lane": 1,
+      "level": 0,
+      "strength": 0.87,
+      "type": "tap"
+    },
+    {
+      "t": 17.493,
+      "lane": 2,
+      "level": 0,
+      "strength": 0.915,
+      "type": "tap"
+    },
+    {
+      "t": 17.993,
+      "lane": 0,
+      "level": 0,
+      "strength": 0.78,
+      "type": "tap"
+    },
+    {
+      "t": 18.493,
+      "lane": 2,
+      "level": 0,
+      "strength": 0.825,
+      "type": "tap"
+    },
+    {
+      "t": 18.993,
+      "lane": 1,
+      "level": 0,
+      "strength": 0.87,
+      "type": "tap"
+    },
+    {
+      "t": 19.493,
+      "lane": 3,
+      "level": 0,
+      "strength": 0.915,
+      "type": "tap"
+    },
+    {
+      "t": 19.993,
+      "lane": 0,
+      "level": 0,
+      "strength": 0.78,
+      "type": "tap"
+    },
+    {
+      "t": 20.493,
+      "lane": 1,
+      "level": 0,
+      "strength": 0.825,
+      "type": "tap"
+    },
+    {
+      "t": 20.993,
+      "lane": 3,
+      "level": 0,
+      "strength": 0.87,
+      "type": "tap"
+    },
+    {
+      "t": 21.493,
+      "lane": 2,
+      "level": 0,
+      "strength": 0.915,
+      "type": "tap"
+    },
+    {
+      "t": 21.993,
+      "lane": 0,
+      "level": 0,
+      "strength": 0.78,
+      "type": "tap"
+    },
+    {
+      "t": 22.493,
+      "lane": 3,
+      "level": 0,
+      "strength": 0.825,
+      "type": "tap"
+    },
+    {
+      "t": 22.993,
+      "lane": 2,
+      "level": 0,
+      "strength": 0.87,
+      "type": "tap"
+    },
+    {
+      "t": 23.493,
+      "lane": 1,
+      "level": 0,
+      "strength": 0.915,
+      "type": "tap"
+    },
+    {
+      "t": 23.993,
+      "lane": 0,
+      "level": 0,
+      "strength": 0.78,
+      "type": "tap"
+    },
+    {
+      "t": 24.493,
+      "lane": 2,
+      "level": 0,
+      "strength": 0.825,
+      "type": "tap"
+    },
+    {
+      "t": 25.993,
+      "lane": 0,
+      "level": 0,
+      "strength": 0.94,
+      "type": "hold",
+      "duration": 2.0
+    },
+    {
+      "t": 28.493,
+      "lane": 3,
+      "level": 0,
+      "strength": 0.82,
+      "type": "tap"
+    },
+    {
+      "t": 29.993,
+      "lane": 2,
+      "level": 0,
+      "strength": 0.96,
+      "type": "hold",
+      "duration": 2.0
+    },
+    {
+      "t": 32.493,
+      "lane": 0,
+      "level": 0,
+      "strength": 0.84,
+      "type": "tap"
+    },
+    {
+      "t": 33.993,
+      "lane": 1,
+      "level": 0,
+      "strength": 0.98,
+      "type": "hold",
+      "duration": 2.0
+    },
+    {
+      "t": 36.493,
+      "lane": 3,
+      "level": 0,
+      "strength": 0.86,
+      "type": "tap"
+    },
+    {
+      "t": 38.993,
+      "lane": 0,
+      "level": 0,
+      "strength": 0.98,
+      "type": "slide",
+      "duration": 1.0,
+      "endLane": 3
+    },
+    {
+      "t": 42.993,
+      "lane": 3,
+      "level": 0,
+      "strength": 0.98,
+      "type": "slide",
+      "duration": 1.0,
+      "endLane": 1
+    },
+    {
+      "t": 46.993,
+      "lane": 1,
+      "level": 0,
+      "strength": 0.98,
+      "type": "slide",
+      "duration": 1.0,
+      "endLane": 2
+    },
+    {
+      "t": 50.993,
+      "lane": 0,
+      "level": 0,
+      "strength": 0.96,
+      "type": "tap"
+    },
+    {
+      "t": 50.993,
+      "lane": 3,
+      "level": 0,
+      "strength": 0.96,
+      "type": "tap"
+    },
+    {
+      "t": 52.993,
+      "lane": 1,
+      "level": 0,
+      "strength": 0.96,
+      "type": "tap"
+    },
+    {
+      "t": 52.993,
+      "lane": 2,
+      "level": 0,
+      "strength": 0.96,
+      "type": "tap"
+    },
+    {
+      "t": 54.993,
+      "lane": 0,
+      "level": 0,
+      "strength": 0.96,
+      "type": "tap"
+    },
+    {
+      "t": 54.993,
+      "lane": 2,
+      "level": 0,
+      "strength": 0.96,
+      "type": "tap"
+    },
+    {
+      "t": 56.993,
+      "lane": 1,
+      "level": 0,
+      "strength": 0.96,
+      "type": "tap"
+    },
+    {
+      "t": 56.993,
+      "lane": 3,
+      "level": 0,
+      "strength": 0.96,
+      "type": "tap"
+    },
+    {
+      "t": 58.493,
+      "lane": 0,
+      "level": 0,
+      "strength": 0.96,
+      "type": "tap"
+    },
+    {
+      "t": 58.493,
+      "lane": 3,
+      "level": 0,
+      "strength": 0.96,
+      "type": "tap"
+    },
+    {
+      "t": 59.993,
+      "lane": 0,
+      "level": 0,
+      "strength": 0.88,
+      "type": "tap"
+    },
+    {
+      "t": 60.493,
+      "lane": 1,
+      "level": 0,
+      "strength": 0.88,
+      "type": "tap"
+    },
+    {
+      "t": 60.993,
+      "lane": 2,
+      "level": 0,
+      "strength": 0.88,
+      "type": "tap"
+    },
+    {
+      "t": 61.493,
+      "lane": 3,
+      "level": 0,
+      "strength": 0.88,
+      "type": "tap"
+    },
+    {
+      "t": 61.993,
+      "lane": 0,
+      "level": 0,
+      "strength": 0.98,
+      "type": "hold",
+      "duration": 1.5
+    },
+    {
+      "t": 62.993,
+      "lane": 3,
+      "level": 0,
+      "strength": 0.9,
+      "type": "tap"
+    },
+    {
+      "t": 63.993,
+      "lane": 3,
+      "level": 0,
+      "strength": 0.98,
+      "type": "slide",
+      "duration": 1.0,
+      "endLane": 1
+    },
+    {
+      "t": 65.493,
+      "lane": 0,
+      "level": 0,
+      "strength": 0.98,
+      "type": "tap"
+    },
+    {
+      "t": 65.493,
+      "lane": 2,
+      "level": 0,
+      "strength": 0.98,
+      "type": "tap"
+    }
+  ]
+}

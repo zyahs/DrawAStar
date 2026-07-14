@@ -37,6 +37,9 @@ typedef void (^JFLeaderboardFetchCompletion)(NSArray<JFLeaderboardEntry *> * _Nu
 - (void)submitScore:(NSInteger)score
             forGame:(JFGameKind)kind
          difficulty:(NSInteger)difficulty
+            duration:(NSTimeInterval)duration
+                 win:(BOOL)win
+               extra:(nullable NSDictionary<NSString *, id> *)extra
          completion:(JFLeaderboardSubmitCompletion _Nullable)completion;
 
 /// 拉取榜单 Top N。同时返回当前用户成绩(可能不在 top 里)。

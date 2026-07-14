@@ -11,6 +11,7 @@
 @property (nonatomic, strong) AVAudioPlayerNode *kickNode;
 @property (nonatomic, strong) AVAudioPlayerNode *snareNode;
 @property (nonatomic, strong) AVAudioPlayerNode *hatNode;
+@property (nonatomic, strong) AVAudioPlayerNode *hatNodeAlt;
 @property (nonatomic, strong) AVAudioPCMBuffer *kickBuffer;
 @property (nonatomic, strong) AVAudioPCMBuffer *snareBuffer;
 @property (nonatomic, strong) AVAudioPCMBuffer *hatBuffer;
@@ -42,6 +43,7 @@
     if (!self.kickNode.isPlaying)  [self.kickNode play];
     if (!self.snareNode.isPlaying) [self.snareNode play];
     if (!self.hatNode.isPlaying)   [self.hatNode play];
+    if (!self.hatNodeAlt.isPlaying) [self.hatNodeAlt play];
     self.ready = YES;
 }
 
@@ -49,6 +51,7 @@
     [self.kickNode stop];
     [self.snareNode stop];
     [self.hatNode stop];
+    [self.hatNodeAlt stop];
     [self.engine stop];
     self.ready = NO;
 }
@@ -61,12 +64,15 @@
     self.kickNode  = [[AVAudioPlayerNode alloc] init];
     self.snareNode = [[AVAudioPlayerNode alloc] init];
     self.hatNode   = [[AVAudioPlayerNode alloc] init];
+    self.hatNodeAlt = [[AVAudioPlayerNode alloc] init];
     [self.engine attachNode:self.kickNode];
     [self.engine attachNode:self.snareNode];
     [self.engine attachNode:self.hatNode];
+    [self.engine attachNode:self.hatNodeAlt];
     [self.engine connect:self.kickNode  to:self.mixer format:self.format];
     [self.engine connect:self.snareNode to:self.mixer format:self.format];
     [self.engine connect:self.hatNode   to:self.mixer format:self.format];
+    [self.engine connect:self.hatNodeAlt to:self.mixer format:self.format];
 
     self.kickBuffer  = [self synthKick];
     self.snareBuffer = [self synthSnare];
@@ -86,7 +92,7 @@
 - (AVAudioPCMBuffer *)synthKick {
     double dur = 0.32;
     AVAudioPCMBuffer *buf = [self bufferOfDuration:dur];
-    float **ch = buf.floatChannelData;
+    float * const *ch = buf.floatChannelData;
     double sr = self.format.sampleRate;
     double phase = 0;
     for (AVAudioFrameCount i = 0; i < buf.frameLength; i++) {
@@ -106,7 +112,7 @@
 - (AVAudioPCMBuffer *)synthSnare {
     double dur = 0.22;
     AVAudioPCMBuffer *buf = [self bufferOfDuration:dur];
-    float **ch = buf.floatChannelData;
+    float * const *ch = buf.floatChannelData;
     double sr = self.format.sampleRate;
     double phase = 0;
     double prev = 0;
@@ -131,7 +137,7 @@
 - (AVAudioPCMBuffer *)synthHat {
     double dur = 0.12;
     AVAudioPCMBuffer *buf = [self bufferOfDuration:dur];
-    float **ch = buf.floatChannelData;
+    float * const *ch = buf.floatChannelData;
     double sr = self.format.sampleRate;
     double prev = 0;
     for (AVAudioFrameCount i = 0; i < buf.frameLength; i++) {
@@ -167,8 +173,8 @@
 - (void)playForLane:(NSInteger)lane gain:(float)gain {
     switch (lane) {
         case 0: [self playKickWithGain:gain]; break;
-        case 1: [self playHatWithGain:gain * 0.85]; break;
-        case 2: [self playHatWithGain:gain * 0.85]; break;
+        case 1: [self scheduleNode:self.hatNode buffer:self.hatBuffer gain:gain * 0.92]; break;
+        case 2: [self scheduleNode:self.hatNodeAlt buffer:self.hatBuffer gain:gain * 0.92]; break;
         case 3: [self playSnareWithGain:gain]; break;
         default: [self playHatWithGain:gain]; break;
     }
