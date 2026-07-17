@@ -201,6 +201,10 @@ const CGFloat JFRadiusPill   = 999;
     if ([style isEqualToString:@"neon"]) return @[@"waveform.path.ecg", @"bolt.fill", @"sparkles"];
     if ([style isEqualToString:@"medals"]) return @[@"crown.fill", @"medal.fill", @"star.fill"];
     if ([style isEqualToString:@"sunset"]) return @[@"sun.max.fill", @"sparkles", @"circle.fill"];
+    if ([style isEqualToString:@"porcelain"]) return @[@"moon.stars.fill", @"camera.macro", @"seal.fill"];
+    if ([style isEqualToString:@"celestial"]) return @[@"sparkles", @"moon.stars.fill", @"diamond.fill"];
+    if ([style isEqualToString:@"noir"]) return @[@"seal.fill", @"diamond.fill", @"sparkle"];
+    if ([style isEqualToString:@"prism"]) return @[@"diamond.fill", @"triangle.fill", @"sparkles"];
     if ([style isEqualToString:@"custom"]) return @[@"slider.horizontal.3", @"paintpalette.fill", @"sparkles"];
     return @[fallback ?: @"sparkles", @"star.fill", @"circle.fill"];
 }

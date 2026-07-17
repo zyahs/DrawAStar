@@ -1,6 +1,7 @@
 package com.jifeng.upapp;
 
 import android.app.Activity;
+import android.app.AlertDialog;
 import android.content.Intent;
 import android.graphics.Typeface;
 import android.os.Bundle;
@@ -12,6 +13,7 @@ import android.widget.FrameLayout;
 import android.widget.GridLayout;
 import android.widget.LinearLayout;
 import android.widget.ScrollView;
+import android.widget.Switch;
 import android.widget.TextView;
 import android.widget.Toast;
 
@@ -28,10 +30,17 @@ public class MainActivity extends Activity {
     @Override
     protected void onCreate(Bundle state) {
         super.onCreate(state);
+        JFTheme.apply(this);
         games = JFGame.all();
         JFApiClient.ensureGuest(this, (json, error) -> {});
         buildRoot();
-        showTab(0);
+        showTab(state == null ? 0 : state.getInt("selected_tab", 0));
+    }
+
+    @Override
+    protected void onSaveInstanceState(Bundle state) {
+        state.putInt("selected_tab", selectedTab);
+        super.onSaveInstanceState(state);
     }
 
     private void buildRoot() {
@@ -105,7 +114,7 @@ public class MainActivity extends Activity {
     }
 
     private void showGames() {
-        LinearLayout box = page("继风小游戏", "Android 原生移植版，已接入底部 tab 和后端基础接口");
+        LinearLayout box = page("一桌好戏", "人到齐，马上开玩");
 
         LinearLayout profile = cardBox();
         profile.addView(JFTheme.label(this, "Lv 1  ·  风之币 0  ·  连续 0 天", 14, JFTheme.TEXT, Typeface.BOLD));
@@ -122,13 +131,24 @@ public class MainActivity extends Activity {
             LinearLayout card = new LinearLayout(this);
             card.setOrientation(LinearLayout.VERTICAL);
             card.setGravity(Gravity.BOTTOM);
-            card.setBackground(JFTheme.gradient(game.colorA, game.colorB, 0xff111827, JFTheme.dp(this, 18)));
+            int top = JFTheme.blend(game.colorA, JFTheme.PRIMARY, 0.22f);
+            int middle = JFTheme.blend(game.colorB, JFTheme.SECONDARY, 0.16f);
+            int bottom = JFTheme.blend(JFTheme.BG, game.colorB, 0.26f);
+            card.setBackground(JFTheme.gradient(top, middle, bottom, JFTheme.dp(this, 8)));
             JFTheme.pad(card, 14, 14, 14, 14);
             TextView title = JFTheme.label(this, game.title, 18, JFTheme.TEXT, Typeface.BOLD);
             TextView desc = JFTheme.label(this, game.subtitle, 12, 0xddffffff, Typeface.NORMAL);
             card.addView(title);
             card.addView(desc);
             card.setOnClickListener(v -> {
+                if ("RECOMMENDED_SOCIAL".equals(game.kind)) {
+                    startActivity(new Intent(this, RecommendedGamesActivity.class));
+                    return;
+                }
+                if ("NEVER_HAVE_I_EVER".equals(game.kind)) {
+                    startActivity(new Intent(this, NeverHaveIEverActivity.class));
+                    return;
+                }
                 Intent intent = new Intent(this, GameActivity.class);
                 intent.putExtra("kind", game.kind);
                 intent.putExtra("title", game.title);
@@ -234,24 +254,104 @@ public class MainActivity extends Activity {
     }
 
     private void showSkins() {
-        LinearLayout box = page("皮肤商店", "主题预设会同步影响 Android 首页和游戏背景");
-        String[] skins = { "星夜派对", "像素萌宠", "粉色 Kitty", "宝可梦草地", "霓虹电玩城", "自定义主题" };
-        for (String skin : skins) {
-            Button b = new Button(this);
-            b.setText(skin + "  ·  使用");
-            b.setAllCaps(false);
-            b.setTextColor(JFTheme.TEXT);
-            b.setBackground(JFTheme.card(this, 0x22ffffff));
-            b.setOnClickListener(v -> Toast.makeText(this, "已切换主题: " + skin, Toast.LENGTH_SHORT).show());
-            LinearLayout.LayoutParams bp = new LinearLayout.LayoutParams(-1, JFTheme.dp(this, 54));
-            bp.bottomMargin = JFTheme.dp(this, 10);
-            box.addView(b, bp);
+        JFThemeStore.Theme currentTheme = JFThemeStore.current(this);
+        LinearLayout box = page("皮肤商店", "主题会同步影响首页、游戏背景和预设桌面图标");
+
+        LinearLayout iconPanel = cardBox();
+        iconPanel.setBackground(JFTheme.outlined(this,
+            JFTheme.blend(JFTheme.CARD_SOLID, JFTheme.ACCENT, 0.10f), JFTheme.ACCENT));
+        iconPanel.addView(JFTheme.label(this, "桌面图标", 18, JFTheme.TEXT, Typeface.BOLD));
+        TextView iconStatus = JFTheme.label(this,
+            "当前：" + JFThemeStore.byId(JFAppIconManager.currentIconSkinId(this)).name,
+            13, JFTheme.SUBTEXT, Typeface.NORMAL);
+        iconPanel.addView(iconStatus);
+
+        LinearLayout followRow = new LinearLayout(this);
+        followRow.setOrientation(LinearLayout.HORIZONTAL);
+        followRow.setGravity(Gravity.CENTER_VERTICAL);
+        TextView followLabel = JFTheme.label(this, "图标跟随当前主题", 14, JFTheme.TEXT, Typeface.BOLD);
+        Switch follow = new Switch(this);
+        follow.setChecked(JFAppIconManager.followsTheme(this));
+        followRow.addView(followLabel, new LinearLayout.LayoutParams(0, JFTheme.dp(this, 48), 1));
+        followRow.addView(follow, new LinearLayout.LayoutParams(-2, JFTheme.dp(this, 48)));
+        iconPanel.addView(followRow);
+
+        Button manual = JFTheme.secondaryButton(this, "手动选择预设图标");
+        manual.setEnabled(!follow.isChecked());
+        manual.setAlpha(follow.isChecked() ? 0.48f : 1f);
+        iconPanel.addView(manual, new LinearLayout.LayoutParams(-1, JFTheme.dp(this, 46)));
+        follow.setOnCheckedChangeListener((button, checked) -> {
+            JFAppIconManager.setFollowsTheme(this, checked);
+            manual.setEnabled(!checked);
+            manual.setAlpha(checked ? 0.48f : 1f);
+            iconStatus.setText("当前：" + JFThemeStore.byId(JFAppIconManager.currentIconSkinId(this)).name);
+        });
+        manual.setOnClickListener(v -> showIconPicker(iconStatus));
+        box.addView(iconPanel);
+
+        box.addView(JFTheme.label(this, "主题预设", 18, JFTheme.TEXT, Typeface.BOLD));
+        for (JFThemeStore.Theme theme : JFThemeStore.all()) {
+            boolean selected = currentTheme.id.equals(theme.id);
+            LinearLayout card = new LinearLayout(this);
+            card.setOrientation(LinearLayout.HORIZONTAL);
+            card.setGravity(Gravity.CENTER_VERTICAL);
+            card.setBackground(JFTheme.outlined(this,
+                selected ? JFTheme.blend(JFTheme.CARD_SOLID, theme.primary, 0.18f) : JFTheme.CARD_SOLID,
+                selected ? JFTheme.ACCENT : 0x2affffff));
+            JFTheme.pad(card, 12, 11, 12, 11);
+
+            View swatch = new View(this);
+            swatch.setBackground(JFTheme.gradient(theme.primary, theme.secondary, theme.accent, JFTheme.dp(this, 8)));
+            card.addView(swatch, new LinearLayout.LayoutParams(JFTheme.dp(this, 48), JFTheme.dp(this, 48)));
+
+            LinearLayout copy = new LinearLayout(this);
+            copy.setOrientation(LinearLayout.VERTICAL);
+            copy.addView(JFTheme.label(this, theme.name, 16, JFTheme.TEXT, Typeface.BOLD));
+            copy.addView(JFTheme.label(this, theme.description, 12, JFTheme.SUBTEXT, Typeface.NORMAL));
+            LinearLayout.LayoutParams copyParams = new LinearLayout.LayoutParams(0, -2, 1);
+            copyParams.leftMargin = JFTheme.dp(this, 12);
+            card.addView(copy, copyParams);
+
+            TextView state = JFTheme.label(this, selected ? "使用中" : "使用",
+                12, selected ? JFTheme.ACCENT : JFTheme.SUBTEXT, Typeface.BOLD);
+            card.addView(state);
+            card.setOnClickListener(v -> {
+                selectedTab = 4;
+                JFThemeStore.apply(this, theme.id);
+                buildRoot();
+                showTab(4);
+            });
+            LinearLayout.LayoutParams cardParams = new LinearLayout.LayoutParams(-1, JFTheme.dp(this, 76));
+            cardParams.topMargin = JFTheme.dp(this, 10);
+            box.addView(card, cardParams);
         }
+    }
+
+    private void showIconPicker(TextView iconStatus) {
+        java.util.List<JFThemeStore.Theme> themes = JFThemeStore.all();
+        String[] names = new String[themes.size()];
+        int checked = 0;
+        String currentId = JFAppIconManager.currentIconSkinId(this);
+        for (int index = 0; index < themes.size(); index++) {
+            names[index] = themes.get(index).name;
+            if (themes.get(index).id.equals(currentId)) checked = index;
+        }
+        final int selected = checked;
+        new AlertDialog.Builder(this)
+            .setTitle("选择桌面图标")
+            .setSingleChoiceItems(names, selected, (dialog, which) -> {
+                JFThemeStore.Theme theme = themes.get(which);
+                JFAppIconManager.selectManualIcon(this, theme.id);
+                iconStatus.setText("当前：" + theme.name);
+                dialog.dismiss();
+            })
+            .setNegativeButton("取消", null)
+            .show();
     }
 
     private void showProfile() {
         LinearLayout box = page("个人主页", "昵称、头像、背景、签名与后端账号数据");
-        box.addView(cardBoxWith(JFTheme.label(this, "继风玩家\n今晚也要赢一局\nLv 1 · 风之币 0 · 总局数 0", 16, JFTheme.TEXT, Typeface.BOLD)));
+        box.addView(cardBoxWith(JFTheme.label(this, "新玩家\n今晚也要赢一局\nLv 1 · 风之币 0 · 总局数 0", 16, JFTheme.TEXT, Typeface.BOLD)));
         JFApiClient.get("/me", (json, error) -> runOnUiThread(() -> {
             if (json == null) return;
             Toast.makeText(this, "个人资料已连接后端", Toast.LENGTH_SHORT).show();

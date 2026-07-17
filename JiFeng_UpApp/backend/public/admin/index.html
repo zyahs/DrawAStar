@@ -3,7 +3,7 @@
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
-  <title>继风后台</title>
+  <title>一桌好戏后台</title>
   <style>
     :root {
       color-scheme: dark;
@@ -342,7 +342,7 @@
   <div id="app" class="hidden">
     <header>
       <div class="brand">
-        <h1>继风后台</h1>
+        <h1>一桌好戏后台</h1>
         <small id="syncStatus">数据已就绪</small>
       </div>
       <div class="toolbar">
@@ -555,7 +555,10 @@
       REACTION: '反应力测试',
       RHYTHM: '节奏点点',
       SOKOBAN: '推箱子',
-      PACMAN: '吃豆人'
+      PACMAN: '吃豆人',
+      RECOMMENDED_SOCIAL: '推荐游戏',
+      NEVER_HAVE_I_EVER: '我有你没有',
+      DRAW_GUESS: '你画我猜'
     };
 
     const $ = id => document.getElementById(id);
@@ -747,7 +750,10 @@
     async function loadLogs() {
       const logs = await api('/admin/audit-logs?take=30');
       $('logs').innerHTML = logs.map(log => `
-        <div>${new Date(log.createdAt).toLocaleString()} · ${escapeHtml(log.action)} · ${escapeHtml(log.admin?.username || '-')}</div>
+        <div>
+          ${new Date(log.createdAt).toLocaleString()} · ${escapeHtml(log.action)} · ${escapeHtml(log.admin?.username || '系统')}
+          ${log.detail?.referenceId ? `<br><small>${escapeHtml(log.detail.referenceId)} · ${escapeHtml(log.detail.type || '')} · ${escapeHtml(log.detail.content || '')}</small>` : ''}
+        </div>
       `).join('') || '<div>暂无日志</div>';
     }
 

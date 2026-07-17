@@ -34,7 +34,7 @@ static NSString * const kWeeklyDigestId = @"jf_weekly_digest";
     [c removePendingNotificationRequestsWithIdentifiers:@[kWeeklyDigestId]];
 
     JFProfileStore *p = [JFProfileStore shared];
-    NSString *title = @"继风周报";
+    NSString *title = @"一桌好戏周报";
     NSString *body = [NSString stringWithFormat:@"本周累计 %ld 局,等级 %ld,连续登录 %ld 天。打开看看本周战绩吧!",
                       (long)p.totalGamesPlayed, (long)p.level, (long)p.currentStreakDays];
 

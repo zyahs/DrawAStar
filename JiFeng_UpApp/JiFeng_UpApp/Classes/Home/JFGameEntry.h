@@ -12,7 +12,7 @@ NS_ASSUME_NONNULL_BEGIN
 typedef NS_ENUM(NSInteger, JFGameKind) {
     JFGameKindDrawBoard = 0,   // 画板
     JFGameKindTruthOrDare,     // 真心话大冒险
-    JFGameKindDice,            // 骰子游戏
+    JFGameKindDice,            // 骰子游乐场
     JFGameKindFiveInRow,       // 五子棋
     JFGameKindUndercover,      // 谁是卧底(联机)
     JFGameKindKing,            // 国王游戏(联机)
@@ -24,9 +24,12 @@ typedef NS_ENUM(NSInteger, JFGameKind) {
     JFGameKindSudoku,          // 数独
     JFGameKindMemory,          // 记忆翻牌
     JFGameKindReaction,        // 反应力测试
-    JFGameKindRhythm,          // 节奏点点
+    JFGameKindRhythm,          // 节奏大师
     JFGameKindSokoban,         // 推箱子
     JFGameKindPacman,          // 吃豆人
+    JFGameKindRecommendedSocial, // 推荐游戏（社交玩法指南）
+    JFGameKindNeverHaveIEver,    // 我有你没有
+    JFGameKindDrawGuess,         // 你画我猜
 };
 
 @interface JFGameEntry : NSObject

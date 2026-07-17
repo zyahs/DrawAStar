@@ -15,7 +15,7 @@ export class MultiplayerController {
 
   @Post('rooms')
   create(@CurrentUser() user: RequestUser, @Body() dto: CreateRoomDto) {
-    return this.multiplayer.createRoom(user.sub, dto.kind, dto.displayName, dto.serviceType);
+    return this.multiplayer.createRoom(user.sub, dto.kind as GameKind, dto.displayName, dto.serviceType);
   }
 
   @Post('rooms/:roomId/join')

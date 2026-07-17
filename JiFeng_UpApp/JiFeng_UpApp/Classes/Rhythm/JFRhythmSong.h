@@ -1,7 +1,7 @@
 //
 //  JFRhythmSong.h
 //
-//  节奏点点 —— 一首"歌"的数据模型(可能是用户导入的音频,也可能是内置的纯节拍预设)。
+//  节奏大师 —— 一首"歌"的数据模型(可能是用户导入的音频,也可能是内置的纯节拍预设)。
 //  · 用户导入:audioFileName 指向 Documents/RhythmSongs 下的音频文件
 //  · 内置预设:audioFileName 为空,只有 chart + bpm,运行时用 haptic 节拍提示
 //

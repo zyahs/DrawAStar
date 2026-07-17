@@ -19,6 +19,7 @@ typedef NS_ENUM(NSInteger, JFPacDirection) {
 
 @interface JFPacGhost : NSObject
 @property (nonatomic, assign) NSInteger position;
+@property (nonatomic, assign) NSInteger previousPosition;
 @property (nonatomic, assign) NSInteger startPosition;
 @property (nonatomic, strong) UIColor *color;
 @end
@@ -33,14 +34,20 @@ typedef NS_ENUM(NSInteger, JFPacDirection) {
 - (BOOL)pacmanPelletAtPosition:(NSInteger)position;
 - (BOOL)pacmanPowerAtPosition:(NSInteger)position;
 - (NSInteger)pacmanPlayerPosition;
+- (NSInteger)pacmanPlayerPreviousPosition;
 - (JFPacDirection)pacmanPlayerDirection;
 - (NSArray<JFPacGhost *> *)pacmanGhosts;
 - (BOOL)pacmanIsPowered;
 - (NSInteger)pacmanAnimationTick;
+- (CGFloat)pacmanInterpolationProgress;
 @end
 
 @interface JFPacmanBoardView : UIView
 @property (nonatomic, weak) id<JFPacmanBoardDataSource> dataSource;
+@property (nonatomic, strong) UIImage *mazeCache;
+@property (nonatomic, assign) CGSize mazeCacheSize;
+@property (nonatomic, assign) NSInteger mazeCacheRows;
+@property (nonatomic, assign) NSInteger mazeCacheColumns;
 @end
 
 @implementation JFPacmanBoardView
@@ -58,6 +65,11 @@ typedef NS_ENUM(NSInteger, JFPacDirection) {
     return self;
 }
 
+- (void)layoutSubviews {
+    [super layoutSubviews];
+    if (!CGSizeEqualToSize(self.mazeCacheSize, self.bounds.size)) self.mazeCache = nil;
+}
+
 - (void)drawRect:(CGRect)rect {
     id<JFPacmanBoardDataSource> source = self.dataSource;
     NSInteger rows = source.pacmanRows;
@@ -73,21 +85,40 @@ typedef NS_ENUM(NSInteger, JFPacDirection) {
     CGFloat originX = floor((self.bounds.size.width - mazeWidth) / 2.0);
     CGFloat originY = floor((self.bounds.size.height - mazeHeight) / 2.0);
 
-    UIColor *wallFill = [[JFTheme brandPrimary] colorWithAlphaComponent:0.76];
-    UIColor *wallEdge = [[JFTheme accent] colorWithAlphaComponent:0.72];
+    if (!self.mazeCache || self.mazeCacheRows != rows || self.mazeCacheColumns != columns) {
+        UIGraphicsImageRenderer *renderer = [[UIGraphicsImageRenderer alloc] initWithSize:self.bounds.size];
+        self.mazeCache = [renderer imageWithActions:^(UIGraphicsImageRendererContext *rendererContext) {
+            UIColor *wallFill = [[JFTheme brandPrimary] colorWithAlphaComponent:0.76];
+            UIColor *wallEdge = [[JFTheme accent] colorWithAlphaComponent:0.72];
+            for (NSInteger row = 0; row < rows; row++) {
+                for (NSInteger column = 0; column < columns; column++) {
+                    NSInteger position = row * columns + column;
+                    if (![source pacmanWallAtPosition:position]) continue;
+                    CGRect cell = CGRectMake(originX + column * tile, originY + row * tile, tile, tile);
+                    CGRect wallRect = CGRectInset(cell, tile * 0.08, tile * 0.08);
+                    UIBezierPath *wall = [UIBezierPath bezierPathWithRoundedRect:wallRect cornerRadius:MAX(1.5, tile * 0.2)];
+                    [wallFill setFill];
+                    [wall fill];
+                    wall.lineWidth = MAX(0.7, tile * 0.055);
+                    [wallEdge setStroke];
+                    [wall stroke];
+                }
+            }
+            CGContextRef cacheContext = rendererContext.CGContext;
+            CGContextSetStrokeColorWithColor(cacheContext, [[UIColor whiteColor] colorWithAlphaComponent:0.08].CGColor);
+            CGContextStrokeRectWithWidth(cacheContext, CGRectMake(originX, originY, mazeWidth, mazeHeight), 1);
+        }];
+        self.mazeCacheSize = self.bounds.size;
+        self.mazeCacheRows = rows;
+        self.mazeCacheColumns = columns;
+    }
+    [self.mazeCache drawAtPoint:CGPointZero];
+
     for (NSInteger row = 0; row < rows; row++) {
         for (NSInteger column = 0; column < columns; column++) {
             NSInteger position = row * columns + column;
             CGRect cell = CGRectMake(originX + column * tile, originY + row * tile, tile, tile);
-            if ([source pacmanWallAtPosition:position]) {
-                CGRect wallRect = CGRectInset(cell, tile * 0.08, tile * 0.08);
-                UIBezierPath *wall = [UIBezierPath bezierPathWithRoundedRect:wallRect cornerRadius:MAX(1.5, tile * 0.2)];
-                [wallFill setFill];
-                [wall fill];
-                wall.lineWidth = MAX(0.7, tile * 0.055);
-                [wallEdge setStroke];
-                [wall stroke];
-            } else if ([source pacmanPowerAtPosition:position]) {
+            if ([source pacmanPowerAtPosition:position]) {
                 CGFloat pulse = source.pacmanAnimationTick % 4 < 2 ? 0.24 : 0.19;
                 CGFloat radius = tile * pulse;
                 UIBezierPath *power = [UIBezierPath bezierPathWithOvalInRect:CGRectMake(CGRectGetMidX(cell) - radius,
@@ -108,9 +139,11 @@ typedef NS_ENUM(NSInteger, JFPacDirection) {
         }
     }
 
+    CGFloat progress = MIN(1, MAX(0, source.pacmanInterpolationProgress));
     NSInteger playerPosition = source.pacmanPlayerPosition;
-    NSInteger playerRow = playerPosition / columns;
-    NSInteger playerColumn = playerPosition % columns;
+    NSInteger previousPlayerPosition = source.pacmanPlayerPreviousPosition;
+    CGFloat playerRow = (previousPlayerPosition / columns) + ((playerPosition / columns) - (previousPlayerPosition / columns)) * progress;
+    CGFloat playerColumn = (previousPlayerPosition % columns) + ((playerPosition % columns) - (previousPlayerPosition % columns)) * progress;
     CGPoint playerCenter = CGPointMake(originX + (playerColumn + 0.5) * tile,
                                        originY + (playerRow + 0.5) * tile);
     CGFloat playerRadius = tile * 0.41;
@@ -135,8 +168,8 @@ typedef NS_ENUM(NSInteger, JFPacDirection) {
 
     BOOL powered = source.pacmanIsPowered;
     [source.pacmanGhosts enumerateObjectsUsingBlock:^(JFPacGhost *ghost, NSUInteger idx, BOOL *stop) {
-        NSInteger row = ghost.position / columns;
-        NSInteger column = ghost.position % columns;
+        CGFloat row = (ghost.previousPosition / columns) + ((ghost.position / columns) - (ghost.previousPosition / columns)) * progress;
+        CGFloat column = (ghost.previousPosition % columns) + ((ghost.position % columns) - (ghost.previousPosition % columns)) * progress;
         CGPoint center = CGPointMake(originX + (column + 0.5) * tile,
                                      originY + (row + 0.5) * tile);
         UIColor *ghostColor = powered ? [UIColor colorWithRed:0.2 green:0.48 blue:0.96 alpha:1] : ghost.color;
@@ -175,8 +208,7 @@ typedef NS_ENUM(NSInteger, JFPacDirection) {
         }
     }];
 
-    CGContextSetStrokeColorWithColor(context, [[UIColor whiteColor] colorWithAlphaComponent:0.08].CGColor);
-    CGContextStrokeRectWithWidth(context, CGRectMake(originX, originY, mazeWidth, mazeHeight), 1);
+    (void)context;
 }
 
 @end
@@ -211,11 +243,16 @@ typedef NS_ENUM(NSInteger, JFPacDirection) {
 @property (nonatomic, assign) NSInteger lives;
 @property (nonatomic, assign) NSInteger level;
 @property (nonatomic, assign) NSInteger tick;
+@property (nonatomic, assign) NSInteger renderFrame;
 @property (nonatomic, assign) NSInteger ghostCombo;
 @property (nonatomic, assign) NSTimeInterval powerEndTime;
 @property (nonatomic, assign) BOOL running;
 @property (nonatomic, assign) BOOL gameStarted;
-@property (nonatomic, strong) NSTimer *timer;
+@property (nonatomic, assign) NSInteger previousPlayer;
+@property (nonatomic, assign) CGFloat interpolationProgress;
+@property (nonatomic, assign) NSTimeInterval lastFrameTimestamp;
+@property (nonatomic, assign) NSTimeInterval logicAccumulator;
+@property (nonatomic, strong) CADisplayLink *displayLink;
 @end
 
 @implementation JFPacmanViewController
@@ -432,6 +469,7 @@ typedef NS_ENUM(NSInteger, JFPacDirection) {
     self.lives = 3;
     self.level = 1;
     self.tick = 0;
+    self.renderFrame = 0;
     self.gameStarted = NO;
     self.running = NO;
     [self loadMaze];
@@ -462,6 +500,7 @@ typedef NS_ENUM(NSInteger, JFPacDirection) {
         }
     }];
     self.player = self.playerStart;
+    self.previousPlayer = self.playerStart;
     self.direction = JFPacDirectionNone;
     self.requestedDirection = JFPacDirectionNone;
     self.powerEndTime = 0;
@@ -476,6 +515,7 @@ typedef NS_ENUM(NSInteger, JFPacDirection) {
     [ghostStarts enumerateObjectsUsingBlock:^(NSNumber *position, NSUInteger idx, BOOL *stop) {
         JFPacGhost *ghost = [JFPacGhost new];
         ghost.position = position.integerValue;
+        ghost.previousPosition = position.integerValue;
         ghost.startPosition = position.integerValue;
         ghost.color = colors[idx % colors.count];
         [ghosts addObject:ghost];
@@ -563,19 +603,60 @@ typedef NS_ENUM(NSInteger, JFPacDirection) {
     if (self.running) return;
     self.running = YES;
     [self.pauseButton setImage:[UIImage systemImageNamed:@"pause.fill"] forState:UIControlStateNormal];
-    NSTimeInterval interval = MAX(0.085, 0.145 - (self.level - 1) * 0.008);
-    self.timer = [NSTimer scheduledTimerWithTimeInterval:interval target:self selector:@selector(onGameTick) userInfo:nil repeats:YES];
+    self.lastFrameTimestamp = 0;
+    self.logicAccumulator = [self movementStepDuration];
+    self.interpolationProgress = 0;
+    self.displayLink = [CADisplayLink displayLinkWithTarget:self selector:@selector(onDisplayFrame:)];
+    self.displayLink.preferredFramesPerSecond = 60;
+    [self.displayLink addToRunLoop:NSRunLoop.mainRunLoop forMode:NSRunLoopCommonModes];
 }
 
 - (void)stopTimer {
     self.running = NO;
-    [self.timer invalidate];
-    self.timer = nil;
+    [self.displayLink invalidate];
+    self.displayLink = nil;
+    self.lastFrameTimestamp = 0;
+    self.interpolationProgress = 1;
+    [self.boardView setNeedsDisplay];
 }
 
 #pragma mark - Game loop
 
-- (void)onGameTick {
+- (NSTimeInterval)movementStepDuration {
+    return MAX(0.085, 0.145 - (self.level - 1) * 0.008);
+}
+
+- (void)onDisplayFrame:(CADisplayLink *)displayLink {
+    NSTimeInterval delta = self.lastFrameTimestamp > 0 ? displayLink.timestamp - self.lastFrameTimestamp : 0;
+    self.lastFrameTimestamp = displayLink.timestamp;
+    self.logicAccumulator += MIN(0.05, MAX(0, delta));
+
+    NSInteger steps = 0;
+    NSTimeInterval stepDuration = [self movementStepDuration];
+    while (self.running && self.logicAccumulator >= stepDuration && steps < 3) {
+        self.logicAccumulator -= stepDuration;
+        [self prepareInterpolationStep];
+        [self advanceGameState];
+        steps += 1;
+        stepDuration = [self movementStepDuration];
+    }
+    self.interpolationProgress = self.running ? MIN(1, self.logicAccumulator / stepDuration) : 1;
+    self.renderFrame += 1;
+    [self.boardView setNeedsDisplay];
+}
+
+- (void)prepareInterpolationStep {
+    self.previousPlayer = self.player;
+    for (JFPacGhost *ghost in self.ghosts) ghost.previousPosition = ghost.position;
+}
+
+- (void)synchronizeInterpolation {
+    self.previousPlayer = self.player;
+    for (JFPacGhost *ghost in self.ghosts) ghost.previousPosition = ghost.position;
+    self.interpolationProgress = 1;
+}
+
+- (void)advanceGameState {
     self.tick += 1;
     NSInteger oldPlayer = self.player;
     NSMutableArray<NSNumber *> *oldGhostPositions = [NSMutableArray arrayWithCapacity:self.ghosts.count];
@@ -586,7 +667,6 @@ typedef NS_ENUM(NSInteger, JFPacDirection) {
     [self consumeCurrentTile];
     if (!self.running) {
         [self updateHUD];
-        [self.boardView setNeedsDisplay];
         return;
     }
 
@@ -600,7 +680,6 @@ typedef NS_ENUM(NSInteger, JFPacDirection) {
 
     [self resolveCollisionsFromOldPlayer:oldPlayer oldGhosts:oldGhostPositions];
     [self updateHUD];
-    [self.boardView setNeedsDisplay];
 }
 
 - (NSInteger)positionFrom:(NSInteger)position direction:(JFPacDirection)direction {
@@ -707,6 +786,7 @@ typedef NS_ENUM(NSInteger, JFPacDirection) {
             self.score += gain;
             self.ghostCombo += 1;
             ghost.position = ghost.startPosition;
+            ghost.previousPosition = ghost.startPosition;
             self.statusLabel.text = [NSString stringWithFormat:@"反吃追兵 +%ld", (long)gain];
             [JFTheme hapticNotification:UINotificationFeedbackTypeSuccess];
         } else {
@@ -728,6 +808,7 @@ typedef NS_ENUM(NSInteger, JFPacDirection) {
     self.direction = JFPacDirectionNone;
     self.requestedDirection = JFPacDirectionNone;
     for (JFPacGhost *ghost in self.ghosts) ghost.position = ghost.startPosition;
+    [self synchronizeInterpolation];
     self.statusLabel.text = [NSString stringWithFormat:@"被追兵抓住，还剩 %ld 条命", (long)self.lives];
     [self.startOverlayButton setTitle:@"继续" forState:UIControlStateNormal];
     self.startOverlayButton.hidden = NO;
@@ -797,9 +878,11 @@ typedef NS_ENUM(NSInteger, JFPacDirection) {
 - (BOOL)pacmanPelletAtPosition:(NSInteger)position { return [self.pellets containsIndex:position]; }
 - (BOOL)pacmanPowerAtPosition:(NSInteger)position { return [self.powerPellets containsIndex:position]; }
 - (NSInteger)pacmanPlayerPosition { return self.player; }
+- (NSInteger)pacmanPlayerPreviousPosition { return self.previousPlayer; }
 - (JFPacDirection)pacmanPlayerDirection { return self.direction; }
 - (NSArray<JFPacGhost *> *)pacmanGhosts { return self.ghosts; }
 - (BOOL)pacmanIsPowered { return self.powerEndTime > NSDate.date.timeIntervalSince1970; }
-- (NSInteger)pacmanAnimationTick { return self.tick; }
+- (NSInteger)pacmanAnimationTick { return self.renderFrame / 6; }
+- (CGFloat)pacmanInterpolationProgress { return self.interpolationProgress; }
 
 @end

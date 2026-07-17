@@ -1,9 +1,17 @@
 import { GameKind } from '@prisma/client';
-import { IsEnum, IsObject, IsOptional, IsString, MaxLength } from 'class-validator';
+import { IsIn, IsObject, IsOptional, IsString, MaxLength } from 'class-validator';
+
+const multiplayerGameKinds = [
+  ...Object.values(GameKind),
+  // Keep newly shipped in-memory room types available during rolling deploys,
+  // even if a server has not regenerated Prisma Client yet.
+  'DRAW_GUESS',
+] as const;
 
 export class CreateRoomDto {
-  @IsEnum(GameKind)
-  kind!: GameKind;
+  @IsString()
+  @IsIn(multiplayerGameKinds)
+  kind!: GameKind | 'DRAW_GUESS';
 
   @IsOptional()
   @IsString()

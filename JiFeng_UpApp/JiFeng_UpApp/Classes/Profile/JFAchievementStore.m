@@ -75,7 +75,7 @@ static NSString * const kJFAchUnlockedKey = @"jf_ach_unlocked_v1"; // {id: ts}
     NSMutableArray *list = [NSMutableArray array];
 
     // 全局
-    [list addObject:[self defWithId:@"first_play" title:@"初识继风" desc:@"完成第一局游戏"
+    [list addObject:[self defWithId:@"first_play" title:@"初次开局" desc:@"完成第一局游戏"
                               symbol:@"sparkles" reward:20
                           evaluator:^BOOL(JFGameResult *r, JFProfileStore *p) {
         return p.totalGamesPlayed >= 1;
@@ -164,14 +164,14 @@ static NSString * const kJFAchUnlockedKey = @"jf_ach_unlocked_v1"; // {id: ts}
                           evaluator:^BOOL(JFGameResult *r, JFProfileStore *p) {
         return r && r.kind == JFGameKindMemory && r.win;
     }]];
-    [list addObject:[self defWithId:@"rhythm_perfect" title:@"心律相通" desc:@"节奏点点中达成 50 连击"
+    [list addObject:[self defWithId:@"rhythm_perfect" title:@"心律相通" desc:@"节奏大师中达成 50 连击"
                               symbol:@"music.note" reward:80
                           evaluator:^BOOL(JFGameResult *r, JFProfileStore *p) {
         if (!r || r.kind != JFGameKindRhythm) return NO;
         NSInteger maxCombo = [r.extra[@"maxCombo"] integerValue];
         return maxCombo >= 50;
     }]];
-    [list addObject:[self defWithId:@"rhythm_combo_100" title:@"百拍合一" desc:@"节奏点点中单局 100 连击"
+    [list addObject:[self defWithId:@"rhythm_combo_100" title:@"百拍合一" desc:@"节奏大师中单局 100 连击"
                               symbol:@"flame.fill" reward:120
                           evaluator:^BOOL(JFGameResult *r, JFProfileStore *p) {
         if (!r || r.kind != JFGameKindRhythm) return NO;

@@ -65,7 +65,7 @@
 
 - (void)configure:(NSDictionary *)message {
     NSDictionary *user = [message[@"user"] isKindOfClass:[NSDictionary class]] ? message[@"user"] : @{};
-    NSString *name = [user[@"displayName"] isKindOfClass:[NSString class]] ? user[@"displayName"] : @"继风玩家";
+    NSString *name = [user[@"displayName"] isKindOfClass:[NSString class]] ? user[@"displayName"] : @"新玩家";
     NSString *content = [message[@"content"] isKindOfClass:[NSString class]] ? message[@"content"] : @"";
     self.nameLabel.text = name;
     self.bodyLabel.text = content;

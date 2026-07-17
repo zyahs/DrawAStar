@@ -27,16 +27,36 @@
                    subtitle:@"自由作画"
                      symbol:@"paintbrush.pointed.fill"
                   multipeer:NO],
+        [self entryWithKind:JFGameKindDrawGuess
+                      title:@"你画我猜"
+                   subtitle:@"实时联机 · 轮流作画"
+                     symbol:@"pencil.and.outline"
+                  multipeer:YES],
+        [self entryWithKind:JFGameKindRecommendedSocial
+                      title:@"推荐游戏"
+                   subtitle:@"14 种社交玩法 · 完整规则"
+                     symbol:@"person.3.sequence.fill"
+                  multipeer:NO],
         [self entryWithKind:JFGameKindTruthOrDare
                       title:@"真心话大冒险"
                    subtitle:@"双色球抽签"
                      symbol:@"heart.circle.fill"
                   multipeer:NO],
-        [self entryWithKind:JFGameKindDice
-                      title:@"骰子游戏"
-                   subtitle:@"随机点数"
-                     symbol:@"die.face.5.fill"
+        [self entryWithKind:JFGameKindNeverHaveIEver
+                      title:@"我有你没有"
+                   subtitle:@"实时房间 · 全员投票"
+                     symbol:@"hand.raised.fingers.spread.fill"
+                  multipeer:YES],
+        [self entryWithKind:JFGameKindRhythm
+                      title:@"节奏大师"
+                   subtitle:@"横屏音轨 · 长按滑动"
+                     symbol:@"music.note.list"
                   multipeer:NO],
+        [self entryWithKind:JFGameKindDice
+                      title:@"骰子游乐场"
+                   subtitle:@"14 种玩法 · 支持联机"
+                     symbol:@"die.face.5.fill"
+                  multipeer:YES],
         [self entryWithKind:JFGameKindFiveInRow
                       title:@"五子棋"
                    subtitle:@"双人对弈"
@@ -54,7 +74,7 @@
                   multipeer:YES],
         [self entryWithKind:JFGameKindCard
                       title:@"纸牌游乐场"
-                   subtitle:@"12 种派对与经典玩法"
+                   subtitle:@"10 种派对与经典玩法"
                      symbol:@"rectangle.stack.fill"
                   multipeer:NO],
         [self entryWithKind:JFGameKindGesture
@@ -92,14 +112,9 @@
                    subtitle:@"30 秒挑战手速"
                      symbol:@"hand.tap.fill"
                   multipeer:NO],
-        [self entryWithKind:JFGameKindRhythm
-                      title:@"节奏点点"
-                   subtitle:@"踩点 · 上头"
-                     symbol:@"music.note"
-                  multipeer:NO],
         [self entryWithKind:JFGameKindSokoban
                       title:@"推箱子"
-                   subtitle:@"10 关 · 撤销与最佳步数"
+                   subtitle:@"30 关 · 进阶迷阵"
                      symbol:@"shippingbox.fill"
                   multipeer:NO],
         [self entryWithKind:JFGameKindPacman

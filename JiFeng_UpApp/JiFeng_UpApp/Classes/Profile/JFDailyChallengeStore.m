@@ -72,7 +72,7 @@ static NSString * const kJFDailyCompletedDaysKey = @"jf_daily_done_days_v1"; // 
         @{@"kind": @(JFGameKindSudoku),   @"difficulty": @0, @"target": @0,
           @"title": @"数独入门",        @"desc": @"完成一局数独"},
         @{@"kind": @(JFGameKindRhythm),   @"difficulty": @0, @"target": @20,
-          @"title": @"节奏 20 连",      @"desc": @"节奏点点中达成连击 ≥ 20"},
+          @"title": @"节奏 20 连",      @"desc": @"节奏大师中达成连击 ≥ 20"},
         @{@"kind": @(JFGameKindFiveInRow),@"difficulty": @0, @"target": @0,
           @"title": @"五子棋赢一局",   @"desc": @"完成一局五子棋胜利"},
     ];

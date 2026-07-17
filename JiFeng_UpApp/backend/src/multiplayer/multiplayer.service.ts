@@ -40,6 +40,12 @@ export class MultiplayerService {
     'card_round',
     'card_deal',
     'card_result',
+    'dice_round',
+    'dice_result',
+    'draw_guess_state',
+    'draw_guess_secret',
+    'draw_guess_result',
+    'have_you_not_state',
     'identity',
     'vote_list',
     'vote_result',
@@ -90,6 +96,7 @@ export class MultiplayerService {
     }
     let peer = room.peers.find((p) => p.userId === userId);
     if (!peer) {
+      if (room.peers.length >= 12) throw new BadRequestException('room is full');
       peer = this.peer(userId, displayName, 'client');
       room.peers.push(peer);
       this.append(room, { type: 'hello', from: peer.peerId, payload: { role: 'client', displayName: peer.displayName } });
@@ -120,6 +127,20 @@ export class MultiplayerService {
     if (dto.type === 'card_reveal' && dto.to !== room.hostPeerId) {
       throw new BadRequestException('card reveal must be sent to host');
     }
+    if (dto.type === 'dice_submit') {
+      if (dto.to !== room.hostPeerId) throw new BadRequestException('dice result must be sent to host');
+      const values = dto.payload?.values;
+      if (!Array.isArray(values) || values.length < 1 || values.length > 100 ||
+          values.some((value) => !Number.isInteger(value) || value < 1 || value > 6)) {
+        throw new BadRequestException('dice values must contain 1-100 faces between 1 and 6');
+      }
+    }
+    if (dto.type === 'dice_round') {
+      const diceCount = Number(dto.payload?.diceCount);
+      if (!Number.isInteger(diceCount) || diceCount < 1 || diceCount > 100) {
+        throw new BadRequestException('dice count must be between 1 and 100');
+      }
+    }
     if (dto.to && !room.peers.some((candidate) => candidate.peerId === dto.to)) {
       throw new BadRequestException('target peer not found');
     }
@@ -142,7 +163,7 @@ export class MultiplayerService {
     return {
       peerId: userId,
       userId,
-      displayName: displayName || '继风玩家',
+      displayName: displayName || '新玩家',
       role,
       joinedAt: Date.now(),
       lastSeenAt: Date.now(),

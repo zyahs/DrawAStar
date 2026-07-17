@@ -7,13 +7,17 @@
 
 #import "JFCardThumbCell.h"
 #import "CardsGameViewController.h"
+#import "JFGamePieceSkin.h"
+#import "JFSkinStore.h"
 #import <UIKit/UIKit.h>
 
 @interface JFCardThumbCell ()
-@property (nonatomic, strong) UIView *cardBG;
+@property (nonatomic, strong) JFGamePieceSkinView *cardBG;
+@property (nonatomic, strong) JFCardFaceArtworkView *artworkView;
 @property (nonatomic, strong) UILabel *tlRank;
 @property (nonatomic, strong) UILabel *tlSuit;
 @property (nonatomic, strong) UILabel *centerLabel;
+@property (nonatomic, strong) JFCard *currentCard;
 @end
 
 @implementation JFCardThumbCell
@@ -22,16 +26,17 @@
     if (self = [super initWithFrame:frame]) {
         self.contentView.backgroundColor = UIColor.clearColor;
 
-        _cardBG = [[UIView alloc] init];
-        _cardBG.backgroundColor = [UIColor colorWithWhite:1 alpha:0.95];
-        _cardBG.layer.cornerRadius = 8;
-        _cardBG.layer.borderColor = [UIColor colorWithWhite:0.88 alpha:1].CGColor;
-        _cardBG.layer.borderWidth = 1.0 / UIScreen.mainScreen.scale;
+        _cardBG = [[JFGamePieceSkinView alloc] init];
+        _cardBG.surfaceStyle = JFGamePieceSurfaceStyleCardFace;
         _cardBG.layer.shadowColor = [UIColor colorWithWhite:0 alpha:0.15].CGColor;
         _cardBG.layer.shadowOpacity = 0.5;
         _cardBG.layer.shadowRadius = 4;
         _cardBG.layer.shadowOffset = CGSizeMake(0, 2);
         [self.contentView addSubview:_cardBG];
+
+        _artworkView = [[JFCardFaceArtworkView alloc] init];
+        _artworkView.userInteractionEnabled = NO;
+        [_cardBG addSubview:_artworkView];
 
         _tlRank = [self label:11 weight:UIFontWeightSemibold];
         _tlSuit = [self label:11 weight:UIFontWeightRegular];
@@ -40,8 +45,17 @@
         [_cardBG addSubview:_tlRank];
         [_cardBG addSubview:_tlSuit];
         [_cardBG addSubview:_centerLabel];
+
+        [[NSNotificationCenter defaultCenter] addObserver:self
+                                                 selector:@selector(onSkinChanged)
+                                                     name:JFSkinDidChangeNotification
+                                                   object:nil];
     }
     return self;
+}
+
+- (void)dealloc {
+    [[NSNotificationCenter defaultCenter] removeObserver:self];
 }
 
 - (UILabel *)label:(CGFloat)size weight:(UIFontWeight)w {
@@ -55,6 +69,7 @@
 - (void)layoutSubviews {
     [super layoutSubviews];
     _cardBG.frame = self.contentView.bounds;
+    _artworkView.frame = _cardBG.bounds;
 
     CGFloat pad = 6;
     _tlRank.frame = CGRectMake(pad, pad, 24, 16);
@@ -63,15 +78,27 @@
 }
 
 - (void)configureWithCard:(JFCard *)card {
+    self.currentCard = card;
+    JFSkin *skin = [JFGamePieceSkin currentSkin];
     BOOL red = [card.suit isEqualToString:@"♥"] || [card.suit isEqualToString:@"♦"];
-    UIColor *c = red ? [UIColor systemRedColor] : UIColor.blackColor;
+    UIColor *c = red ? [JFGamePieceSkin cardRedInkColorForSkin:skin]
+                     : [JFGamePieceSkin cardBlackInkColorForSkin:skin];
     _tlRank.textColor = c;
     _tlSuit.textColor = c;
     _centerLabel.textColor = c;
 
     _tlRank.text = card.rank;
     _tlSuit.text = card.suit;
-    _centerLabel.text = [NSString stringWithFormat:@"%@%@", card.rank, card.suit];
+    [_artworkView configureWithRank:card.rank suit:card.suit compact:YES];
+    _tlRank.hidden = YES;
+    _tlSuit.hidden = YES;
+    _centerLabel.hidden = YES;
+    _centerLabel.text = @"";
+    [self.cardBG refreshSkin];
+}
+
+- (void)onSkinChanged {
+    if (self.currentCard) [self configureWithCard:self.currentCard];
 }
 
 @end

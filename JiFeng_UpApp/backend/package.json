@@ -3,7 +3,7 @@
   "version": "0.1.0",
   "private": true,
   "scripts": {
-    "build": "nest build && mkdir -p dist/public && cp -R public/admin dist/public/",
+    "build": "prisma generate && nest build && mkdir -p dist/public && cp -R public/. dist/public/",
     "start": "node dist/main.js",
     "start:dev": "nest start --watch",
     "lint": "eslint \"src/**/*.ts\"",

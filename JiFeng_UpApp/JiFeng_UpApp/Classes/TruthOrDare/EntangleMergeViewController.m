@@ -7,6 +7,7 @@
 #import <UIKit/UIKit.h>
 #import <QuartzCore/QuartzCore.h>
 #import "TruthOrDareViewController.h"
+#import "JFTruthOrDarePrompts.h"
 #import "JFTheme.h"
 
 @interface EntangleMergeViewController : rootVcViewController
@@ -573,11 +574,30 @@ static NSArray *dares = @[
     [self.view addSubview:_centerFlash];
 }
 - (void)onAdvancedTapped {
-    // push 或弹窗
+    UIAlertController *sheet = [UIAlertController alertControllerWithTitle:@"进阶模式 · 18+"
+                                                                   message:@"更多成年人话题与自愿肢体互动；任何人都可以拒绝或换题。"
+                                                            preferredStyle:UIAlertControllerStyleActionSheet];
+    __weak typeof(self) weakSelf = self;
+    [sheet addAction:[UIAlertAction actionWithTitle:@"进阶真心话" style:UIAlertActionStyleDefault handler:^(__unused UIAlertAction *action) {
+        [weakSelf openPrompts:[JFTruthOrDarePrompts advancedTruths] title:@"真心话 · 进阶" image:@"z1"];
+    }]];
+    [sheet addAction:[UIAlertAction actionWithTitle:@"进阶大冒险" style:UIAlertActionStyleDefault handler:^(__unused UIAlertAction *action) {
+        [weakSelf openPrompts:[JFTruthOrDarePrompts advancedDares] title:@"大冒险 · 进阶" image:@"d1"];
+    }]];
+    [sheet addAction:[UIAlertAction actionWithTitle:@"取消" style:UIAlertActionStyleCancel handler:nil]];
+    UIPopoverPresentationController *popover = sheet.popoverPresentationController;
+    if (popover) {
+        popover.sourceView = _ballPro;
+        popover.sourceRect = _ballPro.bounds;
+    }
+    [self presentViewController:sheet animated:YES completion:nil];
+}
+
+- (void)openPrompts:(NSArray<NSString *> *)prompts title:(NSString *)title image:(NSString *)imageName {
     TruthOrDareViewController *vc = [[TruthOrDareViewController alloc] init];
-        vc.item = dares1;
-        vc.displayText = @"大冒险(进阶)";
-    vc.imageName = @"d1";
+    vc.item = prompts;
+    vc.displayText = title;
+    vc.imageName = imageName;
     [self.navigationController pushViewController:vc animated:YES];
 }
 #pragma mark - Immediate taps
@@ -585,11 +605,7 @@ static NSArray *dares = @[
 - (void)onTruthTapped {
     if (_isAnimating) return; // 动画中不响应
     if (self.onWinnerTapped) { self.onWinnerTapped(YES); return; }
-    TruthOrDareViewController *vc = [[TruthOrDareViewController alloc] init];
-        vc.item = dares;
-        vc.displayText = @"真心话";
-    vc.imageName = @"z1";
-    [self.navigationController pushViewController:vc animated:YES];
+    [self openPrompts:[JFTruthOrDarePrompts normalTruths] title:@"真心话 · 普通" image:@"z1"];
 //    [self showResultWithText:@"真心话"];
 }
 
@@ -598,11 +614,7 @@ static NSArray *dares = @[
 - (void)onDareTapped {
     if (_isAnimating) return; // 动画中不响应
     if (self.onWinnerTapped) { self.onWinnerTapped(NO); return; }
-    TruthOrDareViewController *vc = [[TruthOrDareViewController alloc] init];
-    vc.item = funDares;
-        vc.displayText = @"大冒险";
-    vc.imageName = @"d2";
-    [self.navigationController pushViewController:vc animated:YES];
+    [self openPrompts:[JFTruthOrDarePrompts normalDares] title:@"大冒险 · 普通" image:@"d2"];
 }
 
 #pragma mark - Controls

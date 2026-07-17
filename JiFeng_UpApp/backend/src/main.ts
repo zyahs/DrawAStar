@@ -8,10 +8,13 @@ import { AppModule } from './app.module';
 async function bootstrap() {
   const app = await NestFactory.create<NestExpressApplication>(AppModule);
   app.setGlobalPrefix('api');
+  app.use(helmet());
   app.useStaticAssets(join(__dirname, '..', 'public', 'admin'), {
     prefix: '/api/admin-panel',
   });
-  app.use(helmet());
+  app.useStaticAssets(join(__dirname, '..', 'public', 'legal'), {
+    prefix: '/api/legal',
+  });
   app.enableCors({
     origin: true,
     credentials: true,

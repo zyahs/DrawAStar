@@ -9,11 +9,18 @@
 #import "JFGameMessage.h"
 #import "JFPlayerSetup.h"
 #import "JFTheme.h"
+#import "JFGamePieceSkin.h"
+#import "JFSkinStore.h"
 
 @interface JFNetworkCardFace : UIView
 @property (nonatomic, strong) UILabel *cornerLabel;
 @property (nonatomic, strong) UILabel *centerLabel;
 @property (nonatomic, strong) UIImageView *backIcon;
+@property (nonatomic, strong) JFGamePieceSkinView *skinView;
+@property (nonatomic, strong) JFCardFaceArtworkView *artworkView;
+@property (nonatomic, copy) NSDictionary *currentCard;
+@property (nonatomic, assign) BOOL currentFaceDown;
+@property (nonatomic, assign) BOOL currentCompact;
 - (void)configureWithCard:(NSDictionary *)card faceDown:(BOOL)faceDown compact:(BOOL)compact;
 @end
 
@@ -28,6 +35,16 @@
         self.layer.shadowOpacity = 0.22;
         self.layer.shadowRadius = 6;
         self.layer.shadowOffset = CGSizeMake(0, 3);
+
+        _skinView = [[JFGamePieceSkinView alloc] init];
+        _skinView.translatesAutoresizingMaskIntoConstraints = NO;
+        _skinView.surfaceStyle = JFGamePieceSurfaceStyleCardBack;
+        [self addSubview:_skinView];
+
+        _artworkView = [[JFCardFaceArtworkView alloc] init];
+        _artworkView.translatesAutoresizingMaskIntoConstraints = NO;
+        _artworkView.userInteractionEnabled = NO;
+        [self addSubview:_artworkView];
 
         _cornerLabel = [[UILabel alloc] init];
         _cornerLabel.translatesAutoresizingMaskIntoConstraints = NO;
@@ -48,6 +65,16 @@
         [self addSubview:_backIcon];
 
         [NSLayoutConstraint activateConstraints:@[
+            [_skinView.topAnchor constraintEqualToAnchor:self.topAnchor],
+            [_skinView.leadingAnchor constraintEqualToAnchor:self.leadingAnchor],
+            [_skinView.trailingAnchor constraintEqualToAnchor:self.trailingAnchor],
+            [_skinView.bottomAnchor constraintEqualToAnchor:self.bottomAnchor],
+
+            [_artworkView.topAnchor constraintEqualToAnchor:self.topAnchor],
+            [_artworkView.leadingAnchor constraintEqualToAnchor:self.leadingAnchor],
+            [_artworkView.trailingAnchor constraintEqualToAnchor:self.trailingAnchor],
+            [_artworkView.bottomAnchor constraintEqualToAnchor:self.bottomAnchor],
+
             [_cornerLabel.topAnchor constraintEqualToAnchor:self.topAnchor constant:6],
             [_cornerLabel.leadingAnchor constraintEqualToAnchor:self.leadingAnchor constant:4],
             [_cornerLabel.widthAnchor constraintLessThanOrEqualToAnchor:self.widthAnchor multiplier:0.52],
@@ -62,29 +89,48 @@
             [_backIcon.widthAnchor constraintEqualToAnchor:self.widthAnchor multiplier:0.42],
             [_backIcon.heightAnchor constraintEqualToAnchor:_backIcon.widthAnchor],
         ]];
+
+        [[NSNotificationCenter defaultCenter] addObserver:self
+                                                 selector:@selector(onSkinChanged)
+                                                     name:JFSkinDidChangeNotification
+                                                   object:nil];
     }
     return self;
 }
 
+- (void)dealloc {
+    [[NSNotificationCenter defaultCenter] removeObserver:self];
+}
+
 - (void)configureWithCard:(NSDictionary *)card faceDown:(BOOL)faceDown compact:(BOOL)compact {
+    self.currentCard = card;
+    self.currentFaceDown = faceDown;
+    self.currentCompact = compact;
     NSString *rank = [card[@"rank"] isKindOfClass:NSString.class] ? card[@"rank"] : @"?";
     NSString *suit = [card[@"suit"] isKindOfClass:NSString.class] ? card[@"suit"] : @"";
+    JFSkin *skin = [JFGamePieceSkin currentSkin];
     if (faceDown) {
-        self.backgroundColor = [[JFTheme brandPrimary] colorWithAlphaComponent:0.96];
-        self.layer.borderColor = [[UIColor whiteColor] colorWithAlphaComponent:0.32].CGColor;
+        self.backgroundColor = UIColor.clearColor;
+        self.skinView.surfaceStyle = JFGamePieceSurfaceStyleCardBack;
+        self.layer.borderColor = UIColor.clearColor.CGColor;
         self.cornerLabel.hidden = YES;
         self.centerLabel.hidden = YES;
-        self.backIcon.hidden = NO;
+        self.artworkView.hidden = YES;
+        self.backIcon.hidden = YES;
         self.accessibilityLabel = @"未亮开的手牌";
         return;
     }
 
     BOOL red = [suit isEqualToString:@"♥"] || [suit isEqualToString:@"♦"];
-    UIColor *ink = red ? [UIColor colorWithRed:0.88 green:0.10 blue:0.18 alpha:1] : [UIColor colorWithWhite:0.08 alpha:1];
-    self.backgroundColor = [UIColor colorWithWhite:0.98 alpha:1];
-    self.layer.borderColor = [[UIColor whiteColor] colorWithAlphaComponent:0.9].CGColor;
-    self.cornerLabel.hidden = NO;
-    self.centerLabel.hidden = NO;
+    UIColor *ink = red ? [JFGamePieceSkin cardRedInkColorForSkin:skin]
+                       : [JFGamePieceSkin cardBlackInkColorForSkin:skin];
+    self.backgroundColor = UIColor.clearColor;
+    self.skinView.surfaceStyle = JFGamePieceSurfaceStyleCardFace;
+    self.layer.borderColor = UIColor.clearColor.CGColor;
+    self.artworkView.hidden = NO;
+    [self.artworkView configureWithRank:rank suit:suit compact:compact];
+    self.cornerLabel.hidden = YES;
+    self.centerLabel.hidden = YES;
     self.backIcon.hidden = YES;
     self.cornerLabel.textColor = ink;
     self.centerLabel.textColor = ink;
@@ -93,6 +139,12 @@
     self.cornerLabel.text = compact ? rank : [NSString stringWithFormat:@"%@\n%@", rank, suit];
     self.centerLabel.text = suit;
     self.accessibilityLabel = [NSString stringWithFormat:@"%@%@", rank, suit];
+}
+
+- (void)onSkinChanged {
+    [self configureWithCard:self.currentCard ?: @{}
+                   faceDown:self.currentFaceDown
+                    compact:self.currentCompact];
 }
 
 @end

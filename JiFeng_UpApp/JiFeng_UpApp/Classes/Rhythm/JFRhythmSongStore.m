@@ -170,7 +170,9 @@ static NSArray<NSDictionary *> *JFTutorialStepsFromManifest(NSDictionary *manife
 
 - (NSArray<JFRhythmSong *> *)presetSongs { return self.presetSongsInternal; }
 
-- (NSURL *)copyImportedAudioFromURL:(NSURL *)src outFileName:(NSString **)outName error:(NSError **)error {
+- (nullable NSURL *)copyImportedAudioFromURL:(NSURL *)src
+                                 outFileName:(NSString * _Nullable * _Nullable)outName
+                                       error:(NSError * _Nullable * _Nullable)error {
     [self ensureAudioDir];
     NSString *ext = src.pathExtension.length ? src.pathExtension : @"audio";
     NSString *uuid = [NSUUID UUID].UUIDString;

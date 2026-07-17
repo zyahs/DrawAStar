@@ -1,0 +1,112 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="description" content="一桌好戏在线支持中心">
+  <title>在线支持 · 一桌好戏</title>
+  <link rel="stylesheet" href="../assets/legal.css">
+  <script src="../assets/support.js" defer></script>
+</head>
+<body>
+  <header class="topbar">
+    <div class="topbar-inner">
+      <a class="brand" href="../"><span class="brand-mark">一桌</span><span>一桌好戏</span></a>
+      <nav class="topnav" aria-label="主要导航">
+        <a href="../privacy/">隐私政策</a>
+        <a href="../terms/">用户协议</a>
+        <a href="../account/">隐私选择</a>
+        <a href="../support/" aria-current="page">支持中心</a>
+      </nav>
+    </div>
+  </header>
+
+  <section class="hero">
+    <div class="hero-inner">
+      <p class="eyebrow">SUPPORT</p>
+      <h1>在线支持中心</h1>
+      <p>提交隐私权利、账号注销、内容举报、技术问题或其他反馈。成功提交后会立即生成受理编号。</p>
+      <div class="meta"><span>运营者：一桌好戏个人开发者</span><span>公开访问，无需登录</span></div>
+    </div>
+  </section>
+
+  <main class="page document">
+    <section>
+      <h2>提交请求</h2>
+      <div class="notice">请提供足以定位问题的信息，但不要填写密码、验证码、登录令牌、身份证件、银行卡或与请求无关的敏感信息。</div>
+
+      <form id="supportForm" class="form">
+        <div class="field-row">
+          <div class="field">
+            <label for="type">请求类型</label>
+            <select id="type" name="type" required>
+              <option value="TECHNICAL">技术问题</option>
+              <option value="PRIVACY">隐私与数据请求</option>
+              <option value="ACCOUNT_DELETION">注销账号</option>
+              <option value="CONTENT_REPORT">内容举报</option>
+              <option value="OTHER">其他反馈</option>
+            </select>
+          </div>
+          <div class="field">
+            <label for="platform">平台</label>
+            <select id="platform" name="platform">
+              <option value="iOS">iOS</option>
+              <option value="Android">Android</option>
+              <option value="Web">网页</option>
+              <option value="Other">其他</option>
+            </select>
+          </div>
+        </div>
+
+        <div class="field-row">
+          <div class="field">
+            <label for="userId">用户 ID（选填）</label>
+            <input id="userId" name="userId" maxlength="64" autocomplete="off" placeholder="用于定位联网账号">
+          </div>
+          <div class="field">
+            <label for="appVersion">应用版本（选填）</label>
+            <input id="appVersion" name="appVersion" maxlength="32" autocomplete="off" placeholder="例如 1.6">
+          </div>
+        </div>
+
+        <div class="field">
+          <label for="contact">联系方式（选填）</label>
+          <input id="contact" name="contact" maxlength="128" autocomplete="email" placeholder="用于回复处理结果的邮箱或其他联系方式">
+          <p class="hint">注销、复制数据等需要核验与反馈的请求，建议填写可用联系方式。</p>
+        </div>
+
+        <div class="field">
+          <label for="content">问题说明</label>
+          <textarea id="content" name="content" minlength="5" maxlength="2000" required placeholder="请说明发生时间、游戏或房间、昵称、问题现象及你的诉求。内容举报请尽量提供房间号和违规内容。"></textarea>
+        </div>
+
+        <div class="honeypot" aria-hidden="true">
+          <label for="website">网站</label>
+          <input id="website" name="website" tabindex="-1" autocomplete="off">
+        </div>
+
+        <button type="submit">提交请求</button>
+        <p class="hint">提交即表示你同意我们按照<a href="../privacy/">《隐私政策》</a>处理本次请求所需的信息。</p>
+        <div id="formStatus" class="form-status" role="status" aria-live="polite"></div>
+      </form>
+    </section>
+
+    <section>
+      <h2>处理说明</h2>
+      <ul>
+        <li>隐私与注销请求会先核验账号归属，再按适用法律要求处理。</li>
+        <li>内容举报请勿与被举报用户继续冲突；我们会根据证据采取删除、限制或封禁措施。</li>
+        <li>支持请求通常自受理之日起保存不超过 180 天。</li>
+        <li>请妥善保存受理编号，用于后续补充信息或查询。</li>
+      </ul>
+    </section>
+  </main>
+
+  <footer class="footer">
+    <div class="footer-inner">
+      <p>一桌好戏 · 在线支持中心</p>
+      <p><a href="../privacy/">隐私政策</a> · <a href="../community/">社区规范</a></p>
+    </div>
+  </footer>
+</body>
+</html>

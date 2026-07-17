@@ -2,294 +2,415 @@
 //  CubeViewController.m
 //  JiFeng_UpApp
 //
-//  Created by 继风(周毅) on 2025/8/6.
-//
 
 #import "CubeViewController.h"
-#import <QuartzCore/QuartzCore.h>
-#import "JFProfileStore.h"
-#import "JFDailyChallengeStore.h"
+#import "JFDiceGameDefinition.h"
+#import "JFDiceGameViewController.h"
+#import "JFDiceNetworkRoomViewController.h"
+#import "JFAnalyticsTracker.h"
 #import "JFTheme.h"
 
-@interface CubeViewController ()
-@property (nonatomic, strong) NSArray<UIView *> *cubes;
-@property (nonatomic, strong) NSArray<UILabel *> *resultLabels;
-@property (nonatomic, strong) UILabel *resultLabel1;
-@property (nonatomic, strong) CAGradientLayer *resultGradientLayer;
+@interface JFDiceCollectionCell : UICollectionViewCell
+@property (nonatomic, strong) CAGradientLayer *gradientLayer;
+@property (nonatomic, strong) UIView *iconWell;
+@property (nonatomic, strong) UIImageView *iconView;
+@property (nonatomic, strong) UILabel *groupLabel;
+@property (nonatomic, strong) UILabel *titleLabel;
+@property (nonatomic, strong) UILabel *subtitleLabel;
+@property (nonatomic, strong) UILabel *diceLabel;
+- (void)configureWithDefinition:(JFDiceGameDefinition *)definition index:(NSInteger)index;
+@end
+
+@implementation JFDiceCollectionCell
+
+- (instancetype)initWithFrame:(CGRect)frame {
+    if ((self = [super initWithFrame:frame])) {
+        self.contentView.layer.cornerRadius = 8;
+        self.contentView.layer.cornerCurve = kCACornerCurveContinuous;
+        self.contentView.layer.masksToBounds = YES;
+        self.contentView.layer.borderWidth = 1;
+        self.contentView.layer.borderColor = [JFTheme cardBorder].CGColor;
+
+        _gradientLayer = [CAGradientLayer layer];
+        _gradientLayer.startPoint = CGPointMake(0, 0);
+        _gradientLayer.endPoint = CGPointMake(1, 1);
+        [self.contentView.layer insertSublayer:_gradientLayer atIndex:0];
+
+        _iconWell = [[UIView alloc] init];
+        _iconWell.backgroundColor = [[UIColor whiteColor] colorWithAlphaComponent:0.14];
+        _iconWell.layer.cornerRadius = 8;
+        _iconWell.translatesAutoresizingMaskIntoConstraints = NO;
+        [self.contentView addSubview:_iconWell];
+
+        _iconView = [[UIImageView alloc] init];
+        _iconView.contentMode = UIViewContentModeScaleAspectFit;
+        _iconView.tintColor = UIColor.whiteColor;
+        _iconView.translatesAutoresizingMaskIntoConstraints = NO;
+        [_iconWell addSubview:_iconView];
+
+        _groupLabel = [[UILabel alloc] init];
+        _groupLabel.font = [UIFont systemFontOfSize:11 weight:UIFontWeightBold];
+        _groupLabel.textColor = [[UIColor whiteColor] colorWithAlphaComponent:0.72];
+        _groupLabel.translatesAutoresizingMaskIntoConstraints = NO;
+        [self.contentView addSubview:_groupLabel];
+
+        _titleLabel = [[UILabel alloc] init];
+        _titleLabel.font = [UIFont systemFontOfSize:17 weight:UIFontWeightBold];
+        _titleLabel.textColor = UIColor.whiteColor;
+        _titleLabel.adjustsFontSizeToFitWidth = YES;
+        _titleLabel.minimumScaleFactor = 0.76;
+        _titleLabel.translatesAutoresizingMaskIntoConstraints = NO;
+        [self.contentView addSubview:_titleLabel];
+
+        _subtitleLabel = [[UILabel alloc] init];
+        _subtitleLabel.font = [UIFont systemFontOfSize:12 weight:UIFontWeightMedium];
+        _subtitleLabel.textColor = [[UIColor whiteColor] colorWithAlphaComponent:0.76];
+        _subtitleLabel.numberOfLines = 2;
+        _subtitleLabel.translatesAutoresizingMaskIntoConstraints = NO;
+        [self.contentView addSubview:_subtitleLabel];
+
+        _diceLabel = [[UILabel alloc] init];
+        _diceLabel.font = [UIFont monospacedDigitSystemFontOfSize:11 weight:UIFontWeightSemibold];
+        _diceLabel.textColor = [[UIColor whiteColor] colorWithAlphaComponent:0.9];
+        _diceLabel.translatesAutoresizingMaskIntoConstraints = NO;
+        [self.contentView addSubview:_diceLabel];
+
+        UIImageView *chevron = [[UIImageView alloc] initWithImage:[UIImage systemImageNamed:@"chevron.right"]];
+        chevron.tintColor = [[UIColor whiteColor] colorWithAlphaComponent:0.58];
+        chevron.translatesAutoresizingMaskIntoConstraints = NO;
+        [self.contentView addSubview:chevron];
+
+        [NSLayoutConstraint activateConstraints:@[
+            [_iconWell.topAnchor constraintEqualToAnchor:self.contentView.topAnchor constant:12],
+            [_iconWell.leadingAnchor constraintEqualToAnchor:self.contentView.leadingAnchor constant:12],
+            [_iconWell.widthAnchor constraintEqualToConstant:42],
+            [_iconWell.heightAnchor constraintEqualToConstant:42],
+            [_iconView.centerXAnchor constraintEqualToAnchor:_iconWell.centerXAnchor],
+            [_iconView.centerYAnchor constraintEqualToAnchor:_iconWell.centerYAnchor],
+            [_iconView.widthAnchor constraintEqualToConstant:24],
+            [_iconView.heightAnchor constraintEqualToConstant:24],
+
+            [_groupLabel.centerYAnchor constraintEqualToAnchor:_iconWell.centerYAnchor],
+            [_groupLabel.leadingAnchor constraintEqualToAnchor:_iconWell.trailingAnchor constant:8],
+            [_groupLabel.trailingAnchor constraintLessThanOrEqualToAnchor:self.contentView.trailingAnchor constant:-10],
+
+            [_titleLabel.topAnchor constraintEqualToAnchor:_iconWell.bottomAnchor constant:10],
+            [_titleLabel.leadingAnchor constraintEqualToAnchor:self.contentView.leadingAnchor constant:12],
+            [_titleLabel.trailingAnchor constraintEqualToAnchor:self.contentView.trailingAnchor constant:-12],
+
+            [_subtitleLabel.topAnchor constraintEqualToAnchor:_titleLabel.bottomAnchor constant:4],
+            [_subtitleLabel.leadingAnchor constraintEqualToAnchor:_titleLabel.leadingAnchor],
+            [_subtitleLabel.trailingAnchor constraintEqualToAnchor:_titleLabel.trailingAnchor],
+
+            [_diceLabel.leadingAnchor constraintEqualToAnchor:_titleLabel.leadingAnchor],
+            [_diceLabel.bottomAnchor constraintEqualToAnchor:self.contentView.bottomAnchor constant:-10],
+            [chevron.trailingAnchor constraintEqualToAnchor:self.contentView.trailingAnchor constant:-12],
+            [chevron.centerYAnchor constraintEqualToAnchor:_diceLabel.centerYAnchor],
+            [chevron.widthAnchor constraintEqualToConstant:8],
+            [chevron.heightAnchor constraintEqualToConstant:13],
+        ]];
+    }
+    return self;
+}
+
+- (void)layoutSubviews {
+    [super layoutSubviews];
+    self.gradientLayer.frame = self.contentView.bounds;
+}
+
+- (void)setHighlighted:(BOOL)highlighted {
+    [super setHighlighted:highlighted];
+    [UIView animateWithDuration:0.12 animations:^{
+        self.transform = highlighted ? CGAffineTransformMakeScale(0.97, 0.97) : CGAffineTransformIdentity;
+        self.contentView.alpha = highlighted ? 0.82 : 1;
+    }];
+}
+
+- (void)prepareForReuse {
+    [super prepareForReuse];
+    self.transform = CGAffineTransformIdentity;
+    self.contentView.alpha = 1;
+}
+
+- (void)configureWithDefinition:(JFDiceGameDefinition *)definition index:(NSInteger)index {
+    NSArray<UIColor *> *colors = [JFTheme gradientColorsForIndex:index + (definition.group == JFDiceGameGroupParty ? 3 : 0)];
+    self.gradientLayer.colors = @[
+        (__bridge id)[colors[0] colorWithAlphaComponent:0.88].CGColor,
+        (__bridge id)[colors[1] colorWithAlphaComponent:0.58].CGColor,
+        (__bridge id)[[JFTheme backgroundSecondary] colorWithAlphaComponent:0.96].CGColor,
+    ];
+    self.iconView.image = [UIImage systemImageNamed:definition.symbolName];
+    self.groupLabel.text = definition.isCustomDiceCount
+        ? @"本机 / 联机"
+        : (definition.group == JFDiceGameGroupParty ? @"酒桌局" : @"轻松局");
+    self.titleLabel.text = definition.title;
+    self.subtitleLabel.text = definition.subtitle;
+    self.diceLabel.text = definition.isCustomDiceCount
+        ? @"1-100 颗 / 人"
+        : [NSString stringWithFormat:@"%ld 颗 / 人", (long)definition.recommendedDiceCount];
+    self.accessibilityLabel = [NSString stringWithFormat:@"%@，%@，%@", definition.title, definition.subtitle, self.diceLabel.text];
+}
+
+@end
+
+@interface CubeViewController () <UICollectionViewDataSource, UICollectionViewDelegate, UICollectionViewDelegateFlowLayout>
+@property (nonatomic, strong) UILabel *titleLabel;
+@property (nonatomic, strong) UILabel *subtitleLabel;
+@property (nonatomic, strong) UISegmentedControl *filterControl;
+@property (nonatomic, strong) UICollectionView *collectionView;
+@property (nonatomic, copy) NSArray<JFDiceGameDefinition *> *allDefinitions;
+@property (nonatomic, copy) NSArray<JFDiceGameDefinition *> *visibleDefinitions;
 @end
 
 @implementation CubeViewController
 
 - (void)viewDidLoad {
     [super viewDidLoad];
-    self.view.backgroundColor = [JFTheme backgroundPrimary];
-    
-    [self setupCubes];
+    self.title = @"骰子游乐场";
+    self.allDefinitions = [JFDiceGameDefinition allDefinitions];
+    self.visibleDefinitions = self.allDefinitions;
+    [self buildUI];
+}
 
-    CGFloat screenWidth = self.view.bounds.size.width;
-    CGFloat screenHeight = self.view.bounds.size.height;
-    CGFloat labelSize = 60;
+- (void)buildUI {
+    UILayoutGuide *safe = self.view.safeAreaLayoutGuide;
 
-    CGFloat spacing = 20;
-    CGFloat totalWidth = labelSize * 5 + spacing * 4;
-    CGFloat startX = (screenWidth - totalWidth) / 2;
-    CGFloat y = screenHeight - labelSize - 40;
-    NSMutableArray *positions = [NSMutableArray array];
-    for (int i = 0; i < 5; i++) {
-        CGFloat x = startX + i * (labelSize + spacing);
-        [positions addObject:[NSValue valueWithCGPoint:CGPointMake(x, y)]];
+    self.titleLabel = [[UILabel alloc] init];
+    self.titleLabel.text = @"骰子游乐场";
+    self.titleLabel.textColor = [JFTheme textPrimary];
+    self.titleLabel.font = [JFTheme fontTitle];
+    self.titleLabel.textAlignment = NSTextAlignmentCenter;
+    self.titleLabel.translatesAutoresizingMaskIntoConstraints = NO;
+    [self.view addSubview:self.titleLabel];
+
+    self.subtitleLabel = [[UILabel alloc] init];
+    self.subtitleLabel.text = @"14 种玩法 · 2 秒封盘 · 线上多人";
+    self.subtitleLabel.textColor = [JFTheme textSecondary];
+    self.subtitleLabel.font = [JFTheme fontCallout];
+    self.subtitleLabel.textAlignment = NSTextAlignmentCenter;
+    self.subtitleLabel.translatesAutoresizingMaskIntoConstraints = NO;
+    [self.view addSubview:self.subtitleLabel];
+
+    self.filterControl = [[UISegmentedControl alloc] initWithItems:@[@"全部", @"轻松", @"酒桌"]];
+    self.filterControl.selectedSegmentIndex = 0;
+    self.filterControl.selectedSegmentTintColor = [[JFTheme accent] colorWithAlphaComponent:0.86];
+    [self.filterControl setTitleTextAttributes:@{NSForegroundColorAttributeName: [JFTheme textPrimary],
+                                                 NSFontAttributeName: [UIFont systemFontOfSize:13 weight:UIFontWeightSemibold]}
+                                      forState:UIControlStateNormal];
+    [self.filterControl addTarget:self action:@selector(onFilterChanged) forControlEvents:UIControlEventValueChanged];
+    self.filterControl.translatesAutoresizingMaskIntoConstraints = NO;
+    [self.view addSubview:self.filterControl];
+
+    UICollectionViewFlowLayout *layout = [[UICollectionViewFlowLayout alloc] init];
+    layout.minimumInteritemSpacing = 12;
+    layout.minimumLineSpacing = 12;
+    layout.sectionInset = UIEdgeInsetsMake(4, 16, 20, 16);
+    self.collectionView = [[UICollectionView alloc] initWithFrame:CGRectZero collectionViewLayout:layout];
+    self.collectionView.backgroundColor = UIColor.clearColor;
+    self.collectionView.alwaysBounceVertical = YES;
+    self.collectionView.showsVerticalScrollIndicator = NO;
+    self.collectionView.dataSource = self;
+    self.collectionView.delegate = self;
+    self.collectionView.translatesAutoresizingMaskIntoConstraints = NO;
+    [self.collectionView registerClass:JFDiceCollectionCell.class forCellWithReuseIdentifier:@"diceMode"];
+    [self.view addSubview:self.collectionView];
+
+    [NSLayoutConstraint activateConstraints:@[
+        [self.titleLabel.topAnchor constraintEqualToAnchor:safe.topAnchor constant:12],
+        [self.titleLabel.centerXAnchor constraintEqualToAnchor:self.view.centerXAnchor],
+        [self.titleLabel.leadingAnchor constraintGreaterThanOrEqualToAnchor:safe.leadingAnchor constant:64],
+        [self.titleLabel.trailingAnchor constraintLessThanOrEqualToAnchor:safe.trailingAnchor constant:-64],
+
+        [self.subtitleLabel.topAnchor constraintEqualToAnchor:self.titleLabel.bottomAnchor constant:5],
+        [self.subtitleLabel.leadingAnchor constraintEqualToAnchor:safe.leadingAnchor constant:16],
+        [self.subtitleLabel.trailingAnchor constraintEqualToAnchor:safe.trailingAnchor constant:-16],
+
+        [self.filterControl.topAnchor constraintEqualToAnchor:self.subtitleLabel.bottomAnchor constant:14],
+        [self.filterControl.leadingAnchor constraintEqualToAnchor:safe.leadingAnchor constant:16],
+        [self.filterControl.trailingAnchor constraintEqualToAnchor:safe.trailingAnchor constant:-16],
+        [self.filterControl.heightAnchor constraintEqualToConstant:34],
+
+        [self.collectionView.topAnchor constraintEqualToAnchor:self.filterControl.bottomAnchor constant:8],
+        [self.collectionView.leadingAnchor constraintEqualToAnchor:self.view.leadingAnchor],
+        [self.collectionView.trailingAnchor constraintEqualToAnchor:self.view.trailingAnchor],
+        [self.collectionView.bottomAnchor constraintEqualToAnchor:self.view.bottomAnchor],
+    ]];
+}
+
+- (void)onFilterChanged {
+    [JFTheme hapticSelection];
+    if (self.filterControl.selectedSegmentIndex == 0) {
+        self.visibleDefinitions = self.allDefinitions;
+    } else {
+        JFDiceGameGroup group = self.filterControl.selectedSegmentIndex == 1 ? JFDiceGameGroupQuick : JFDiceGameGroupParty;
+        NSPredicate *predicate = [NSPredicate predicateWithBlock:^BOOL(JFDiceGameDefinition *definition, NSDictionary *bindings) {
+            return definition.group == group;
+        }];
+        self.visibleDefinitions = [self.allDefinitions filteredArrayUsingPredicate:predicate];
     }
+    [self.collectionView reloadData];
+    [self.collectionView setContentOffset:CGPointMake(0, -self.collectionView.adjustedContentInset.top) animated:NO];
+}
 
-    NSMutableArray *labels = [NSMutableArray array];
-    for (int i = 0; i < 5; i++) {
-        CGPoint pos = [positions[i] CGPointValue];
-        UILabel *label = [[UILabel alloc] initWithFrame:CGRectMake(pos.x,300, labelSize, labelSize)];
-        label.textAlignment = NSTextAlignmentCenter;
-        label.backgroundColor = [UIColor colorWithWhite:1 alpha:0.1];
-        label.layer.cornerRadius = labelSize / 2;
-        label.layer.masksToBounds = YES;
-        label.textColor = [UIColor redColor];
-        label.font = [UIFont boldSystemFontOfSize:48];
-        label.text = @"";
-        [self.view addSubview:label];
-        [labels addObject:label];
+- (NSInteger)collectionView:(UICollectionView *)collectionView numberOfItemsInSection:(NSInteger)section {
+    return self.visibleDefinitions.count;
+}
+
+- (__kindof UICollectionViewCell *)collectionView:(UICollectionView *)collectionView cellForItemAtIndexPath:(NSIndexPath *)indexPath {
+    JFDiceCollectionCell *cell = [collectionView dequeueReusableCellWithReuseIdentifier:@"diceMode" forIndexPath:indexPath];
+    JFDiceGameDefinition *definition = self.visibleDefinitions[indexPath.item];
+    NSInteger sourceIndex = [self.allDefinitions indexOfObjectIdenticalTo:definition];
+    [cell configureWithDefinition:definition index:sourceIndex == NSNotFound ? indexPath.item : sourceIndex];
+    return cell;
+}
+
+- (CGSize)collectionView:(UICollectionView *)collectionView
+                   layout:(UICollectionViewLayout *)collectionViewLayout
+   sizeForItemAtIndexPath:(NSIndexPath *)indexPath {
+    CGFloat width = floor((collectionView.bounds.size.width - 16 * 2 - 12) / 2.0);
+    return CGSizeMake(width, 164);
+}
+
+- (void)collectionView:(UICollectionView *)collectionView didSelectItemAtIndexPath:(NSIndexPath *)indexPath {
+    JFDiceGameDefinition *definition = self.visibleDefinitions[indexPath.item];
+    [JFTheme hapticImpactMedium];
+    UIAlertController *menu = [UIAlertController alertControllerWithTitle:definition.title
+                                                                  message:definition.ruleGuide
+                                                           preferredStyle:UIAlertControllerStyleActionSheet];
+    __weak typeof(self) weakSelf = self;
+    if (definition.isCustomDiceCount) {
+        [menu addAction:[UIAlertAction actionWithTitle:@"本机自定义骰池" style:UIAlertActionStyleDefault handler:^(__unused UIAlertAction *action) {
+            [weakSelf presentLocalConfigurationForDefinition:definition message:nil];
+        }]];
     }
-    self.resultLabels = labels;
-
-    UIButton *rollButton = [UIButton buttonWithType:UIButtonTypeSystem];
-    CGFloat rollButtonWidth = 100;
-    CGFloat rollButtonHeight = 44;
-    CGFloat rollButtonX = (screenWidth - rollButtonWidth) / 2;
-    CGFloat rollButtonY = y - rollButtonHeight - 20;
-    rollButton.frame = CGRectMake(rollButtonX, rollButtonY, rollButtonWidth, rollButtonHeight);
-    rollButton.autoresizingMask = UIViewAutoresizingFlexibleTopMargin | UIViewAutoresizingFlexibleLeftMargin | UIViewAutoresizingFlexibleRightMargin;
-    rollButton.backgroundColor = [JFTheme brandPrimary];
-    [rollButton setTitleColor:[UIColor whiteColor] forState:UIControlStateNormal];
-    rollButton.titleLabel.font = [UIFont boldSystemFontOfSize:18];
-    rollButton.layer.cornerRadius = 22;
-    rollButton.layer.shadowColor = [UIColor blackColor].CGColor;
-    rollButton.layer.shadowOpacity = 0.3;
-    rollButton.layer.shadowOffset = CGSizeMake(0, 4);
-    rollButton.layer.shadowRadius = 6;
-    [rollButton setTitle:@"Roll" forState:UIControlStateNormal];
-    [rollButton addTarget:self action:@selector(rollDice) forControlEvents:UIControlEventTouchUpInside];
-    [self.view addSubview:rollButton];
-    [self setupResultLabel];
+    [menu addAction:[UIAlertAction actionWithTitle:@"创建多人骰桌" style:UIAlertActionStyleDefault handler:^(__unused UIAlertAction *action) {
+        [weakSelf prepareNetworkGameForDefinition:definition asHost:YES roomCode:nil];
+    }]];
+    [menu addAction:[UIAlertAction actionWithTitle:@"加入多人骰桌" style:UIAlertActionStyleDefault handler:^(__unused UIAlertAction *action) {
+        [weakSelf presentJoinPromptForDefinition:definition message:nil];
+    }]];
+    [menu addAction:[UIAlertAction actionWithTitle:@"取消" style:UIAlertActionStyleCancel handler:nil]];
+    UICollectionViewCell *cell = [collectionView cellForItemAtIndexPath:indexPath];
+    menu.popoverPresentationController.sourceView = cell ?: collectionView;
+    menu.popoverPresentationController.sourceRect = cell ? cell.bounds : CGRectMake(CGRectGetMidX(collectionView.bounds), CGRectGetMidY(collectionView.bounds), 1, 1);
+    [self presentViewController:menu animated:YES completion:nil];
 }
 
-- (void)setupCubes {
-    NSMutableArray *cubes = [NSMutableArray array];
-    CGFloat size = 100;
-    for (int i = 0; i < 5; i++) {
-        CGPoint point = [self randomSafePointWithinBoundsWithSize:CGSizeMake(size, size)];
-        UIView *cube = [self createCubeAtPosition:point];
-        [self.view addSubview:cube];
-        [cubes addObject:cube];
+- (void)presentLocalConfigurationForDefinition:(JFDiceGameDefinition *)definition message:(NSString *)message {
+    if (!definition.isCustomDiceCount) return;
+    UIAlertController *alert = [UIAlertController alertControllerWithTitle:@"本机自定义骰池"
+                                                                   message:message ?: @"同一台手机按顺序传递，每位玩家封盘后再交给下一位。"
+                                                            preferredStyle:UIAlertControllerStyleAlert];
+    [alert addTextFieldWithConfigurationHandler:^(UITextField *field) {
+        field.placeholder = @"玩家人数（1-12）";
+        field.keyboardType = UIKeyboardTypeNumberPad;
+        field.text = @"1";
+    }];
+    if (definition.isCustomDiceCount) {
+        [alert addTextFieldWithConfigurationHandler:^(UITextField *field) {
+            field.placeholder = @"每人骰子数（1-100）";
+            field.keyboardType = UIKeyboardTypeNumberPad;
+            field.text = [NSString stringWithFormat:@"%ld", (long)definition.recommendedDiceCount];
+        }];
     }
-    
-    self.cubes = cubes;
-}
-
-- (CGPoint)randomSafePointWithinBoundsWithSize:(CGSize)size {
-    CGFloat padding = 20;
-    CGFloat xMax = MAX(0, self.view.bounds.size.width - size.width - padding * 2);
-    CGFloat yMax = MAX(0, self.view.bounds.size.height - size.height - padding * 2);
-    CGFloat x = arc4random_uniform((uint32_t)xMax) + padding;
-    CGFloat y = arc4random_uniform((uint32_t)yMax) + padding;
-    x += size.width / 2;
-    y += size.height / 2;
-    return CGPointMake(x, y);
-}
-
-- (UIView *)createCubeAtPosition:(CGPoint)center {
-    CGFloat size = 100;
-    UIView *container = [[UIView alloc] initWithFrame:CGRectMake(center.x - size/2, center.y - size/2, size, size)];
-    container.layer.sublayerTransform = [self perspectiveTransform];
-
-    container.layer.shadowColor = [UIColor blackColor].CGColor;
-    container.layer.shadowOpacity = 0.4;
-    container.layer.shadowOffset = CGSizeMake(0, 5);
-    container.layer.shadowRadius = 10;
-
-    NSArray *texts = @[@"1", @"2", @"3", @"4", @"5", @"6"];
-    NSArray *transforms = @[
-        [NSValue valueWithCATransform3D:CATransform3DMakeTranslation(0, 0, size / 2)], // front
-        [NSValue valueWithCATransform3D:CATransform3DMakeTranslation(0, 0, -size / 2)], // back
-        [NSValue valueWithCATransform3D:CATransform3DConcat(CATransform3DMakeRotation(M_PI_2, 0, 1, 0), CATransform3DMakeTranslation(0, 0, size / 2))], // right
-        [NSValue valueWithCATransform3D:CATransform3DConcat(CATransform3DMakeRotation(-M_PI_2, 0, 1, 0), CATransform3DMakeTranslation(0, 0, size / 2))], // left
-        [NSValue valueWithCATransform3D:CATransform3DConcat(CATransform3DMakeRotation(M_PI_2, 1, 0, 0), CATransform3DMakeTranslation(0, 0, size / 2))], // top
-        [NSValue valueWithCATransform3D:CATransform3DConcat(CATransform3DMakeRotation(-M_PI_2, 1, 0, 0), CATransform3DMakeTranslation(0, 0, size / 2))]  // bottom
-    ];
-
-    for (int i = 0; i < 6; i++) {
-        CATextLayer *face = [CATextLayer layer];
-        face.frame = container.bounds;
-        face.string = texts[i];
-        face.alignmentMode = kCAAlignmentCenter;
-        face.foregroundColor = [UIColor whiteColor].CGColor;
-        face.font = (__bridge CFTypeRef)([UIFont boldSystemFontOfSize:36]);
-        face.fontSize = 36;
-        face.backgroundColor = [UIColor colorWithRed:arc4random_uniform(256)/255.0 green:arc4random_uniform(256)/255.0 blue:arc4random_uniform(256)/255.0 alpha:0.6].CGColor;
-        face.borderColor = [UIColor yellowColor].CGColor;
-        face.borderWidth = 1;
-        face.cornerRadius = 8;
-        face.masksToBounds = YES;
-        face.contentsScale = [UIScreen mainScreen].scale;
-        face.transform = [transforms[i] CATransform3DValue];
-        [container.layer addSublayer:face];
-    }
-
-    return container;
-}
-
-- (CATransform3D)perspectiveTransform {
-    CATransform3D transform = CATransform3DIdentity;
-    transform.m34 = -1.0 / 500.0;
-    return transform;
-}
-
-
-// 新增 rollDice 方法
-- (void)rollDice {
-    JFGameResult *r = [JFGameResult resultWithKind:JFGameKindDice score:5 win:YES];
-    [[JFProfileStore shared] reportResult:r];
-    [[JFDailyChallengeStore shared] recordResultForToday:JFGameKindDice difficulty:0 score:5 win:YES];
-    for (int i = 0; i < self.cubes.count; i++) {
-        UIView *cube = self.cubes[i];
-        UILabel *label = self.resultLabels[i];
-
-        int repeatCount = arc4random_uniform(4) + 2;
-        __block int current = 0;
-
-        __block dispatch_block_t changeBlock = ^{
-            int number = arc4random_uniform(6) + 1;
-            [self updateCube:cube withNumber:number];
-            label.text = [NSString stringWithFormat:@"%d", number];
-            cube.center = [self randomSafePointWithinBoundsWithSize:CGSizeMake(100, 100)];
-
-            current++;
-            if (current < repeatCount) {
-                dispatch_after(dispatch_time(DISPATCH_TIME_NOW, (int64_t)(0.15 * NSEC_PER_SEC)), dispatch_get_main_queue(), changeBlock);
-            }
-        };
-        changeBlock();
-    }
-}
-- (void)setupResultLabel {
-    CGFloat labelWidth = self.view.bounds.size.width;
-    CGFloat labelHeight = 500;
-    CGRect labelFrame = CGRectMake((self.view.bounds.size.width - labelWidth) / 2, 100, labelWidth, labelHeight);
-
-    // 创建渐变图层
-    CAGradientLayer *gradientLayer = [CAGradientLayer layer];
-    gradientLayer.frame = labelFrame;
-    gradientLayer.colors = @[(__bridge id)[UIColor redColor].CGColor,
-                             (__bridge id)[UIColor blueColor].CGColor,
-                             (__bridge id)[UIColor purpleColor].CGColor];
-    gradientLayer.startPoint = CGPointMake(0, 0);
-    gradientLayer.endPoint = CGPointMake(1, 0);
-    [self.view.layer addSublayer:gradientLayer];
-    self.resultGradientLayer = gradientLayer;
-    self.resultLabel1.numberOfLines = 0;
-    // 创建文字图层
-    CATextLayer *textLayer = [CATextLayer layer];
-    textLayer.frame = gradientLayer.bounds;
-    textLayer.string = @"骰子游戏";
-    textLayer.alignmentMode = kCAAlignmentCenter;
-    textLayer.contentsScale = [UIScreen mainScreen].scale;
-    textLayer.font = (__bridge CFTypeRef)([UIFont boldSystemFontOfSize:28].fontName);
-    textLayer.fontSize = 32;
-    textLayer.wrapped = YES;
-    textLayer.truncationMode = kCATruncationEnd;
-//    self.resultTextLayer = textLayer;
-
-    // 使用文字图层作为渐变图层的遮罩
-    gradientLayer.mask = textLayer;
-
-    // 添加颜色动画
-    CABasicAnimation *colorShift = [CABasicAnimation animationWithKeyPath:@"colors"];
-    colorShift.toValue = @[(__bridge id)[UIColor blueColor].CGColor,
-                           (__bridge id)[UIColor greenColor].CGColor,
-                           (__bridge id)[UIColor redColor].CGColor];
-    colorShift.duration = 3.0;
-    colorShift.autoreverses = YES;
-    colorShift.repeatCount = HUGE_VALF;
-    [gradientLayer addAnimation:colorShift forKey:@"colorShift"];
-
-    // 添加轻微抖动动画
-    CAKeyframeAnimation *shakeAnim = [CAKeyframeAnimation animationWithKeyPath:@"transform.translation.x"];
-    shakeAnim.values = @[@0, @-4, @4, @-4, @4, @0];
-    shakeAnim.keyTimes = @[@0, @0.2, @0.4, @0.6, @0.8, @1];
-    shakeAnim.duration = 1.2;
-    shakeAnim.repeatCount = HUGE_VALF;
-    [gradientLayer addAnimation:shakeAnim forKey:@"shake"];
-
-    // 添加呼吸光动画（透明度闪烁）
-    CABasicAnimation *breathAnim = [CABasicAnimation animationWithKeyPath:@"opacity"];
-    breathAnim.fromValue = @0.8;
-    breathAnim.toValue = @1.0;
-    breathAnim.duration = 2.0;
-    breathAnim.autoreverses = YES;
-    breathAnim.repeatCount = HUGE_VALF;
-    [gradientLayer addAnimation:breathAnim forKey:@"breath"];
-
-    // 添加缩放脉动动画
-    CABasicAnimation *scaleAnim = [CABasicAnimation animationWithKeyPath:@"transform.scale"];
-    scaleAnim.fromValue = @1.0;
-    scaleAnim.toValue = @1.08;
-    scaleAnim.duration = 1.5;
-    scaleAnim.autoreverses = YES;
-    scaleAnim.repeatCount = HUGE_VALF;
-    [gradientLayer addAnimation:scaleAnim forKey:@"pulse"];
-
-    // 添加拖尾（发光拖尾）动画
-    CABasicAnimation *shadowAnim = [CABasicAnimation animationWithKeyPath:@"shadowRadius"];
-    shadowAnim.fromValue = @2;
-    shadowAnim.toValue = @10;
-    shadowAnim.duration = 1.5;
-    shadowAnim.autoreverses = YES;
-    shadowAnim.repeatCount = HUGE_VALF;
-    gradientLayer.shadowColor = [UIColor whiteColor].CGColor;
-    gradientLayer.shadowOpacity = 0.8;
-    gradientLayer.shadowOffset = CGSizeZero;
-    [gradientLayer addAnimation:shadowAnim forKey:@"trail"];
-
-    // 添加粒子光点围绕 label 飘动的动画
-    CAEmitterLayer *orbitEmitter = [CAEmitterLayer layer];
-    orbitEmitter.emitterPosition = CGPointMake(CGRectGetMidX(gradientLayer.frame), CGRectGetMidY(gradientLayer.frame));
-    orbitEmitter.emitterSize = CGSizeMake(gradientLayer.bounds.size.width, gradientLayer.bounds.size.height);
-    orbitEmitter.emitterShape = kCAEmitterLayerCircle;
-    orbitEmitter.renderMode = kCAEmitterLayerAdditive;
-
-    CAEmitterCell *orbitCell = [CAEmitterCell emitterCell];
-    orbitCell.contents = (__bridge id)[[UIImage imageNamed:@"spark.png"] CGImage];
-    orbitCell.birthRate = 5;
-    orbitCell.lifetime = 5;
-    orbitCell.velocity = 50;
-    orbitCell.scale = 0.05;
-    orbitCell.alphaSpeed = -0.4;
-    orbitCell.emissionRange = 2 * M_PI;
-    orbitCell.spin = 4;
-
-    orbitEmitter.emitterCells = @[orbitCell];
-    [self.resultGradientLayer removeAllAnimations];
-    [self.resultGradientLayer addAnimation:colorShift forKey:@"colorShift"];
-    [self.resultGradientLayer addAnimation:shakeAnim forKey:@"shake"];
-    [self.resultGradientLayer addAnimation:breathAnim forKey:@"breath"];
-    [self.resultGradientLayer addAnimation:scaleAnim forKey:@"pulse"];
-    [self.resultGradientLayer addAnimation:shadowAnim forKey:@"trail"];
-    self.resultGradientLayer.masksToBounds = NO;
-    // 注意：粒子层添加在 self.view.layer，确保不会被 gradientLayer.mask 遮住
-    [self.view.layer insertSublayer:orbitEmitter above:self.resultGradientLayer];
-}
-- (void)updateCube:(UIView *)cube withNumber:(int)number {
-    NSArray *texts = @[@"1", @"2", @"3", @"4", @"5", @"6"];
-    NSArray *layers = cube.layer.sublayers;
-    for (CALayer *layer in layers) {
-        if ([layer isKindOfClass:[CATextLayer class]]) {
-            ((CATextLayer *)layer).string = texts[number - 1];
+    __weak typeof(self) weakSelf = self;
+    [alert addAction:[UIAlertAction actionWithTitle:@"取消" style:UIAlertActionStyleCancel handler:nil]];
+    [alert addAction:[UIAlertAction actionWithTitle:@"开始" style:UIAlertActionStyleDefault handler:^(__unused UIAlertAction *action) {
+        NSInteger players = alert.textFields.firstObject.text.integerValue;
+        NSInteger dice = definition.isCustomDiceCount ? alert.textFields.lastObject.text.integerValue : definition.recommendedDiceCount;
+        if (players < 1 || players > 12 || dice < 1 || dice > 100) {
+            dispatch_after(dispatch_time(DISPATCH_TIME_NOW, (int64_t)(0.3 * NSEC_PER_SEC)), dispatch_get_main_queue(), ^{
+                [weakSelf presentLocalConfigurationForDefinition:definition message:@"玩家人数需要为 1-12，每人骰子数需要为 1-100。"];
+            });
+            return;
         }
+        [[JFAnalyticsTracker shared] trackEvent:@"game_mode_select"
+                                      gameKind:JFGameKindDice
+                                    properties:@{@"mode": definition.serviceType, @"playType": @"local"}];
+        JFDiceGameViewController *game = [[JFDiceGameViewController alloc] initWithDefinition:definition diceCount:dice playerCount:players];
+        [weakSelf.navigationController pushViewController:game animated:YES];
+    }]];
+    [self presentViewController:alert animated:YES completion:nil];
+}
+
+- (void)prepareNetworkGameForDefinition:(JFDiceGameDefinition *)definition
+                                  asHost:(BOOL)asHost
+                                roomCode:(NSString *)roomCode {
+    if (asHost && definition.isCustomDiceCount) {
+        UIAlertController *alert = [UIAlertController alertControllerWithTitle:@"设置每人骰子数"
+                                                                       message:@"自定义骰池支持每人 1-100 颗。"
+                                                                preferredStyle:UIAlertControllerStyleAlert];
+        [alert addTextFieldWithConfigurationHandler:^(UITextField *field) {
+            field.placeholder = @"1-100";
+            field.keyboardType = UIKeyboardTypeNumberPad;
+            field.text = [NSString stringWithFormat:@"%ld", (long)definition.recommendedDiceCount];
+        }];
+        __weak typeof(self) weakSelf = self;
+        [alert addAction:[UIAlertAction actionWithTitle:@"取消" style:UIAlertActionStyleCancel handler:nil]];
+        [alert addAction:[UIAlertAction actionWithTitle:@"创建" style:UIAlertActionStyleDefault handler:^(__unused UIAlertAction *action) {
+            NSInteger dice = alert.textFields.firstObject.text.integerValue;
+            if (dice < 1 || dice > 100) {
+                dispatch_after(dispatch_time(DISPATCH_TIME_NOW, (int64_t)(0.3 * NSEC_PER_SEC)), dispatch_get_main_queue(), ^{
+                    [weakSelf prepareNetworkGameForDefinition:definition asHost:YES roomCode:nil];
+                });
+                return;
+            }
+            [weakSelf pushNetworkGameForDefinition:definition diceCount:dice asHost:YES roomCode:nil];
+        }]];
+        [self presentViewController:alert animated:YES completion:nil];
+        return;
     }
+    [self pushNetworkGameForDefinition:definition
+                             diceCount:definition.recommendedDiceCount
+                                asHost:asHost
+                              roomCode:roomCode];
+}
+
+- (void)pushNetworkGameForDefinition:(JFDiceGameDefinition *)definition
+                           diceCount:(NSInteger)diceCount
+                              asHost:(BOOL)asHost
+                            roomCode:(NSString *)roomCode {
+    [[JFAnalyticsTracker shared] trackEvent:@"game_mode_select"
+                                  gameKind:JFGameKindDice
+                                properties:@{@"mode": definition.serviceType,
+                                             @"playType": @"online",
+                                             @"role": asHost ? @"host" : @"player"}];
+    JFDiceNetworkRoomViewController *room = [[JFDiceNetworkRoomViewController alloc] initWithDefinition:definition
+                                                                                              diceCount:diceCount
+                                                                                                 asHost:asHost
+                                                                                               roomCode:roomCode];
+    [self.navigationController pushViewController:room animated:YES];
+}
+
+- (void)presentJoinPromptForDefinition:(JFDiceGameDefinition *)definition message:(NSString *)message {
+    UIAlertController *alert = [UIAlertController alertControllerWithTitle:[NSString stringWithFormat:@"加入%@", definition.title]
+                                                                   message:message ?: @"输入房主页面上的 6 位房间码，或加入最近创建的同玩法骰桌。"
+                                                            preferredStyle:UIAlertControllerStyleAlert];
+    [alert addTextFieldWithConfigurationHandler:^(UITextField *field) {
+        field.placeholder = @"例如 A1B2C3";
+        field.autocapitalizationType = UITextAutocapitalizationTypeAllCharacters;
+        field.autocorrectionType = UITextAutocorrectionTypeNo;
+        field.clearButtonMode = UITextFieldViewModeWhileEditing;
+        field.returnKeyType = UIReturnKeyJoin;
+    }];
+    __weak typeof(self) weakSelf = self;
+    [alert addAction:[UIAlertAction actionWithTitle:@"取消" style:UIAlertActionStyleCancel handler:nil]];
+    [alert addAction:[UIAlertAction actionWithTitle:@"加入最近骰桌" style:UIAlertActionStyleDefault handler:^(__unused UIAlertAction *action) {
+        [weakSelf prepareNetworkGameForDefinition:definition asHost:NO roomCode:nil];
+    }]];
+    [alert addAction:[UIAlertAction actionWithTitle:@"按房间码加入" style:UIAlertActionStyleDefault handler:^(__unused UIAlertAction *action) {
+        NSString *code = [[alert.textFields.firstObject.text ?: @"" stringByTrimmingCharactersInSet:NSCharacterSet.whitespaceAndNewlineCharacterSet] uppercaseString];
+        if (code.length != 6) {
+            dispatch_after(dispatch_time(DISPATCH_TIME_NOW, (int64_t)(0.3 * NSEC_PER_SEC)), dispatch_get_main_queue(), ^{
+                [weakSelf presentJoinPromptForDefinition:definition message:@"房间码固定为 6 位，请检查后重新输入。"];
+            });
+            return;
+        }
+        [weakSelf prepareNetworkGameForDefinition:definition asHost:NO roomCode:code];
+    }]];
+    [self presentViewController:alert animated:YES completion:^{
+        [alert.textFields.firstObject becomeFirstResponder];
+    }];
 }
 
 @end

@@ -362,6 +362,9 @@ static NSUInteger const kJFAnalyticsBatchSize = 50;
         case JFGameKindRhythm: return @"RHYTHM";
         case JFGameKindSokoban: return @"SOKOBAN";
         case JFGameKindPacman: return @"PACMAN";
+        case JFGameKindRecommendedSocial: return @"RECOMMENDED_SOCIAL";
+        case JFGameKindNeverHaveIEver: return @"NEVER_HAVE_I_EVER";
+        case JFGameKindDrawGuess: return @"DRAW_GUESS";
     }
     return @"DRAW_BOARD";
 }

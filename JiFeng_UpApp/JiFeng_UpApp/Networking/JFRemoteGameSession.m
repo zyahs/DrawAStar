@@ -59,7 +59,7 @@ static NSString * const kMockClientPeerId = @"mock-client";
 
 - (void)refreshLocalIdentity {
     NSString *name = [JFProfileStore shared].displayName;
-    self.localPeer.displayName = name.length > 0 ? name : @"继风玩家";
+    self.localPeer.displayName = name.length > 0 ? name : @"新玩家";
 }
 
 - (void)startAsHost {
@@ -303,14 +303,22 @@ static NSString * const kMockClientPeerId = @"mock-client";
 - (NSString *)backendKind {
     if ([self.serviceType isEqualToString:@"undercover"]) return @"UNDERCOVER";
     if ([self.serviceType isEqualToString:@"kinggame"]) return @"KING";
+    // Room routing also includes serviceType, so use the long-supported drawing
+    // enum during rolling backend deploys. Older servers reject DRAW_GUESS at DTO validation.
+    if ([self.serviceType isEqualToString:@"drawguess"]) return @"DRAW_BOARD";
+    if ([self.serviceType isEqualToString:@"haveyounot"]) return @"NEVER_HAVE_I_EVER";
     if ([self.serviceType hasPrefix:@"card-"]) return @"CARD";
+    if ([self.serviceType hasPrefix:@"dice-"]) return @"DICE";
     return [self.serviceType uppercaseString];
 }
 
 - (JFGameKind)analyticsGameKind {
     if ([self.serviceType isEqualToString:@"undercover"]) return JFGameKindUndercover;
     if ([self.serviceType isEqualToString:@"kinggame"]) return JFGameKindKing;
+    if ([self.serviceType isEqualToString:@"drawguess"]) return JFGameKindDrawGuess;
+    if ([self.serviceType isEqualToString:@"haveyounot"]) return JFGameKindNeverHaveIEver;
     if ([self.serviceType hasPrefix:@"card-"]) return JFGameKindCard;
+    if ([self.serviceType hasPrefix:@"dice-"]) return JFGameKindDice;
     return JFGameKindCard;
 }
 

@@ -58,7 +58,7 @@
 
 - (NSString *)currentDisplayName {
     NSString *name = [JFProfileStore shared].displayName;
-    if (name.length == 0) name = @"继风玩家";
+    if (name.length == 0) name = @"新玩家";
     if (name.length > 60) name = [name substringToIndex:60];
     return name;
 }

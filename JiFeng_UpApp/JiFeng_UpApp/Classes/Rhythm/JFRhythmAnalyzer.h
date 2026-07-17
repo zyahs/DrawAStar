@@ -1,7 +1,7 @@
 //
 //  JFRhythmAnalyzer.h
 //
-//  节奏点点 —— 离线 onset 分析。
+//  节奏大师 —— 离线 onset 分析。
 //  · 4 段一阶 IIR 滤波分频:低 / 中低 / 中高 / 高
 //  · 每段半波正差分作为 onset 强度
 //  · 自适应阈值 + 局部极大 peak picking

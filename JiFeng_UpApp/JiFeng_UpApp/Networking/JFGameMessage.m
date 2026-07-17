@@ -20,6 +20,19 @@ NSString * const JFMessageTypeCardDeal    = @"card_deal";
 NSString * const JFMessageTypeCardReveal  = @"card_reveal";
 NSString * const JFMessageTypeCardResult  = @"card_result";
 
+NSString * const JFMessageTypeDiceRound   = @"dice_round";
+NSString * const JFMessageTypeDiceSubmit  = @"dice_submit";
+NSString * const JFMessageTypeDiceResult  = @"dice_result";
+NSString * const JFMessageTypeDrawGuessState  = @"draw_guess_state";
+NSString * const JFMessageTypeDrawGuessSecret = @"draw_guess_secret";
+NSString * const JFMessageTypeDrawGuessStroke = @"draw_guess_stroke";
+NSString * const JFMessageTypeDrawGuessClear  = @"draw_guess_clear";
+NSString * const JFMessageTypeDrawGuessAnswer = @"draw_guess_answer";
+NSString * const JFMessageTypeDrawGuessResult = @"draw_guess_result";
+NSString * const JFMessageTypeHaveYouNotState = @"have_you_not_state";
+NSString * const JFMessageTypeHaveYouNotStatement = @"have_you_not_statement";
+NSString * const JFMessageTypeHaveYouNotVote = @"have_you_not_vote";
+
 @implementation JFGameMessage
 
 + (instancetype)messageWithType:(NSString *)type payload:(NSDictionary *)payload {

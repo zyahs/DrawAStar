@@ -1,0 +1,123 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="description" content="一桌好戏系统权限说明">
+  <title>系统权限说明 · 一桌好戏</title>
+  <link rel="stylesheet" href="../assets/legal.css">
+</head>
+<body>
+  <header class="topbar">
+    <div class="topbar-inner">
+      <a class="brand" href="../"><span class="brand-mark">一桌</span><span>一桌好戏</span></a>
+      <nav class="topnav" aria-label="主要导航">
+        <a href="../privacy/">隐私政策</a>
+        <a href="../terms/">用户协议</a>
+        <a href="../account/">隐私选择</a>
+        <a href="../support/">支持中心</a>
+      </nav>
+    </div>
+  </header>
+
+  <section class="hero">
+    <div class="hero-inner">
+      <p class="eyebrow">PERMISSIONS</p>
+      <h1>系统权限说明</h1>
+      <p>权限只在对应功能需要时使用。你可以在系统设置中关闭授权，未使用相关功能时不会主动读取对应内容。</p>
+      <div class="meta"><span>更新日期：2026 年 7 月 17 日</span><span>适用平台：iOS / Android</span></div>
+    </div>
+  </section>
+
+  <main class="page document">
+    <section>
+      <h2>iOS 权限与系统能力</h2>
+      <div class="table-wrap">
+        <table>
+          <thead><tr><th>权限或能力</th><th>使用场景</th><th>拒绝后的影响</th><th>数据去向</th></tr></thead>
+          <tbody>
+            <tr>
+              <td><strong>照片资料库读取</strong><br>NSPhotoLibraryUsageDescription</td>
+              <td>你主动为拼图或画板选择一张照片</td>
+              <td>不能从相册选择素材，其他游戏可正常使用</td>
+              <td>照片仅在本机处理，不上传服务器</td>
+            </tr>
+            <tr>
+              <td><strong>添加到照片资料库</strong><br>NSPhotoLibraryAddUsageDescription</td>
+              <td>你点击保存绘画或导出图片</td>
+              <td>不能保存到系统相册，不影响应用内创作</td>
+              <td>仅写入你的系统相册</td>
+            </tr>
+            <tr>
+              <td><strong>本地网络与 Bonjour</strong><br>NSLocalNetworkUsageDescription</td>
+              <td>附近联机时发现并连接同一网络中的玩家</td>
+              <td>不能使用附近联机，可继续使用在线房间或本地玩法</td>
+              <td>局域网内临时通信</td>
+            </tr>
+            <tr>
+              <td><strong>蓝牙相关能力</strong><br>NSBluetoothAlwaysUsageDescription</td>
+              <td>系统在附近联机场景中可能通过蓝牙辅助设备发现</td>
+              <td>附近发现能力可能受限</td>
+              <td>由 iOS 系统在附近设备间处理</td>
+            </tr>
+            <tr>
+              <td><strong>附近交互声明</strong><br>NSNearbyInteractionUsageDescription</td>
+              <td>为附近玩家发现能力预留；当前版本不主动启动精确测距会话</td>
+              <td>当前主要玩法无影响</td>
+              <td>当前不采集精确距离信息</td>
+            </tr>
+            <tr>
+              <td><strong>通知</strong><br>UNUserNotificationCenter</td>
+              <td>在设备本地安排每周战绩提醒</td>
+              <td>不会收到周报提醒，不影响游戏</td>
+              <td>通知在设备本地生成</td>
+            </tr>
+            <tr>
+              <td><strong>系统文件选择器</strong></td>
+              <td>你主动导入本地音频进行节奏分析和游玩</td>
+              <td>不能导入自选音频，内置内容仍可使用</td>
+              <td>文件复制到应用沙盒，不上传服务器</td>
+            </tr>
+            <tr>
+              <td><strong>网络访问</strong></td>
+              <td>游客账号、在线房间、聊天、排行榜和统计</td>
+              <td>联网功能不可用，本地游戏仍可使用</td>
+              <td>通过 HTTPS 访问一桌好戏服务器</td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+    </section>
+
+    <section>
+      <h2>Android 权限</h2>
+      <div class="table-wrap">
+        <table>
+          <thead><tr><th>权限</th><th>使用场景</th><th>说明</th></tr></thead>
+          <tbody>
+            <tr>
+              <td><strong>网络访问</strong><br>android.permission.INTERNET</td>
+              <td>游客账号、在线房间、聊天、排行榜和游戏记录</td>
+              <td>普通权限，不读取相册、通讯录、定位或麦克风</td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+      <p>当前 Android 版本未声明相机、麦克风、定位、通讯录、电话、短信或存储危险权限，并关闭系统云备份。</p>
+    </section>
+
+    <section>
+      <h2>如何管理权限</h2>
+      <p>你可以在 iOS“设置 &gt; 一桌好戏”或 Android“设置 &gt; 应用 &gt; 一桌好戏 &gt; 权限”中查看或关闭授权。关闭权限不会删除已上传的联网账号数据；如需删除，请前往<a href="../account/">账号与隐私选择页</a>。</p>
+      <div class="notice">一桌好戏当前不申请相机、麦克风、定位或通讯录权限，也不会后台读取剪贴板。</div>
+    </section>
+  </main>
+
+  <footer class="footer">
+    <div class="footer-inner">
+      <p>一桌好戏 · 系统权限说明</p>
+      <p><a href="../privacy/">隐私政策</a> · <a href="../support/">联系我们</a></p>
+    </div>
+  </footer>
+</body>
+</html>

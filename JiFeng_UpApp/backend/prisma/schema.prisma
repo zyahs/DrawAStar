@@ -38,6 +38,9 @@ enum GameKind {
   RHYTHM
   SOKOBAN
   PACMAN
+  RECOMMENDED_SOCIAL
+  NEVER_HAVE_I_EVER
+  DRAW_GUESS
 }
 
 enum AdminRole {
@@ -49,7 +52,7 @@ enum AdminRole {
 model User {
   id             String         @id @default(cuid())
   status         UserStatus     @default(ACTIVE)
-  displayName    String         @default("继风玩家") @db.VarChar(32)
+  displayName    String         @default("新玩家") @db.VarChar(32)
   avatarUrl      String?        @db.VarChar(512)
   avatarSymbol   String         @default("person.crop.circle.fill") @db.VarChar(80)
   background     String         @default("aurora") @db.VarChar(40)

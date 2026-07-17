@@ -1,7 +1,7 @@
 //
 //  JFRhythmSongStore.h
 //
-//  节奏点点 —— 歌单管理。
+//  节奏大师 —— 歌单管理。
 //  · 用户导入的歌:音频拷到 Documents/RhythmSongs/<uuid>.<ext>,
 //    谱面与元数据一起持久化在 Library/jf_rhythm_library.archive。
 //  · 内置预设:在内存里维护,不写盘。
@@ -28,7 +28,9 @@ NS_ASSUME_NONNULL_BEGIN
 
 /// 把外部 url 拷贝到 Documents/RhythmSongs,返回拷贝后的本地 url + 唯一文件名
 /// 失败时返回 nil。`kindHint` 仅用于命名,不影响存储。
-- (nullable NSURL *)copyImportedAudioFromURL:(NSURL *)src outFileName:(NSString **)outName error:(NSError **)error;
+- (nullable NSURL *)copyImportedAudioFromURL:(NSURL *)src
+                                 outFileName:(NSString * _Nullable * _Nullable)outName
+                                       error:(NSError * _Nullable * _Nullable)error;
 
 /// 把一首已分析好的歌入库(立即写盘)
 - (void)addUserSong:(JFRhythmSong *)song;

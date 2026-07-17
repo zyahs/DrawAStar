@@ -37,6 +37,9 @@
 #import "JFRhythmViewController.h"
 #import "JFSokobanViewController.h"
 #import "JFPacmanViewController.h"
+#import "JFRecommendedGamesViewController.h"
+#import "JFNeverHaveIEverViewController.h"
+#import "JFDrawGuessViewController.h"
 
 @interface HomeViewController () <UICollectionViewDataSource, UICollectionViewDelegate, UICollectionViewDelegateFlowLayout>
 
@@ -194,14 +197,14 @@
 
 - (void)setupHeader {
     self.titleLabel = [[UILabel alloc] init];
-    self.titleLabel.text = @"继风的小游戏";
+    self.titleLabel.text = @"一桌好戏";
     self.titleLabel.font = [JFTheme fontTitleXL];
     self.titleLabel.textColor = [JFTheme textPrimary];
     self.titleLabel.translatesAutoresizingMaskIntoConstraints = NO;
     [self.contentView addSubview:self.titleLabel];
 
     self.subtitleLabel = [[UILabel alloc] init];
-    self.subtitleLabel.text = @"挑一个游戏开始吧";
+    self.subtitleLabel.text = @"人到齐，马上开玩";
     self.subtitleLabel.font = [JFTheme fontBody];
     self.subtitleLabel.textColor = [JFTheme textSecondary];
     self.subtitleLabel.translatesAutoresizingMaskIntoConstraints = NO;
@@ -845,6 +848,19 @@
         case JFGameKindRhythm:      return [[JFRhythmViewController alloc] init];
         case JFGameKindSokoban:     return [[JFSokobanViewController alloc] init];
         case JFGameKindPacman:      return [[JFPacmanViewController alloc] init];
+        case JFGameKindRecommendedSocial: {
+            JFRecommendedGamesViewController *recommended = [[JFRecommendedGamesViewController alloc] init];
+            __weak typeof(self) weakSelf = self;
+            recommended.launchGameHandler = ^(JFGameKind targetKind) {
+                UIViewController *target = [weakSelf destinationForKind:targetKind];
+                if (!target) return;
+                [[JFAnalyticsTracker shared] beginGameSession:targetKind source:@"social_recommendation"];
+                [weakSelf.navigationController pushViewController:target animated:YES];
+            };
+            return recommended;
+        }
+        case JFGameKindNeverHaveIEver: return [[JFNeverHaveIEverViewController alloc] init];
+        case JFGameKindDrawGuess: return [[JFDrawGuessViewController alloc] init];
     }
     return nil;
 }

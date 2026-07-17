@@ -8,6 +8,10 @@
 #import "JFTheme.h"
 #import "JFProfileStore.h"
 #import "JFDailyChallengeStore.h"
+#import "JFGamePieceSkin.h"
+#import "JFSkinStore.h"
+
+static NSInteger const JFPyramidArtworkTag = 7418;
 
 @interface JFArcadeCardFace : UIView
 @property (nonatomic, strong, nullable) JFCard *card;
@@ -15,6 +19,8 @@
 @property (nonatomic, strong) UILabel *cornerLabel;
 @property (nonatomic, strong) UILabel *centerLabel;
 @property (nonatomic, strong) UIImageView *backIcon;
+@property (nonatomic, strong) JFGamePieceSkinView *skinView;
+@property (nonatomic, strong) JFCardFaceArtworkView *artworkView;
 - (void)showCard:(nullable JFCard *)card faceDown:(BOOL)faceDown;
 @end
 
@@ -29,6 +35,14 @@
         self.layer.shadowOpacity = 0.24;
         self.layer.shadowRadius = 8;
         self.layer.shadowOffset = CGSizeMake(0, 4);
+
+        _skinView = [[JFGamePieceSkinView alloc] init];
+        _skinView.surfaceStyle = JFGamePieceSurfaceStyleCardBack;
+        [self addSubview:_skinView];
+
+        _artworkView = [[JFCardFaceArtworkView alloc] init];
+        _artworkView.userInteractionEnabled = NO;
+        [self addSubview:_artworkView];
 
         _cornerLabel = [[UILabel alloc] init];
         _cornerLabel.numberOfLines = 2;
@@ -47,14 +61,25 @@
         _backIcon.tintColor = [[UIColor whiteColor] colorWithAlphaComponent:0.9];
         _backIcon.contentMode = UIViewContentModeCenter;
         [self addSubview:_backIcon];
+
+        [[NSNotificationCenter defaultCenter] addObserver:self
+                                                 selector:@selector(onSkinChanged)
+                                                     name:JFSkinDidChangeNotification
+                                                   object:nil];
     }
     return self;
+}
+
+- (void)dealloc {
+    [[NSNotificationCenter defaultCenter] removeObserver:self];
 }
 
 - (void)layoutSubviews {
     [super layoutSubviews];
     CGFloat width = self.bounds.size.width;
     CGFloat height = self.bounds.size.height;
+    self.skinView.frame = self.bounds;
+    self.artworkView.frame = self.bounds;
     CGFloat cornerWidth = MIN(42, width * 0.38);
     self.cornerLabel.frame = CGRectMake(5, 5, cornerWidth, MIN(45, height * 0.36));
     self.centerLabel.frame = CGRectInset(self.bounds, width * 0.17, height * 0.17);
@@ -66,27 +91,40 @@
 - (void)showCard:(JFCard *)card faceDown:(BOOL)faceDown {
     self.card = card;
     self.faceDown = faceDown;
+    JFSkin *skin = [JFGamePieceSkin currentSkin];
     if (faceDown || !card) {
-        self.backgroundColor = [[JFTheme brandPrimary] colorWithAlphaComponent:0.95];
-        self.layer.borderColor = [[UIColor whiteColor] colorWithAlphaComponent:0.32].CGColor;
+        self.backgroundColor = UIColor.clearColor;
+        self.skinView.surfaceStyle = JFGamePieceSurfaceStyleCardBack;
+        self.layer.borderColor = UIColor.clearColor.CGColor;
         self.cornerLabel.hidden = YES;
         self.centerLabel.hidden = YES;
-        self.backIcon.hidden = NO;
+        self.artworkView.hidden = YES;
+        self.backIcon.hidden = YES;
         self.accessibilityLabel = faceDown ? @"背面牌" : @"空牌位";
         return;
     }
     BOOL red = [card.suit isEqualToString:@"♥"] || [card.suit isEqualToString:@"♦"];
-    UIColor *ink = red ? [UIColor colorWithRed:0.88 green:0.12 blue:0.20 alpha:1] : [UIColor colorWithWhite:0.08 alpha:1];
-    self.backgroundColor = [UIColor colorWithWhite:0.98 alpha:1];
-    self.layer.borderColor = [[UIColor whiteColor] colorWithAlphaComponent:0.82].CGColor;
+    UIColor *ink = red ? [JFGamePieceSkin cardRedInkColorForSkin:skin]
+                       : [JFGamePieceSkin cardBlackInkColorForSkin:skin];
+    self.backgroundColor = UIColor.clearColor;
+    self.skinView.surfaceStyle = JFGamePieceSurfaceStyleCardFace;
+    self.layer.borderColor = UIColor.clearColor.CGColor;
+    self.artworkView.hidden = NO;
+    [self.artworkView configureWithRank:card.rank
+                                   suit:card.suit
+                                compact:self.bounds.size.width > 0 && self.bounds.size.width < 72];
     self.cornerLabel.textColor = ink;
     self.centerLabel.textColor = ink;
     self.cornerLabel.text = [NSString stringWithFormat:@"%@\n%@", card.rank, card.suit];
     self.centerLabel.text = card.suit;
-    self.cornerLabel.hidden = NO;
-    self.centerLabel.hidden = NO;
+    self.cornerLabel.hidden = YES;
+    self.centerLabel.hidden = YES;
     self.backIcon.hidden = YES;
     self.accessibilityLabel = [NSString stringWithFormat:@"%@%@", card.rank, card.suit];
+}
+
+- (void)onSkinChanged {
+    [self showCard:self.card faceDown:self.faceDown];
 }
 
 @end
@@ -162,6 +200,18 @@
     self.title = [self modeTitle];
     [self buildUI];
     [self startCurrentMode];
+    [[NSNotificationCenter defaultCenter] addObserver:self
+                                             selector:@selector(onArcadeSkinChanged)
+                                                 name:JFSkinDidChangeNotification
+                                               object:nil];
+}
+
+- (void)dealloc {
+    [[NSNotificationCenter defaultCenter] removeObserver:self];
+}
+
+- (void)onArcadeSkinChanged {
+    if (self.mode == JFCardArcadeModePyramid) [self updatePyramidBoard];
 }
 
 - (NSString *)modeTitle {
@@ -583,9 +633,13 @@
         button.tag = idx;
         button.titleLabel.numberOfLines = 2;
         button.titleLabel.textAlignment = NSTextAlignmentCenter;
-        button.titleLabel.font = [UIFont systemFontOfSize:12 weight:UIFontWeightBold];
+        button.titleLabel.font = [UIFont systemFontOfSize:10 weight:UIFontWeightBold];
         button.layer.cornerRadius = 5;
         button.layer.borderWidth = 1;
+        JFCardFaceArtworkView *artwork = [[JFCardFaceArtworkView alloc] init];
+        artwork.tag = JFPyramidArtworkTag;
+        artwork.autoresizingMask = UIViewAutoresizingFlexibleWidth | UIViewAutoresizingFlexibleHeight;
+        [button insertSubview:artwork atIndex:0];
         [button addTarget:self action:@selector(onPyramidCard:) forControlEvents:UIControlEventTouchUpInside];
         [self.boardView addSubview:button];
         [buttons addObject:button];
@@ -595,9 +649,13 @@
     self.pyramidWasteButton = [UIButton buttonWithType:UIButtonTypeCustom];
     self.pyramidWasteButton.titleLabel.numberOfLines = 2;
     self.pyramidWasteButton.titleLabel.textAlignment = NSTextAlignmentCenter;
-    self.pyramidWasteButton.titleLabel.font = [UIFont systemFontOfSize:15 weight:UIFontWeightBold];
+    self.pyramidWasteButton.titleLabel.font = [UIFont systemFontOfSize:11 weight:UIFontWeightBold];
     self.pyramidWasteButton.layer.cornerRadius = 6;
     self.pyramidWasteButton.layer.borderWidth = 2;
+    JFCardFaceArtworkView *wasteArtwork = [[JFCardFaceArtworkView alloc] init];
+    wasteArtwork.tag = JFPyramidArtworkTag;
+    wasteArtwork.autoresizingMask = UIViewAutoresizingFlexibleWidth | UIViewAutoresizingFlexibleHeight;
+    [self.pyramidWasteButton insertSubview:wasteArtwork atIndex:0];
     [self.pyramidWasteButton addTarget:self action:@selector(onPyramidWaste) forControlEvents:UIControlEventTouchUpInside];
     [self.boardView addSubview:self.pyramidWasteButton];
 
@@ -643,12 +701,18 @@
 }
 
 - (void)stylePyramidButton:(UIButton *)button card:(JFCard *)card selected:(BOOL)selected available:(BOOL)available {
+    JFSkin *skin = [JFGamePieceSkin currentSkin];
     BOOL red = [card.suit isEqualToString:@"♥"] || [card.suit isEqualToString:@"♦"];
-    UIColor *ink = red ? [UIColor colorWithRed:0.88 green:0.12 blue:0.2 alpha:1] : [UIColor colorWithWhite:0.08 alpha:1];
-    [button setTitle:[NSString stringWithFormat:@"%@\n%@", card.rank, card.suit] forState:UIControlStateNormal];
+    UIColor *ink = red ? [JFGamePieceSkin cardRedInkColorForSkin:skin]
+                       : [JFGamePieceSkin cardBlackInkColorForSkin:skin];
+    JFCardFaceArtworkView *artwork = (JFCardFaceArtworkView *)[button viewWithTag:JFPyramidArtworkTag];
+    artwork.frame = button.bounds;
+    artwork.skin = skin;
+    [artwork configureWithRank:card.rank suit:card.suit compact:YES];
+    [button setTitle:@"" forState:UIControlStateNormal];
     [button setTitleColor:ink forState:UIControlStateNormal];
-    button.backgroundColor = [UIColor colorWithWhite:0.98 alpha:available ? 1 : 0.78];
-    button.layer.borderColor = selected ? [JFTheme accent].CGColor : [[UIColor whiteColor] colorWithAlphaComponent:0.5].CGColor;
+    button.backgroundColor = [[JFGamePieceSkin cardFaceColorForSkin:skin] colorWithAlphaComponent:available ? 1 : 0.78];
+    button.layer.borderColor = selected ? [JFTheme accent].CGColor : [[JFGamePieceSkin cardBorderColorForSkin:skin] colorWithAlphaComponent:0.64].CGColor;
     button.layer.borderWidth = selected ? 3 : 1;
     button.alpha = available ? 1 : 0.78;
     button.enabled = available;
@@ -673,6 +737,8 @@
                        available:YES];
     } else {
         self.pyramidWasteButton.hidden = NO;
+        JFCardFaceArtworkView *artwork = (JFCardFaceArtworkView *)[self.pyramidWasteButton viewWithTag:JFPyramidArtworkTag];
+        [artwork configureWithRank:@"" suit:@"" compact:YES];
         self.pyramidWasteButton.backgroundColor = [[JFTheme brandPrimary] colorWithAlphaComponent:0.7];
         self.pyramidWasteButton.layer.borderColor = [JFTheme cardBorder].CGColor;
         self.pyramidWasteButton.layer.borderWidth = 1;
@@ -917,6 +983,7 @@
         CGFloat y = 8 + row * rowStep;
         for (NSInteger col = 0; col <= row; col++) {
             self.pyramidButtons[idx].frame = CGRectMake(x + col * (cardWidth + gap), y, cardWidth, cardHeight);
+            [self.pyramidButtons[idx] viewWithTag:JFPyramidArtworkTag].frame = self.pyramidButtons[idx].bounds;
             idx += 1;
         }
     }
@@ -924,6 +991,7 @@
     CGFloat wasteHeight = wasteWidth * 1.28;
     CGFloat wasteY = MIN(height - wasteHeight - 8, 8 + 6 * rowStep + cardHeight + 12);
     self.pyramidWasteButton.frame = CGRectMake((width - wasteWidth) / 2.0, wasteY, wasteWidth, wasteHeight);
+    [self.pyramidWasteButton viewWithTag:JFPyramidArtworkTag].frame = self.pyramidWasteButton.bounds;
     self.pyramidStockLabel.frame = CGRectMake(12, wasteY + (wasteHeight - 24) / 2.0, (width - wasteWidth) / 2.0 - 24, 24);
 }
 

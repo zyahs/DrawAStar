@@ -82,7 +82,10 @@
 
 - (void)viewDidLoad {
     [super viewDidLoad];
-    self.games = [JFGameEntry allEntries];
+    NSPredicate *rankedGames = [NSPredicate predicateWithBlock:^BOOL(JFGameEntry *entry, NSDictionary *bindings) {
+        return entry.kind != JFGameKindRecommendedSocial;
+    }];
+    self.games = [[JFGameEntry allEntries] filteredArrayUsingPredicate:rankedGames];
     self.entries = @[];
     self.view.backgroundColor = [JFTheme backgroundPrimary];
     self.themeBackground = [JFTheme installThemedBackgroundInView:self.view];

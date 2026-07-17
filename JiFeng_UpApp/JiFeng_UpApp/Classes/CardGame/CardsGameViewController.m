@@ -12,6 +12,8 @@
 #import "JFProfileStore.h"
 #import "JFDailyChallengeStore.h"
 #import "JFTheme.h"
+#import "JFGamePieceSkin.h"
+#import "JFSkinStore.h"
 
 static NSDictionary<NSString *, NSString *> *JFPartyRule(NSString *title, NSString *body) {
     return @{ @"title": title, @"body": body };
@@ -119,6 +121,8 @@ static NSDictionary<NSString *, NSString *> *JFPartyRule(NSString *title, NSStri
 @end
 
 @implementation JFCardView {
+    JFGamePieceSkinView *_skinView;
+    JFCardFaceArtworkView *_artworkView;
     UILabel *_tlRank, *_tlSuit, *_brRank, *_brSuit, *_centerLabel;
 }
 - (instancetype)init {
@@ -130,13 +134,14 @@ static NSDictionary<NSString *, NSString *> *JFPartyRule(NSString *title, NSStri
         self.layer.shadowRadius  = 12;
         self.layer.shadowOffset  = CGSizeMake(0, 6);
 
-        UIView *cardBG = [[UIView alloc] init];
-        cardBG.backgroundColor = [UIColor colorWithWhite:1 alpha:0.96];
-        cardBG.layer.cornerRadius = 16;
-        cardBG.layer.borderColor = [UIColor colorWithWhite:0.9 alpha:1].CGColor;
-        cardBG.layer.borderWidth = 1.0 / UIScreen.mainScreen.scale;
-        cardBG.tag = 101;
-        [self addSubview:cardBG];
+        _skinView = [[JFGamePieceSkinView alloc] init];
+        _skinView.surfaceStyle = JFGamePieceSurfaceStyleCardBack;
+        _skinView.showsCenterEmblem = NO;
+        [self addSubview:_skinView];
+
+        _artworkView = [[JFCardFaceArtworkView alloc] init];
+        _artworkView.userInteractionEnabled = NO;
+        [self addSubview:_artworkView];
 
         _tlRank = [self label:18 weight:UIFontWeightSemibold];
         _tlSuit = [self label:18 weight:UIFontWeightRegular];
@@ -149,8 +154,17 @@ static NSDictionary<NSString *, NSString *> *JFPartyRule(NSString *title, NSStri
         [self addSubview:_brRank];
         [self addSubview:_brSuit];
         [self addSubview:_centerLabel];
+
+        [[NSNotificationCenter defaultCenter] addObserver:self
+                                                 selector:@selector(onSkinChanged)
+                                                     name:JFSkinDidChangeNotification
+                                                   object:nil];
     }
     return self;
+}
+
+- (void)dealloc {
+    [[NSNotificationCenter defaultCenter] removeObserver:self];
 }
 
 - (UILabel *)label:(CGFloat)size weight:(UIFontWeight)w {
@@ -163,8 +177,8 @@ static NSDictionary<NSString *, NSString *> *JFPartyRule(NSString *title, NSStri
 
 - (void)layoutSubviews {
     [super layoutSubviews];
-    UIView *bg = [self viewWithTag:101];
-    bg.frame = self.bounds;
+    _skinView.frame = self.bounds;
+    _artworkView.frame = self.bounds;
 
     CGFloat pad = 12;
     _tlRank.frame = CGRectMake(pad, pad, 40, 22);
@@ -186,9 +200,20 @@ static NSDictionary<NSString *, NSString *> *JFPartyRule(NSString *title, NSStri
 
     BOOL placeholder = [rank isEqualToString:@"999"];
     BOOL red = [suit isEqualToString:@"♥"] || [suit isEqualToString:@"♦"];
-    UIColor *c = card ? (red ? [UIColor colorWithRed:0.90 green:0.11 blue:0.14 alpha:1]
-                                : UIColor.blackColor)
-                    : [UIColor secondaryLabelColor];
+    JFSkin *skin = [JFGamePieceSkin currentSkin];
+    UIColor *c = placeholder
+        ? [JFGamePieceSkin cardBackDetailColorForSkin:skin]
+        : (red ? [JFGamePieceSkin cardRedInkColorForSkin:skin]
+               : [JFGamePieceSkin cardBlackInkColorForSkin:skin]);
+    _skinView.surfaceStyle = placeholder ? JFGamePieceSurfaceStyleCardBack : JFGamePieceSurfaceStyleCardFace;
+
+    if (placeholder) {
+        _artworkView.hidden = YES;
+    } else {
+        _artworkView.hidden = NO;
+        [_artworkView configureWithRank:rank suit:suit compact:NO];
+    }
+    BOOL showsArtworkCorners = !placeholder;
 
     _tlRank.textColor = c;
     _tlSuit.textColor = c;
@@ -200,7 +225,16 @@ static NSDictionary<NSString *, NSString *> *JFPartyRule(NSString *title, NSStri
     _tlSuit.text = placeholder ? @"" : suit;
     _brRank.text = placeholder ? @"" : rank;
     _brSuit.text = placeholder ? @"" : suit;
-    _centerLabel.text = placeholder ? @"抽牌" : [NSString stringWithFormat:@"%@%@", rank, suit];
+    _tlRank.hidden = showsArtworkCorners;
+    _tlSuit.hidden = showsArtworkCorners;
+    _brRank.hidden = showsArtworkCorners;
+    _brSuit.hidden = showsArtworkCorners;
+    _centerLabel.hidden = !placeholder;
+    _centerLabel.text = placeholder ? @"抽牌" : @"";
+}
+
+- (void)onSkinChanged {
+    [self setCard:self.card];
 }
 
 @end

@@ -283,7 +283,7 @@ static NSString * const kJFBackendGuestDeviceIdKey = @"jf_backend_guest_device_i
             NSDictionary *user = [item[@"user"] isKindOfClass:[NSDictionary class]] ? item[@"user"] : @{};
             JFLeaderboardEntry *entry = [[JFLeaderboardEntry alloc] init];
             entry.playerId = [user[@"id"] isKindOfClass:[NSString class]] ? user[@"id"] : @"";
-            entry.displayName = [user[@"displayName"] isKindOfClass:[NSString class]] ? user[@"displayName"] : @"继风玩家";
+            entry.displayName = [user[@"displayName"] isKindOfClass:[NSString class]] ? user[@"displayName"] : @"新玩家";
             entry.score = [item[@"score"] integerValue];
             entry.rank = rank++;
             entry.date = [NSDate date];
@@ -403,6 +403,9 @@ static NSString * const kJFBackendGuestDeviceIdKey = @"jf_backend_guest_device_i
         case JFGameKindRhythm: return @"RHYTHM";
         case JFGameKindSokoban: return @"SOKOBAN";
         case JFGameKindPacman: return @"PACMAN";
+        case JFGameKindRecommendedSocial: return @"RECOMMENDED_SOCIAL";
+        case JFGameKindNeverHaveIEver: return @"NEVER_HAVE_I_EVER";
+        case JFGameKindDrawGuess: return @"DRAW_GUESS";
     }
 }
 

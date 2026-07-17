@@ -16,7 +16,7 @@ static NSString * const kJFPlayerSetupCompleteKey = @"jf_player_setup_complete_v
     if ([defaults boolForKey:kJFPlayerSetupCompleteKey]) return YES;
 
     NSString *name = [JFProfileStore shared].displayName;
-    if (name.length >= 2 && ![name isEqualToString:@"继风玩家"]) {
+    if (name.length >= 2 && ![name isEqualToString:@"继风玩家"] && ![name isEqualToString:@"新玩家"]) {
         [defaults setBool:YES forKey:kJFPlayerSetupCompleteKey];
         return YES;
     }
@@ -45,7 +45,7 @@ static NSString * const kJFPlayerSetupCompleteKey = @"jf_player_setup_complete_v
 
     NSString *body = message.length > 0
         ? message
-        : @"设置一个昵称，它会用于大厅聊天、国王游戏、谁是卧底和联机牌桌。无需额外记住密码。";
+        : @"设置一个昵称，它会用于大厅聊天、我有你没有、国王游戏、谁是卧底和联机牌桌。无需额外记住密码。";
     UIAlertController *alert = [UIAlertController alertControllerWithTitle:@"创建玩家账号"
                                                                    message:body
                                                             preferredStyle:UIAlertControllerStyleAlert];

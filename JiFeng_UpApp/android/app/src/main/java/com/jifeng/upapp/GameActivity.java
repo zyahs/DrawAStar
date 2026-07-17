@@ -34,6 +34,7 @@ public class GameActivity extends Activity {
     @Override
     protected void onCreate(Bundle state) {
         super.onCreate(state);
+        JFTheme.apply(this);
         kind = getIntent().getStringExtra("kind");
         title = getIntent().getStringExtra("title");
         if (title == null) title = "小游戏";

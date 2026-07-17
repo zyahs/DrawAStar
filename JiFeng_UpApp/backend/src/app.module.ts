@@ -7,6 +7,7 @@ import { ChatModule } from './chat/chat.module';
 import { GamesModule } from './games/games.module';
 import { MultiplayerModule } from './multiplayer/multiplayer.module';
 import { PrismaService } from './common/prisma.service';
+import { SupportModule } from './support/support.module';
 import { UsersModule } from './users/users.module';
 
 @Module({
@@ -18,6 +19,7 @@ import { UsersModule } from './users/users.module';
     GamesModule,
     MultiplayerModule,
     ChatModule,
+    SupportModule,
     AdminModule,
   ],
   providers: [PrismaService],

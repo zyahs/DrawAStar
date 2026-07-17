@@ -85,7 +85,7 @@ static NSString * const kK_Signature      = @"signature";
         root[kK_Level]         = @1;
         root[kK_CurStreak]     = @0;
         root[kK_LongestStreak] = @0;
-        root[kK_DisplayName]   = @"继风玩家";
+        root[kK_DisplayName]   = @"新玩家";
         root[kK_AvatarSymbol]  = @"person.crop.circle.fill";
         root[kK_Background]    = @"aurora";
         root[kK_Signature]     = @"今晚也要赢一局";
@@ -119,7 +119,7 @@ static NSString * const kK_Signature      = @"signature";
 - (NSInteger)longestStreakDays { return [self.root[kK_LongestStreak] integerValue]; }
 - (NSString *)displayName {
     NSString *name = self.root[kK_DisplayName];
-    return name.length > 0 ? name : @"继风玩家";
+    return name.length > 0 ? name : @"新玩家";
 }
 - (NSString *)avatarSymbolName {
     NSString *name = self.root[kK_AvatarSymbol];
@@ -264,7 +264,7 @@ static NSString * const kK_Signature      = @"signature";
 }
 
 - (void)updateDisplayName:(NSString *)displayName {
-    self.root[kK_DisplayName] = [self trimmedText:displayName maxLength:16 fallback:@"继风玩家"];
+    self.root[kK_DisplayName] = [self trimmedText:displayName maxLength:16 fallback:@"新玩家"];
     [self save];
     [self broadcast];
     [[JFLeaderboardClient shared] setDisplayName:self.displayName];

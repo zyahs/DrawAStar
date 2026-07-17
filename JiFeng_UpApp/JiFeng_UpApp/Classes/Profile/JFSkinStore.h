@@ -25,7 +25,15 @@ extern NSNotificationName const JFSkinDidChangeNotification;
 @property (nonatomic, strong) UIColor  *backgroundBottom;
 @property (nonatomic, copy)   NSString *patternStyle;   // stars / bows / monsters / clouds / dots ...
 @property (nonatomic, copy)   NSString *symbolName;     // 主题符号
+@property (nonatomic, copy)   NSString *pieceStyle;     // 纸牌与骰子的材质语言
 @property (nonatomic, assign) NSInteger price;         // 0 = 免费
+@end
+
+@interface JFCardFacePreset : NSObject
+@property (nonatomic, copy) NSString *presetId;
+@property (nonatomic, copy) NSString *displayName;
+@property (nonatomic, copy) NSString *desc;
+@property (nonatomic, copy) NSString *symbolName;
 @end
 
 @interface JFSkinStore : NSObject
@@ -35,11 +43,16 @@ extern NSNotificationName const JFSkinDidChangeNotification;
 /// 全部可用皮肤定义(从内置静态表读取)
 @property (nonatomic, readonly) NSArray<JFSkin *> *allSkins;
 
+/// 纸牌正面预设，独立于全局皮肤切换。
+@property (nonatomic, readonly) NSArray<JFCardFacePreset *> *allCardFacePresets;
+
 /// 当前选中的皮肤 id
 @property (nonatomic, copy, readonly) NSString *currentSkinId;
+@property (nonatomic, copy, readonly) NSString *currentCardFacePresetId;
 
 /// 当前选中皮肤(便捷取)
 - (JFSkin *)currentSkin;
+- (JFCardFacePreset *)currentCardFacePreset;
 
 /// 通过 id 找皮肤
 - (nullable JFSkin *)skinById:(NSString *)skinId;
@@ -53,6 +66,9 @@ extern NSNotificationName const JFSkinDidChangeNotification;
 
 /// 切换当前皮肤(必须已解锁)
 - (BOOL)applySkin:(NSString *)skinId;
+
+/// 切换纸牌正面预设，所有预设当前均免费开放。
+- (BOOL)applyCardFacePreset:(NSString *)presetId;
 
 @end
 

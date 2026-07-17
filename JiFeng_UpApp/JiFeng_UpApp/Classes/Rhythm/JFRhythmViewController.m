@@ -1,7 +1,7 @@
 //
 //  JFRhythmViewController.m
 //
-//  节奏点点 ——
+//  节奏大师 ——
 //  · 顶部「歌单」按钮:列出「我的导入」+「内置预设节奏」,长按可删除导入歌
 //  · 「导入音乐」从文件 App / iCloud 选音频,自动分析 BPM、生成谱面、本地化保存
 //  · 「开始」/「暂停」/「继续」三态控制
@@ -839,7 +839,7 @@ typedef NS_ENUM(NSInteger, JFRhythmState) {
 
     self.titleLabel = [[UILabel alloc] init];
     self.titleLabel.translatesAutoresizingMaskIntoConstraints = NO;
-    self.titleLabel.text = @"节奏冲刺";
+    self.titleLabel.text = @"节奏大师";
     self.titleLabel.textColor = [UIColor whiteColor];
     self.titleLabel.font = [UIFont systemFontOfSize:34 weight:UIFontWeightBlack];
     [self.setupView addSubview:self.titleLabel];
@@ -1349,8 +1349,8 @@ typedef NS_ENUM(NSInteger, JFRhythmState) {
         }
     } else {
         self.songLabel.text = @"选择一首歌开始";
-        self.gameSongLabel.text = @"节奏冲刺";
-        self.pauseSongLabel.text = @"节奏冲刺";
+        self.gameSongLabel.text = @"节奏大师";
+        self.pauseSongLabel.text = @"节奏大师";
         self.statusLabel.text = @"支持内置曲目和本地音频";
     }
     self.bestLabel.text = [NSString stringWithFormat:@"BEST  %06ld", (long)self.best];
@@ -1572,13 +1572,8 @@ typedef NS_ENUM(NSInteger, JFRhythmState) {
 }
 
 - (void)presentDocumentPicker {
-    UIDocumentPickerViewController *picker;
-    if (@available(iOS 14.0, *)) {
-        NSArray<UTType *> *types = @[ UTTypeAudio, UTTypeMP3, UTTypeMPEG4Audio, UTTypeWAV, UTTypeAIFF ];
-        picker = [[UIDocumentPickerViewController alloc] initForOpeningContentTypes:types asCopy:YES];
-    } else {
-        picker = [[UIDocumentPickerViewController alloc] initWithDocumentTypes:@[@"public.audio"] inMode:UIDocumentPickerModeImport];
-    }
+    NSArray<UTType *> *types = @[ UTTypeAudio, UTTypeMP3, UTTypeMPEG4Audio, UTTypeWAV, UTTypeAIFF ];
+    UIDocumentPickerViewController *picker = [[UIDocumentPickerViewController alloc] initForOpeningContentTypes:types asCopy:YES];
     picker.delegate = self;
     picker.allowsMultipleSelection = NO;
     [self presentViewController:picker animated:YES completion:nil];
@@ -1739,7 +1734,7 @@ typedef NS_ENUM(NSInteger, JFRhythmState) {
 
 - (void)showPauseMenu {
     if (self.state != JFRhythmStatePaused || !self.pauseOverlay.hidden) return;
-    self.pauseSongLabel.text = self.currentSong.title ?: @"节奏冲刺";
+    self.pauseSongLabel.text = self.currentSong.title ?: @"节奏大师";
     self.pauseDiffSeg.selectedSegmentIndex = self.currentSong.isTutorial ? JFRhythmDifficultyEasy : self.difficulty;
     self.pauseOverlay.hidden = NO;
     self.pauseOverlay.alpha = 0;

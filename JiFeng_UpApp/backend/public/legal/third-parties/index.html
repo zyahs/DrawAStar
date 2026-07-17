@@ -1,0 +1,82 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="description" content="一桌好戏第三方服务与SDK清单">
+  <title>第三方服务清单 · 一桌好戏</title>
+  <link rel="stylesheet" href="../assets/legal.css">
+</head>
+<body>
+  <header class="topbar">
+    <div class="topbar-inner">
+      <a class="brand" href="../"><span class="brand-mark">一桌</span><span>一桌好戏</span></a>
+      <nav class="topnav" aria-label="主要导航">
+        <a href="../privacy/">隐私政策</a>
+        <a href="../terms/">用户协议</a>
+        <a href="../account/">隐私选择</a>
+        <a href="../support/">支持中心</a>
+      </nav>
+    </div>
+  </header>
+
+  <section class="hero">
+    <div class="hero-inner">
+      <p class="eyebrow">THIRD-PARTY SERVICES</p>
+      <h1>第三方服务与 SDK 清单</h1>
+      <p>当前版本不集成第三方广告、统计、推送、支付、社交分享或人脸识别 SDK。联网服务使用下列云基础设施。</p>
+      <div class="meta"><span>更新日期：2026 年 7 月 17 日</span><span>版本：1.0</span></div>
+    </div>
+  </section>
+
+  <main class="page document">
+    <section>
+      <h2>受托云服务</h2>
+      <div class="table-wrap">
+        <table>
+          <thead><tr><th>服务提供方</th><th>服务类型</th><th>可能处理的信息</th><th>目的与方式</th><th>政策链接</th></tr></thead>
+          <tbody>
+            <tr>
+              <td><strong>阿里云计算有限公司</strong></td>
+              <td>云服务器、网络、存储与安全基础设施</td>
+              <td>你向一桌好戏服务器提交的账号、资料、聊天、游戏、统计和支持请求数据，以及访问 IP 与网络日志</td>
+              <td>在中国境内承载一桌好戏后端；阿里云作为云服务提供商，按服务约定和我们的指示提供基础设施</td>
+              <td><a href="https://terms.aliyun.com/legal-agreement/terms/suit_bu1_ali_cloud/suit_bu1_ali_cloud202107091605_49213.html" rel="noopener noreferrer">阿里云隐私政策</a></td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+    </section>
+
+    <section>
+      <h2>系统框架与本机能力</h2>
+      <p>以下能力由操作系统提供，不属于一桌好戏接入的独立第三方商业 SDK。它们仅在你使用对应功能时按系统规则运行：</p>
+      <div class="table-wrap">
+        <table>
+          <thead><tr><th>平台能力</th><th>用途</th><th>是否上传给一桌好戏</th></tr></thead>
+          <tbody>
+            <tr><td>Apple Photos / 系统照片选择器</td><td>选择拼图、画板素材与保存作品</td><td>所选照片不上传</td></tr>
+            <tr><td>Apple MultipeerConnectivity / Bonjour</td><td>发现并连接附近玩家</td><td>局域网内临时通信</td></tr>
+            <tr><td>Apple UserNotifications</td><td>设备本地战绩周报</td><td>通知内容不上传</td></tr>
+            <tr><td>Apple / Android 系统文件与音频能力</td><td>导入、分析和播放本地音频</td><td>导入音频不上传</td></tr>
+            <tr><td>Android 系统网络与安全标识 API</td><td>访问联网服务、生成游客设备标识</td><td>设备标识会提交至一桌好戏服务器</td></tr>
+          </tbody>
+        </table>
+      </div>
+    </section>
+
+    <section>
+      <h2>自建与开源组件说明</h2>
+      <p>后端使用自建的 NestJS、Prisma、MariaDB 与 Nginx 组件部署在我们的云服务器上。这些组件不会作为独立数据接收方自行收集用户信息。</p>
+      <div class="notice">若后续接入广告、统计、支付、登录、客服或其他第三方 SDK，我们会在上线前更新本清单，列明提供方、用途、信息种类、触发场景和隐私政策。</div>
+    </section>
+  </main>
+
+  <footer class="footer">
+    <div class="footer-inner">
+      <p>一桌好戏 · 第三方服务与 SDK 清单</p>
+      <p><a href="../privacy/">隐私政策</a> · <a href="../support/">联系我们</a></p>
+    </div>
+  </footer>
+</body>
+</html>
